@@ -7,7 +7,6 @@ import { useWallet, StoredWallet } from "../../WalletContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
@@ -101,10 +100,8 @@ export default function ManageWalletsPage() {
         <div
           className="text-center space-y-2"
         >
-          <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-            <Icon icon="lucide:wallet" className="w-7 h-7 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold">Manage Wallets</h1>
+          <Icon icon="lucide:wallet" className="mx-auto w-8 h-8 text-primary" />
+          <h1 className="text-2xl font-bold">Manage wallets</h1>
           <p className="text-muted-foreground text-sm">Switch between or manage your wallets</p>
         </div>
 
@@ -114,13 +111,11 @@ export default function ManageWalletsPage() {
             storedWallets.map((wallet, index) => (
               <div key={wallet.address}
               >
-                <Card className={`bg-card border-border ${wallet.address === walletAddress ? 'ring-2 ring-primary/50' : ''}`}>
+                <Card className="bg-card border-0">
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${wallet.address === walletAddress ? 'bg-primary/20' : 'bg-muted'}`}>
-                          <Icon icon="lucide:wallet" className={`w-5 h-5 ${wallet.address === walletAddress ? 'text-primary' : 'text-muted-foreground'}`} />
-                        </div>
+                        <Icon icon="lucide:wallet" className={`w-5 h-5 shrink-0 ${wallet.address === walletAddress ? 'text-primary' : 'text-muted-foreground'}`} />
                         <div className="flex-1 min-w-0">
                           {editingWallet === wallet.address ? (
                             <div className="flex items-center gap-2">
@@ -154,12 +149,10 @@ export default function ManageWalletsPage() {
                             </div>
                           ) : (
                             <>
-                              <div className="flex items-center gap-2 flex-wrap">
+                              <div className="flex items-baseline gap-2">
                                 <span className="font-semibold text-foreground truncate">{wallet.name}</span>
                                 {wallet.address === walletAddress && (
-                                  <Badge variant="secondary" className="bg-primary/20 text-primary text-xs py-0 px-1.5 shrink-0">
-                                    Active
-                                  </Badge>
+                                  <span className="text-xs font-medium text-green-400 shrink-0">Active</span>
                                 )}
                               </div>
                               <div className="flex items-center gap-2 mt-1">
@@ -211,7 +204,7 @@ export default function ManageWalletsPage() {
                                 <Icon icon="lucide:trash-2" className="w-4 h-4" />
                               </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent className="bg-card border-border text-foreground">
+                            <AlertDialogContent className="bg-card border-0 text-foreground">
                               <AlertDialogHeader className="text-left">
                                 <AlertDialogTitle>Remove this wallet?</AlertDialogTitle>
                                 <AlertDialogDescription className="text-left text-muted-foreground">
@@ -219,7 +212,7 @@ export default function ManageWalletsPage() {
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel className="bg-muted border-border text-foreground hover:bg-accent">Cancel</AlertDialogCancel>
+                                <AlertDialogCancel className="bg-muted border-0 text-foreground hover:bg-accent">Cancel</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => handleDeleteWallet(wallet.address)}
                                   className="bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0"
@@ -239,7 +232,7 @@ export default function ManageWalletsPage() {
               </div>
             ))
           ) : (
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-0">
               <CardContent className="p-8 text-center">
                 <Icon icon="lucide:wallet" className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
                 <p className="text-muted-foreground">No wallets found</p>
@@ -254,7 +247,7 @@ export default function ManageWalletsPage() {
           className="space-y-3"
         >
           <Button
-            className="w-full bg-card border border-border text-foreground hover:bg-muted h-14"
+            className="w-full bg-card border-0 text-foreground hover:bg-muted h-14"
             disabled={storedWallets.length >= 5}
             asChild
           >

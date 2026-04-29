@@ -16,12 +16,28 @@ export function useTelegramBackButton(path: Route | (string & {}) = "/home", opt
             tg?.enableClosingConfirmation();
         }
 
-        const handleBackButtonClick = () => {
+        const navigateBack = () => {
             try {
                 router.replace(targetPath as Route);
             } catch {
                 window.location.href = targetPath;
             }
+        };
+
+        const handleBackButtonClick = () => {
+            const showConfirm = (tg as { showConfirm?: (message: string, callback: (confirmed: boolean) => void) => void } | undefined)?.showConfirm;
+            if (options?.closeConfirmation && showConfirm) {
+                showConfirm("Are you sure you want to leave? Your current progress will be lost.", (confirmed: boolean) => {
+                    if (confirmed) navigateBack();
+                });
+                return;
+            }
+
+            if (options?.closeConfirmation && !window.confirm("Are you sure you want to leave? Your current progress will be lost.")) {
+                return;
+            }
+
+            navigateBack();
         };
 
         tg?.BackButton.show();

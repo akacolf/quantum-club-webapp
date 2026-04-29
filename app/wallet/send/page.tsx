@@ -55,6 +55,7 @@ import {
 } from "../utils/multichain";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { tonApiGet, tonApiPost, sendBoc } from "@/lib/tonapi-client";
+import { formatTruncatedAmount } from "@/lib/format";
 
 type NetworkMode = "ton" | "multichain";
 type MultiChainType = "eth" | "sol" | "trx" | "btc";
@@ -1205,7 +1206,7 @@ export default function SendPage() {
                           <Image src={currentChain.image} alt={currentChain.symbol} width={32} height={32} className="w-8 h-8 rounded-full" unoptimized />
                           <div className="text-left">
                             <div className="font-bold text-foreground">{currentChain.symbol}</div>
-                            <div className="text-xs text-muted-foreground">Balance: {currentChain.balance.toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">Balance: {formatTruncatedAmount(currentChain.balance, 2)}</div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1233,7 +1234,7 @@ export default function SendPage() {
                             <div className="text-xs text-muted-foreground">{chain.name}</div>
                           </div>
                           <div className="text-right">
-                            <div className="font-medium">{chain.balance.toFixed(2)}</div>
+                            <div className="font-medium">{formatTruncatedAmount(chain.balance, 2)}</div>
                             <div className="text-xs text-muted-foreground">${chain.usdValue.toFixed(2)}</div>
                           </div>
                           {chain.id === selectedChain && (
@@ -1289,7 +1290,7 @@ export default function SendPage() {
                     <Label className="text-sm text-muted-foreground">Amount</Label>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">
-                        {currentChain.balance.toFixed(2)} {currentChain.symbol}
+                        {formatTruncatedAmount(currentChain.balance, 2)} {currentChain.symbol}
                       </span>
                       <Button
                         variant="ghost"

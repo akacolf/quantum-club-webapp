@@ -330,7 +330,7 @@ export default function WalletSettingsPage() {
           <div className="space-y-3">
             <h2 className="ml-1 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
               <Icon icon="lucide:help-circle" className="w-4 h-4" />
-              Frequently asked questions
+              FAQ
             </h2>
 
             <Accordion type="single" collapsible className="space-y-2">

@@ -37,6 +37,7 @@ import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { categorizeNft } from "@/lib/nft-marketplace";
 import { useLivePrice } from "@/app/(hooks)/queries/use-trades";
+import { formatTruncatedAmount } from "@/lib/format";
 
 const AnimatedPrice = dynamic(
   () => import("@/components/ui/animated-price").then((mod) => mod.AnimatedPrice),
@@ -93,11 +94,9 @@ const WALLET_SYMBOLS = [
   "solar:planet-bold",
 ];
 
-// Format amount to 2 decimal places for display
+// Format spendable amounts without overstating the displayed balance.
 const formatAmount = (value: number | string, decimals: number = 2): string => {
-  const num = typeof value === "string" ? parseFloat(value) : value;
-  if (isNaN(num)) return "0.00";
-  return num.toFixed(decimals);
+  return formatTruncatedAmount(value, decimals);
 };
 
 // Format USD value
@@ -600,11 +599,11 @@ export default function WalletPage() {
                         variant="ghost"
                         className="h-9 max-w-52 rounded-full border-0 bg-transparent px-0 text-sm font-semibold text-neutral-200 hover:bg-transparent hover:text-white"
                       >
-                        <Icon icon={walletSymbol} className="mr-1 h-5 w-5 text-neutral-300" />
+                        <Icon icon={walletSymbol} className="mr-1.5 h-5 w-5 text-neutral-300" />
                         <span className="truncate">
                           {storedWallets.find((wallet) => wallet.address === walletAddress)?.name ?? "Wallet"}
                         </span>
-                        <Icon icon="lucide:chevron-down" className="ml-2 h-4 w-4 shrink-0" />
+                        <Icon icon="lucide:chevron-down" className="ml-1 h-4 w-4 shrink-0" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="min-w-60 rounded-2xl border-0 bg-popover p-2 text-white shadow-2xl">
@@ -1019,7 +1018,7 @@ export default function WalletPage() {
                 {jettonsVirtualizer.getVirtualItems().map((virtualItem) => {
                   const index = virtualItem.index;
                   const jetton = jettons[index];
-                  const formattedBalance = (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4);
+                  const formattedBalance = formatAmount(parseFloat(jetton.balance) / Math.pow(10, jetton.decimals), 4);
                   const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
                   return (
                     <div
@@ -1087,7 +1086,7 @@ export default function WalletPage() {
                   setSelectedAsset({
                     name: "Bitcoin",
                     symbol: "BTC",
-                    balance: btcBalance.toFixed(8),
+                    balance: formatAmount(btcBalance, 8),
                     value: btcUsdValue,
                     priceUsd: btcPrice,
                     image: BTC_ICON,
@@ -1136,7 +1135,7 @@ export default function WalletPage() {
                   setSelectedAsset({
                     name: "Ethereum",
                     symbol: "ETH",
-                    balance: ethBalance.toFixed(6),
+                    balance: formatAmount(ethBalance, 6),
                     value: ethUsdValue,
                     priceUsd: ethPrice,
                     image: ETH_ICON,
@@ -1185,7 +1184,7 @@ export default function WalletPage() {
                   setSelectedAsset({
                     name: "Solana",
                     symbol: "SOL",
-                    balance: solBalance.toFixed(4),
+                    balance: formatAmount(solBalance, 4),
                     value: solUsdValue,
                     priceUsd: solPrice,
                     image: SOL_ICON,
@@ -1234,7 +1233,7 @@ export default function WalletPage() {
                   setSelectedAsset({
                     name: "TRON",
                     symbol: "TRX",
-                    balance: trxBalance.toFixed(2),
+                    balance: formatAmount(trxBalance, 2),
                     value: trxUsdValue,
                     priceUsd: trxPrice,
                     image: TRX_ICON,
@@ -1376,9 +1375,9 @@ export default function WalletPage() {
                 </div>
 
                 {/* Current Price */}
-                <div className="mb-6 flex items-end justify-between gap-4">
-                  <p className="text-neutral-400 text-sm pb-1">Current price</p>
-                  <h2 className="text-right text-3xl font-bold text-white">
+                <div className="mb-6 space-y-1">
+                  <p className="text-neutral-400 text-sm">Current price</p>
+                  <h2 className="text-3xl font-bold text-white">
                     <AnimatedPrice 
                       value={selectedAsset.priceUsd || 0} 
                       decimals={2}
@@ -1466,41 +1465,43 @@ function WalletOnboardingReveal({
         <WalletWelcomeCinematic />
       </div>
 
-      <div className="space-y-3 px-2 pb-2">
-        <h3 className="text-3xl font-bold text-white tracking-tight">
-          Welcome to QC Wallet, {tgFirstName}.
-        </h3>
-        <p className="text-neutral-400 text-sm max-w-[340px] mx-auto leading-relaxed">
-          This is your secure, fast, and reliable home for your assets. Tap below to create or import your wallet.
-        </p>
-      </div>
+      <div className="space-y-5">
+        <div className="space-y-3 px-2">
+          <h3 className="text-3xl font-bold text-white tracking-tight">
+            Welcome to QC Wallet, {tgFirstName}.
+          </h3>
+          <p className="text-neutral-400 text-sm max-w-[340px] mx-auto leading-relaxed">
+            This is your secure, fast, and reliable home for your assets. Tap below to create or import your wallet.
+          </p>
+        </div>
 
-      <div className="space-y-3 w-full">
-        <Button
-          onClick={createWallet}
-          disabled={isLoading}
-          className="w-full bg-white text-black hover:bg-neutral-200 h-12 rounded-xl font-semibold text-base shadow-lg shadow-white/5 border-0 inline-flex items-center justify-center gap-2"
-        >
-          {isLoading ? (
-            <ButtonLoader />
-          ) : (
-            <>
-              <Icon icon="lucide:plus" className="w-4 h-4" />
-              Create new wallet
-            </>
-          )}
-        </Button>
+        <div className="space-y-3 w-full">
+          <Button
+            onClick={createWallet}
+            disabled={isLoading}
+            className="w-full bg-white text-black hover:bg-neutral-200 h-12 rounded-xl font-semibold text-base shadow-lg shadow-white/5 border-0 inline-flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <ButtonLoader />
+            ) : (
+              <>
+                <Icon icon="lucide:plus" className="w-4 h-4" />
+                Create new wallet
+              </>
+            )}
+          </Button>
 
-        <Button
-          variant="secondary"
-          asChild
-          className="w-full h-12 rounded-xl font-semibold text-base inline-flex items-center justify-center gap-2"
-        >
-          <Link href="/wallet/import">
-            <Icon icon="lucide:download" className="w-4 h-4" />
-            Import existing wallet
-          </Link>
-        </Button>
+          <Button
+            variant="secondary"
+            asChild
+            className="w-full h-12 rounded-xl font-semibold text-base inline-flex items-center justify-center gap-2"
+          >
+            <Link href="/wallet/import">
+              <Icon icon="lucide:download" className="w-4 h-4" />
+              Import existing wallet
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -51,6 +51,7 @@ import {
 import { useOmnistonSwap, type QuoteParams } from "./hooks/useOmnistonSwap";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { swapSchema } from "@/lib/validations";
+import { formatTruncatedAmount } from "@/lib/format";
 
 // Custom hook for debouncing values
 function useDebounce<T>(value: T, delay: number): T {
@@ -278,7 +279,7 @@ export default function SwapPage() {
 
         if (asset.kind === "Ton") {
             const ton = parseFloat(tonBalance) || 0;
-            return displayDecimals === undefined ? tonBalance : ton.toFixed(displayDecimals);
+            return displayDecimals === undefined ? tonBalance : formatTruncatedAmount(ton, displayDecimals);
         }
 
         // Convert STON.fi asset address to raw format
@@ -293,7 +294,7 @@ export default function SwapPage() {
 
         if (jetton) {
             const balance = parseFloat(jetton.balance) / Math.pow(10, jetton.decimals);
-            return displayDecimals === undefined ? balance.toString() : balance.toFixed(displayDecimals);
+            return displayDecimals === undefined ? balance.toString() : formatTruncatedAmount(balance, displayDecimals);
         }
 
         return "0";

@@ -141,7 +141,7 @@ export default function AddressBookPage() {
         <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
             <div className="max-w-md mx-auto">
                 <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-xl font-bold">Address Book</h1>
+                    <h1 className="text-xl font-bold">Address book</h1>
                     <Button
                         size="sm"
                         onClick={() => { setIsAdding(true); setAddressError(null); }}
@@ -156,7 +156,7 @@ export default function AddressBookPage() {
                     {isAdding && (
                         <div
                         >
-                            <Card className="bg-card border-border mb-4">
+                            <Card className="bg-card border-0 mb-4">
                                 <CardContent className="p-4 space-y-3">
                                     <addForm.Field
                                         name="name"
@@ -172,7 +172,7 @@ export default function AddressBookPage() {
                                                         onChange={(e) => field.handleChange(e.target.value)}
                                                         aria-invalid={hasErrors}
                                                         placeholder="Name (e.g., My Friend)"
-                                                        className="bg-muted border-border text-foreground"
+                                                        className="bg-muted border border-border text-foreground"
                                                     />
                                                     {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                                                 </Field>
@@ -195,7 +195,7 @@ export default function AddressBookPage() {
                                                         onChange={(e) => { field.handleChange(e.target.value); setAddressError(null); }}
                                                         aria-invalid={isInvalid}
                                                         placeholder="TON Address"
-                                                        className={`bg-muted border-border text-foreground font-mono text-sm ${isInvalid ? "border-destructive" : ""}`}
+                                                        className={`bg-muted border border-border text-foreground font-mono text-sm ${isInvalid ? "border-destructive" : ""}`}
                                                     />
                                                     {hasFormErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                                                     {!hasFormErrors && hasManualError && <FieldError errors={[{ message: addressError }]} />}
@@ -211,7 +211,7 @@ export default function AddressBookPage() {
                                                 addForm.reset();
                                                 setAddressError(null);
                                             }}
-                                            className="flex-1 bg-muted border-border text-foreground"
+                                            className="flex-1 bg-muted border-0 text-foreground"
                                         >
                                             Cancel
                                         </Button>
@@ -239,14 +239,14 @@ export default function AddressBookPage() {
                 ) : (
                     <div className="space-y-3">
                         {addresses.map((entry) => (
-                            <Card key={entry.address} className="bg-card border-border">
+                            <Card key={entry.address} className="bg-card border-0">
                                 <CardContent className="p-4">
                                     {editingAddress === entry.address ? (
                                         <div className="flex items-center gap-2">
                                             <Input
                                                 value={editName}
                                                 onChange={(e) => setEditName(e.target.value)}
-                                                className="bg-muted border-border text-foreground flex-1"
+                                                className="bg-muted border border-border text-foreground flex-1"
                                                 autoFocus
                                             />
                                             <Button
