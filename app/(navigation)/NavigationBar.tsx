@@ -129,20 +129,25 @@ const NavigationBar = () => {
     const navRect = nav.getBoundingClientRect();
     const activeRect = activeEl.getBoundingClientRect();
 
-    const targetX = activeRect.left - navRect.left + (activeRect.width - pill.offsetWidth) / 2;
+    const targetX = activeRect.left - navRect.left + 4;
+    const targetWidth = activeRect.width - 8;
     if (prevActiveTab.current === activeTab) return;
 
     gsap.to(pill, {
       x: targetX,
+      width: targetWidth,
       duration: 0.45,
       ease: "power3.out",
     });
 
-    gsap.fromTo(
-      activeEl.querySelector("[data-tab-icon]"),
-      { scale: 0.85 },
-      { scale: 1, duration: 0.35, ease: "back.out(2)" },
-    );
+    const activeIcon = activeEl.querySelector("[data-tab-icon]");
+    if (activeIcon) {
+      gsap.fromTo(
+        activeIcon,
+        { scale: 0.85 },
+        { scale: 1, duration: 0.35, ease: "back.out(2)" },
+      );
+    }
 
     prevActiveTab.current = activeTab;
   }, [activeTab]);
@@ -159,11 +164,13 @@ const NavigationBar = () => {
     const navRect = nav.getBoundingClientRect();
     const activeRect = activeEl.getBoundingClientRect();
 
-    const targetX = activeRect.left - navRect.left + (activeRect.width - pill.offsetWidth) / 2;
+    const targetX = activeRect.left - navRect.left + 4;
+    const targetWidth = activeRect.width - 8;
 
     // First render: snap immediately
     if (prevActiveTab.current === activeTab) {
       pill.style.transform = `translateX(${targetX}px)`;
+      pill.style.width = `${targetWidth}px`;
     } else {
       animatePill();
     }
@@ -175,7 +182,7 @@ const NavigationBar = () => {
         {/* Animated pill indicator */}
         <div
           ref={pillRef}
-          className="absolute top-2 left-0 w-[calc(20%-8px)] h-[calc(100%-16px)] rounded-full bg-white/10 pointer-events-none will-change-transform"
+          className="absolute left-0 top-2 h-[calc(100%-16px)] rounded-full bg-white/10 pointer-events-none will-change-transform"
           aria-hidden
         />
 

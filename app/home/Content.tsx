@@ -9,7 +9,6 @@ import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import dynamic from "next/dynamic";
-import { useGsapReveal } from "@/app/(hooks)/useGsapReveal";
 import {
   useMiningDataQuery,
   useSolveToEarnMutation,
@@ -722,12 +721,11 @@ function SpotTokensSection() {
   );
 }
 
-// ─── GSAP-animated wrapper components ─────────────────────────────────
+// ─── Home wrapper components ─────────────────────────────────
 
 function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: string; tgFirstName: string; subtext: string }) {
-  const ref = useGsapReveal<HTMLDivElement>({ y: 24, duration: 0.6, immediate: true, delay: 0.05 });
   return (
-    <div ref={ref} className="w-[90%] mx-auto" style={{ opacity: 0 }}>
+    <div className="w-[90%] mx-auto">
       <p className="text-[20px] font-bold text-white leading-tight tracking-tight">
         {greetingText}, {tgFirstName}.
       </p>
@@ -739,18 +737,16 @@ function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: 
 }
 
 function DailyCheckInReveal(props: React.ComponentProps<typeof DailyCheckIn>) {
-  const ref = useGsapReveal<HTMLDivElement>({ y: 30, duration: 0.55, start: "bottom-=40" });
   return (
-    <div ref={ref} style={{ opacity: 0 }}>
+    <div>
       <DailyCheckIn {...props} />
     </div>
   );
 }
 
 function CarouselReveal() {
-  const ref = useGsapReveal<HTMLDivElement>({ y: 30, duration: 0.6, start: "bottom-=40" });
   return (
-    <div ref={ref} style={{ opacity: 0 }}>
+    <div>
       <HomeCarousel />
     </div>
   );

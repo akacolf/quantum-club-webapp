@@ -11,8 +11,7 @@ interface AnimatedPriceProps {
 }
 
 /**
- * Animated price component that shows smooth transitions when price changes
- * Uses GSAP for fluid number animations with direction indicators
+ * Price component that shows direction changes without route-blocking animation work.
  */
 export function AnimatedPrice({
   value,
@@ -21,81 +20,33 @@ export function AnimatedPrice({
   className = "",
   showDirection = true,
 }: AnimatedPriceProps) {
-  const containerRef = useRef<HTMLSpanElement>(null);
-  const valueRef = useRef<HTMLSpanElement>(null);
-  const animatedValue = useRef<{ val: number }>({ val: value });
   const [direction, setDirection] = useState<"up" | "down" | null>(null);
-  const directionTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const previousValueRef = useRef<number>(value);
+  const previousValueRef = useRef(value);
 
   useEffect(() => {
-    if (!valueRef.current) return;
+    const previousValue = previousValueRef.current;
 
-    const prevVal = previousValueRef.current;
-    const newVal = value;
-
-    // Determine direction and show indicator
-    if (newVal > prevVal) {
+    if (value > previousValue) {
       queueMicrotask(() => setDirection("up"));
-      clearTimeout(directionTimerRef.current);
-      directionTimerRef.current = setTimeout(() => setDirection(null), 1500);
-    } else if (newVal < prevVal) {
+    } else if (value < previousValue) {
       queueMicrotask(() => setDirection("down"));
-      clearTimeout(directionTimerRef.current);
-      directionTimerRef.current = setTimeout(() => setDirection(null), 1500);
+    } else {
+      return;
     }
 
-    // Dynamically import gsap and run animations
-    let cancelled = false;
-    import("gsap").then(({ gsap }) => {
-      if (cancelled) return;
+    previousValueRef.current = value;
+    const timeout = setTimeout(() => setDirection(null), 1500);
 
-      // Animate the number
-      gsap.to(animatedValue.current, {
-        val: newVal,
-        duration: 0.6,
-        ease: "power2.out",
-        onUpdate: () => {
-          if (valueRef.current) {
-            valueRef.current.textContent = `${prefix}${animatedValue.current.val.toFixed(decimals)}`;
-          }
-        },
-      });
-
-      // Flash animation on the container
-      if (containerRef.current && prevVal !== newVal) {
-        const color = newVal > prevVal ? "#22c55e" : "#ef4444"; // green or red
-
-        gsap.fromTo(
-          containerRef.current,
-          {
-            backgroundColor: `${color}20`,
-            scale: 1.02,
-          },
-          {
-            backgroundColor: "transparent",
-            scale: 1,
-            duration: 0.8,
-            ease: "power2.out",
-          }
-        );
-      }
-    });
-
-    previousValueRef.current = newVal;
-
-    return () => {
-      cancelled = true;
-      clearTimeout(directionTimerRef.current);
-    };
-  }, [value, prefix, decimals]);
+    return () => clearTimeout(timeout);
+  }, [value]);
 
   return (
     <span
-      ref={containerRef}
-      className={`inline-flex items-center gap-1.5 rounded-lg px-1 transition-colors ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-lg px-1 transition-colors ${
+        direction === "up" ? "bg-green-500/10" : direction === "down" ? "bg-red-500/10" : ""
+      } ${className}`}
     >
-      <span ref={valueRef}>
+      <span>
         {prefix}{value.toFixed(decimals)}
       </span>
       {showDirection && direction && (
@@ -120,8 +71,7 @@ export function AnimatedPrice({
 }
 
 /**
- * Animated balance component for larger displays
- * Shows smooth counting animation with color flash on change
+ * Balance component for larger displays.
  */
 export function AnimatedBalance({
   value,
@@ -129,57 +79,28 @@ export function AnimatedBalance({
   decimals = 2,
   className = "",
 }: Omit<AnimatedPriceProps, "showDirection">) {
-  const valueRef = useRef<HTMLSpanElement>(null);
-  const previousValueRef = useRef<number>(value);
-  const animatedValue = useRef<{ val: number }>({ val: value });
   const [flashColor, setFlashColor] = useState<string | null>(null);
-  const flashTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const previousValueRef = useRef(value);
 
   useEffect(() => {
-    if (!valueRef.current) return;
+    const previousValue = previousValueRef.current;
 
-    const prevVal = previousValueRef.current;
-    const newVal = value;
-
-    // Set flash color based on direction
-    if (newVal > prevVal) {
+    if (value > previousValue) {
       queueMicrotask(() => setFlashColor("text-green-400"));
-      clearTimeout(flashTimerRef.current);
-      flashTimerRef.current = setTimeout(() => setFlashColor(null), 1000);
-    } else if (newVal < prevVal) {
+    } else if (value < previousValue) {
       queueMicrotask(() => setFlashColor("text-red-400"));
-      clearTimeout(flashTimerRef.current);
-      flashTimerRef.current = setTimeout(() => setFlashColor(null), 1000);
+    } else {
+      return;
     }
 
-    // Dynamically import gsap and animate the number
-    let cancelled = false;
-    import("gsap").then(({ gsap }) => {
-      if (cancelled) return;
+    previousValueRef.current = value;
+    const timeout = setTimeout(() => setFlashColor(null), 1000);
 
-      gsap.to(animatedValue.current, {
-        val: newVal,
-        duration: 0.8,
-        ease: "power3.out",
-        onUpdate: () => {
-          if (valueRef.current) {
-            valueRef.current.textContent = `${prefix}${animatedValue.current.val.toFixed(decimals)}`;
-          }
-        },
-      });
-    });
-
-    previousValueRef.current = newVal;
-
-    return () => {
-      cancelled = true;
-      clearTimeout(flashTimerRef.current);
-    };
-  }, [value, prefix, decimals]);
+    return () => clearTimeout(timeout);
+  }, [value]);
 
   return (
     <span
-      ref={valueRef}
       className={`transition-colors duration-300 ${flashColor || ""} ${className}`}
     >
       {prefix}{value.toFixed(decimals)}

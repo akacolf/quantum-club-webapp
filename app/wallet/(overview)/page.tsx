@@ -8,8 +8,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
-import { useGsapReveal } from "@/app/(hooks)/useGsapReveal";
-import { useGsapStagger } from "@/app/(hooks)/useGsapStagger";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -580,18 +578,11 @@ export default function WalletPage() {
     );
   }
 
-  // GSAP wallet header entrance
-  const walletHeaderRef = useGsapReveal<HTMLDivElement>({ y: 20, duration: 0.55, immediate: true });
-  // GSAP stagger for the action grid buttons
-  const actionGridRef = useGsapStagger<HTMLDivElement>({ y: 16, stagger: 0.06, delay: 0.25, duration: 0.4 });
-
   return (
     <div className="min-h-screen">
       <div className="flex w-full flex-col items-center space-y-6">
         <div
-          ref={walletHeaderRef}
           className="w-[90%]"
-          style={{ opacity: 0 }}
         >
           <div className="relative overflow-hidden">
             <div className="relative z-10 space-y-6 py-6">
@@ -709,7 +700,7 @@ export default function WalletPage() {
               </div>
 
               {/* Action Grid */}
-              <div ref={actionGridRef} className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-3">
                 {([
                   { icon: <Icon icon="lucide:send" className="w-5 h-5"/>, label: "Send", path: "/wallet/send" as const, disabled: false },
                   { icon: <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>, label: "Receive", path: "/wallet/receive" as const, disabled: false },
@@ -1430,7 +1421,7 @@ export default function WalletPage() {
   );
 }
 
-// ─── GSAP-animated wallet onboarding ─────────────────────────────────
+// ─── Wallet onboarding ─────────────────────────────────
 function WalletOnboardingReveal({
   tgFirstName,
   isLoading,
@@ -1440,21 +1431,13 @@ function WalletOnboardingReveal({
   isLoading: boolean;
   createWallet: () => Promise<void>;
 }) {
-  const containerRef = useGsapStagger<HTMLDivElement>({
-    y: 20,
-    stagger: 0.1,
-    delay: 0.05,
-    duration: 0.5,
-    ease: "power3.out",
-  });
-
   return (
-    <div ref={containerRef} className="w-full max-w-md text-center space-y-8">
-      <div className="relative" style={{ opacity: 0 }}>
+    <div className="w-full max-w-md text-center space-y-8">
+      <div className="relative">
         <WalletWelcomeCinematic />
       </div>
 
-      <div className="space-y-3 px-2" style={{ opacity: 0 }}>
+      <div className="space-y-3 px-2">
         <h3 className="text-3xl font-bold text-white tracking-tight">
           Welcome to QC Wallet, {tgFirstName}.
         </h3>
@@ -1463,7 +1446,7 @@ function WalletOnboardingReveal({
         </p>
       </div>
 
-      <div className="space-y-3 w-full" style={{ opacity: 0 }}>
+      <div className="space-y-3 w-full">
         <Button
           onClick={createWallet}
           disabled={isLoading}

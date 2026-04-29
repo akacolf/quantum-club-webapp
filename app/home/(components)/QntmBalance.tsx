@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QntmBalanceProps } from "@/lib/interfaces";
 import { Icon } from "@iconify/react";
-import { gsap, useGSAP } from "@/lib/gsap";
 
 export default function QntmBalance({
   MainQuantAmount,
@@ -26,56 +25,6 @@ export default function QntmBalance({
         maximumFractionDigits: 2,
       })}`
     : MainQuantAmount;
-
-  // Animated balance ref
-  const balanceRef = useRef<HTMLDivElement>(null);
-  const prevValue = useRef<string | null>(null);
-
-  // GSAP-powered balance reveal + number change animation
-  useGSAP(() => {
-    if (loadingValue || !balanceRef.current) return;
-    const el = balanceRef.current;
-
-    if (prevValue.current === null) {
-      prevValue.current = displayValue;
-      gsap.fromTo(
-        el,
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" },
-      );
-      return;
-    }
-
-    if (prevValue.current !== displayValue) {
-      prevValue.current = displayValue;
-      gsap
-        .timeline()
-        .to(el, {
-          y: -8,
-          opacity: 0,
-          duration: 0.18,
-          ease: "power2.in",
-        })
-        .set(el, { y: 12 })
-        .to(el, {
-          y: 0,
-          opacity: 1,
-          duration: 0.35,
-          ease: "power3.out",
-        });
-    }
-  }, { scope: balanceRef, dependencies: [displayValue, loadingValue] });
-
-  // Rank badge reveal animation
-  const rankRef = useRef<HTMLDivElement>(null);
-  useGSAP(() => {
-    if (isLoading || !rankRef.current || !rank) return;
-    gsap.fromTo(
-      rankRef.current,
-      { x: -12, opacity: 0 },
-      { x: 0, opacity: 1, duration: 0.5, delay: 0.3, ease: "power3.out" },
-    );
-  }, { scope: rankRef, dependencies: [isLoading, rank] });
 
   return (
     <div className="flex flex-col py-2 relative">
@@ -101,9 +50,7 @@ export default function QntmBalance({
           <Skeleton className="h-12 w-40 rounded-lg bg-[#1a1a1a]" />
         ) : (
           <div
-            ref={balanceRef}
-            className="text-5xl font-bold text-white tracking-tight"
-            style={{ opacity: 0 }}
+            className="text-5xl font-bold text-white tracking-tight transition-colors"
           >
             {isVisible ? displayValue : "********"}
           </div>
@@ -119,7 +66,7 @@ export default function QntmBalance({
         <div className="mt-2 text-xs text-neutral-500">No imported wallet</div>
       ) : null}
 
-      <div ref={rankRef} className="mt-3 flex items-center gap-1.5 text-sm" style={{ opacity: 0 }}>
+      <div className="mt-3 flex items-center gap-1.5 text-sm">
         <span className="text-neutral-400">Rank</span>
         <div className="font-bold text-white flex items-center gap-1">
           {isLoading ? (
