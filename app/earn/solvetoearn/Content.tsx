@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useTelegramCloseConfirmation } from "@/app/(hooks)/useCloseConfirmation";
 import { useGameSaveMutation } from "@/app/(hooks)/queries/use-mining-data";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ const SolveToEarnContent = () => {
   const correctRef = useRef(correctAnswer);
 
   useTelegramCloseConfirmation();
+  useTelegramBackButton("/home", { closeConfirmation: true });
 
   // Reset scroll position and lock body scroll
   useEffect(() => {

@@ -385,14 +385,14 @@ export default function SendQNTMPage() {
                       </div>
 
                       <div className="flex items-center justify-center gap-4 py-4">
-                        <div className="flex w-20 flex-col items-center text-center">
+                        <div className="flex w-28 min-w-0 flex-col items-center text-center">
                           <Icon icon="lucide:user" className="mb-2 h-12 w-12 rounded-full bg-muted p-3 text-muted-foreground"/>
-                          <span className="max-w-full truncate text-xs text-muted-foreground">{username || "You"}</span>
+                          <span className="max-w-full break-words text-xs leading-tight text-muted-foreground">{username || "You"}</span>
                         </div>
                         <Icon icon="lucide:arrow-right" className="w-6 h-6 text-primary self-start mt-3"/>
-                        <div className="flex w-20 flex-col items-center text-center">
+                        <div className="flex w-28 min-w-0 flex-col items-center text-center">
                           <Icon icon="lucide:user" className="mb-2 h-12 w-12 rounded-full bg-muted p-3 text-primary"/>
-                          <span className="max-w-full truncate text-xs text-muted-foreground">{recipientUsername || "Recipient"}</span>
+                          <span className="max-w-full break-words text-xs leading-tight text-muted-foreground">{recipientUsername || "Recipient"}</span>
                         </div>
                       </div>
 
@@ -450,7 +450,7 @@ export default function SendQNTMPage() {
           {step === "processing" && (
             <div
               key="processing"
-              className="flex flex-col items-center justify-center py-20 space-y-6"
+              className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
             >
               <div className="relative">
                 <div className="w-20 h-20 border-4 rounded-full animate-spin text-primary" style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)", borderTopColor: "currentColor" }} />
@@ -470,7 +470,7 @@ export default function SendQNTMPage() {
           {step === "success" && (
             <div
               key="success"
-              className="flex flex-col items-center justify-center py-16 space-y-6"
+              className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
             >
               <Icon icon="lucide:check" className="h-20 w-20 text-green-500"/>
               <div className="text-center space-y-2">

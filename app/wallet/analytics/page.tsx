@@ -206,7 +206,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen pb-24">
-      <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-4">
+      <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-6">
         {/* Header */}
         <div
           className="w-full"

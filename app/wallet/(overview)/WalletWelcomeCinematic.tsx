@@ -14,7 +14,7 @@ export default function WalletWelcomeCinematic() {
   const marqueeItems = [...CHAINS, ...CHAINS, ...CHAINS];
 
   return (
-    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden py-8">
+    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden py-3">
       <style>{`
         @keyframes wallet-chain-marquee {
           from { transform: translateX(0); }

@@ -586,13 +586,13 @@ export default function WalletPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="flex w-full flex-col items-center space-y-6">
+      <div className="flex w-full flex-col items-center space-y-8">
         <div
           className="w-[90%]"
         >
           <div className="relative overflow-hidden">
-            <div className="relative z-10 space-y-6 py-6">
-              <div className="flex w-full items-center justify-start">
+            <div className="relative z-10 space-y-8 py-7">
+              <div className="flex w-full items-center justify-center">
                 <div className="inline-flex h-9 min-w-0 items-center gap-1">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -600,7 +600,7 @@ export default function WalletPage() {
                         variant="ghost"
                         className="h-9 max-w-52 rounded-full border-0 bg-transparent px-0 text-sm font-semibold text-neutral-200 hover:bg-transparent hover:text-white"
                       >
-                        <Icon icon={walletSymbol} className="mr-2 h-5 w-5 text-neutral-300" />
+                        <Icon icon={walletSymbol} className="mr-1 h-5 w-5 text-neutral-300" />
                         <span className="truncate">
                           {storedWallets.find((wallet) => wallet.address === walletAddress)?.name ?? "Wallet"}
                         </span>
@@ -655,6 +655,17 @@ export default function WalletPage() {
                         </DropdownMenuItem>
                       ))}
                       <DropdownMenuSeparator className="bg-secondary" />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (!walletAddress) return;
+                          navigator.clipboard.writeText(walletAddress);
+                          toast.success("Address copied");
+                        }}
+                        className="flex items-center gap-2 rounded-xl text-neutral-200 focus:bg-secondary focus:text-white"
+                      >
+                        <Icon icon="lucide:copy" className="h-4 w-4" />
+                        Copy address
+                      </DropdownMenuItem>
                       <DropdownMenuItem asChild className="rounded-xl text-neutral-200 focus:bg-secondary focus:text-white">
                         <Link href="/wallet/import" className="flex items-center gap-2">
                           <Icon icon="lucide:plus" className="h-4 w-4" />
@@ -663,33 +674,20 @@ export default function WalletPage() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      if (!walletAddress) return;
-                      navigator.clipboard.writeText(walletAddress);
-                      toast.success("Address copied");
-                    }}
-                    className="h-9 w-9 shrink-0 rounded-full border-0 bg-transparent p-0 text-neutral-300 hover:bg-transparent hover:text-white"
-                    aria-label="Copy wallet address"
-                  >
-                    <Icon icon="lucide:copy" className="h-5 w-5" />
-                  </Button>
                 </div>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-2 text-center">
                 <button
                   type="button"
                   onClick={toggleHideBalance}
-                  className="text-left active:scale-[0.99] transition-transform"
+                  className="mx-auto block text-center active:scale-[0.99] transition-transform"
                   aria-label="Toggle wallet balance visibility"
                 >
                   {(isLoadingAssets || !hasFetched) ? (
                     <Skeleton className="h-10 w-32 bg-secondary" />
                   ) : (
-                    <h2 className="text-4xl font-bold text-white tracking-tight">
+                    <h2 className="text-5xl font-bold text-white tracking-tight">
                       {hideBalance ? "••••••" : formatUsd(totalUsdBalance)}
                     </h2>
                   )}
@@ -1378,9 +1376,9 @@ export default function WalletPage() {
                 </div>
 
                 {/* Current Price */}
-                <div className="mb-6">
-                  <p className="text-neutral-400 text-sm mb-1">Current Price</p>
-                  <h2 className="text-3xl font-bold text-white">
+                <div className="mb-6 flex items-end justify-between gap-4">
+                  <p className="text-neutral-400 text-sm pb-1">Current price</p>
+                  <h2 className="text-right text-3xl font-bold text-white">
                     <AnimatedPrice 
                       value={selectedAsset.priceUsd || 0} 
                       decimals={2}
@@ -1393,7 +1391,7 @@ export default function WalletPage() {
                 {/* Price Chart */}
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-neutral-400 text-sm">Price Chart</p>
+                    <p className="text-neutral-400 text-sm">Price chart</p>
                     <div className="flex gap-1 overflow-x-auto scrollbar-hide">
                       {(['1H', '1D', '1W', '1M', '6M', '1Y'] as ChartPeriod[]).map((period) => (
                         <Button
@@ -1432,7 +1430,7 @@ export default function WalletPage() {
                 {/* Holdings Info */}
                 <div className="bg-[#0a0a0a] rounded-xl p-4">
                   <div className="flex justify-between mb-2">
-                    <span className="text-neutral-400 text-sm">Your Holdings</span>
+                    <span className="text-neutral-400 text-sm">Your holdings</span>
                     <span className="text-white font-bold">
                       {hideBalance ? "••••" : `${selectedAsset.balance} ${selectedAsset.symbol}`}
                     </span>
@@ -1463,12 +1461,12 @@ function WalletOnboardingReveal({
   createWallet: () => Promise<void>;
 }) {
   return (
-    <div className="w-full max-w-md translate-y-8 text-center space-y-8">
-      <div className="relative">
+    <div className="flex min-h-[68vh] w-full max-w-md flex-col justify-between text-center">
+      <div className="relative pt-2">
         <WalletWelcomeCinematic />
       </div>
 
-      <div className="space-y-3 px-2">
+      <div className="space-y-3 px-2 pb-2">
         <h3 className="text-3xl font-bold text-white tracking-tight">
           Welcome to QC Wallet, {tgFirstName}.
         </h3>

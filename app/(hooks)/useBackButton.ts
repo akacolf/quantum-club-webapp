@@ -2,7 +2,7 @@ import type { Route } from "next";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export function useTelegramBackButton(path: Route | (string & {}) = "/home") {
+export function useTelegramBackButton(path: Route | (string & {}) = "/home", options?: { closeConfirmation?: boolean }) {
     const router = useRouter();
     useEffect(() => {
         const backParam = new URLSearchParams(window.location.search).get("back");
@@ -12,6 +12,9 @@ export function useTelegramBackButton(path: Route | (string & {}) = "/home") {
 
         const tg = window.Telegram?.WebApp;
         tg?.ready();
+        if (options?.closeConfirmation) {
+            tg?.enableClosingConfirmation();
+        }
 
         const handleBackButtonClick = () => {
             try {
@@ -27,7 +30,10 @@ export function useTelegramBackButton(path: Route | (string & {}) = "/home") {
         return () => {
             tg?.BackButton.offClick(handleBackButtonClick);
             tg?.BackButton.hide();
+            if (options?.closeConfirmation) {
+                (tg as any)?.disableClosingConfirmation?.();
+            }
         };
 
-    }, [router, path]);
+    }, [router, path, options?.closeConfirmation]);
 }

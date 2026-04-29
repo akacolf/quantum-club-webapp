@@ -129,7 +129,7 @@ const WalletNavigation = () => {
   }
 
   return (
-    <div className="fixed z-50 bottom-6 left-1/2 h-[70px] w-[90%] max-w-[420px] -translate-x-1/2 overflow-hidden rounded-full bg-secondary shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+    <div className="fixed z-50 bottom-8 left-1/2 h-[70px] w-[90%] max-w-[420px] -translate-x-1/2 overflow-hidden rounded-full bg-secondary shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
       <nav ref={navRef} className="grid h-full grid-cols-5 items-center relative">
         <div
           ref={pillRef}

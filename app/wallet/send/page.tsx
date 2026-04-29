@@ -781,6 +781,11 @@ export default function SendPage() {
         }
       }
 
+      if (selectedAsset?.type === "ton" && parseFloat(amount) - networkFee < 0.001) {
+        toast.error("Amount too small - recipient would receive less than 0.001 TON after fees");
+        return;
+      }
+
       setEstimatedFee(networkFee.toFixed(6));
       setStep("confirm");
     } catch (error) {
@@ -891,10 +896,10 @@ export default function SendPage() {
       const toAddress = Address.parse(resolvedAddress);
 
       if (selectedAsset?.type === "ton") {
-        // Send the full user-entered amount to the recipient.
-        // PAY_GAS_SEPARATELY means gas comes from the sender's remaining balance,
-        // so the recipient receives exactly what the user typed.
-        const recipientAmount = parseFloat(amount);
+        // The amount field represents the total spend. For MAX sends, and to match
+        // the confirmation screen, the recipient value is reduced by the estimated
+        // fee so the wallet does not try to spend balance + gas.
+        const recipientAmount = Math.max(0, parseFloat(amount) - parseFloat(estimatedFee));
 
         // Build comment body if provided - use encryption if enabled and recipient has public key
         let messageBody: Cell | undefined = undefined;
@@ -1426,7 +1431,7 @@ export default function SendPage() {
             {multiChainStep === "processing" && (
               <div
                 key="multichain-processing"
-                className="flex flex-col items-center justify-center py-16 space-y-6"
+                className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
               >
                 <div className="relative flex items-center justify-center text-primary">
                   <div className="w-16 h-16 rounded-full border-2 animate-spin shadow-[0_0_15px] shadow-primary/30" style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)", borderTopColor: "currentColor" }} />
@@ -1443,7 +1448,7 @@ export default function SendPage() {
             {multiChainStep === "success" && (
               <div
                 key="multichain-success"
-                className="space-y-6"
+                className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
               >
                 <div className="flex flex-col items-center justify-center py-8">
                   <Icon icon="lucide:check" className="mb-4 h-20 w-20 text-green-500"/>
@@ -1898,7 +1903,7 @@ export default function SendPage() {
           {step === "processing" && (
             <div
               key="processing"
-              className="flex flex-col items-center justify-center py-20 space-y-6"
+              className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
             >
               <div className="relative">
                 <div className="w-20 h-20 border-4 rounded-full animate-spin text-blue-500" style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)", borderTopColor: "currentColor" }} />
@@ -1916,7 +1921,7 @@ export default function SendPage() {
           {step === "success" && (
             <div
               key="success"
-              className="flex flex-col items-center justify-center py-10 space-y-6"
+              className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
             >
               <Icon icon="lucide:check" className="h-20 w-20 text-green-500"/>
               <div className="text-center space-y-2">
