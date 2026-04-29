@@ -98,27 +98,27 @@ export default function WalletSettingsPage() {
     },
     {
       question: "What are network fees?",
-      answer: "Network fees (gas fees) are small payments made to the TON blockchain to process your transactions. Fees vary based on network congestion and transaction complexity. Simple TON transfers cost ~0.003-0.007 TON, while Jetton transfers cost ~0.03-0.06 TON."
+      answer: "Network fees are small charges required to send transactions. The exact fee can change depending on how busy the network is and what kind of action you are taking."
     },
     {
       question: "How do I swap tokens?",
-      answer: "Go to the Swap tab in your wallet. Select the tokens you want to swap, enter the amount, and confirm. Swaps are powered by Omniston, which routes your trade across multiple DEXs to find the best rate automatically."
+      answer: "Go to the Swap tab, select the assets you want to exchange, enter the amount, and confirm. Quantum Club will show the expected result before you approve."
     },
     {
       question: "What are cross-chain swaps?",
-      answer: "Cross-chain swaps let you exchange tokens across different blockchains directly from your wallet. Powered by Omniston routing, you can swap between TON-based tokens and assets on other supported networks without leaving the app."
+      answer: "Cross-chain swaps let you exchange assets across supported networks without leaving your wallet."
     },
     {
       question: "What is spot trading?",
-      answer: "Spot trading lets you buy and sell tokens on the RocketStart launchpad using bonding curve mechanics. View real-time price charts, monitor market caps, and execute trades directly. Tokens that reach the graduation threshold are automatically listed on STON.fi DEX."
+      answer: "Spot trading lets you buy and sell listed tokens, view price charts, check market activity, and complete trades directly in the app."
     },
     {
       question: "How does encrypted chat work?",
-      answer: "Messages in private chats are end-to-end encrypted using NaCl box encryption. Only you and the recipient can read the messages — not even Quantum Club can access them. Group chats and token community chats are not end-to-end encrypted."
+      answer: "Private chats are protected so only you and the recipient can read them. Group and community chats are designed for shared conversations."
     },
     {
       question: "What is the QC AI Assistant?",
-      answer: "The AI Assistant is powered by Google Gemini and can help you understand transactions, analyze tokens, answer questions about the platform, and provide general crypto guidance. Open it from the AI button on the home screen."
+      answer: "The AI Assistant can help you understand transactions, analyze tokens, answer questions about the platform, and provide general crypto guidance. Open it from the AI button on the home screen."
     },
     {
       question: "What is a QC Username?",
@@ -126,19 +126,19 @@ export default function WalletSettingsPage() {
     },
     {
       question: "How do I stake TON?",
-      answer: "Go to Wallet > Earn & Stake > TON Staking. You can stake your TON with liquid staking providers and receive tokens like tsTON, stTON, or hTON while earning up to 5% APY."
+      answer: "Go to Wallet > Earn & Stake > TON Staking. You can stake your TON and track your estimated rewards from the staking page."
     },
     {
       question: "What are Liquidity Pools?",
-      answer: "Liquidity pools allow you to provide assets to decentralized exchanges and earn trading fees. Go to Wallet > Earn & Stake > Liquidity Pools to provide liquidity and earn up to 25% APY."
+      answer: "Liquidity pools let you provide paired assets and earn a share of trading activity. Go to Wallet > Earn & Stake > Liquidity Pools to review available options."
     },
     {
       question: "How do I buy/sell NFTs?",
-      answer: "Go to the NFT Marketplace from your wallet. Browse verified collections, view NFT details, and purchase directly. Your NFTs appear in the NFTs tab of your wallet."
+      answer: "Go to the NFT Marketplace from your wallet. Browse collections, view NFT details, and purchase directly. Your NFTs appear in the NFTs tab of your wallet."
     },
     {
       question: "What is TON Connect?",
-      answer: "TON Connect allows you to securely connect your wallet to decentralized apps (dApps). Go to Wallet > Explore to discover dApps, or scan QR codes to connect. Manage connected apps in Settings > Connected Apps."
+      answer: "TON Connect lets you securely connect your wallet to apps. Go to Wallet > Explore to discover apps, or scan QR codes to connect. Manage connected apps in Settings > Connected Apps."
     },
     {
       question: "How do I backup my wallet?",
@@ -164,7 +164,7 @@ export default function WalletSettingsPage() {
         >
           {/* Header */}
           <div className="text-center space-y-2">
-            <Icon icon="lucide:settings" className="mx-auto h-7 w-7 text-primary" />
+            <Icon icon="lucide:settings" className="mx-auto h-7 w-7 text-white" />
             <h1 className="text-2xl font-bold">Wallet settings</h1>
             <p className="text-muted-foreground text-sm">Manage security and preferences</p>
           </div>
@@ -182,7 +182,7 @@ export default function WalletSettingsPage() {
                 >
                   <Link href="/wallet/settings/recovery-phrase">
                     <div className="flex items-center gap-3">
-                      <Icon icon="lucide:file-text" className="h-5 w-5 text-green-400" />
+                      <Icon icon="lucide:file-text" className="h-5 w-5 text-white" />
                       <div className="text-left">
                         <p className="text-sm font-medium text-foreground">Backup recovery phrase</p>
                         <p className="text-xs text-muted-foreground">View your 24-word seed phrase</p>
@@ -195,7 +195,7 @@ export default function WalletSettingsPage() {
                 <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
                   <Link href="/wallet/settings/wallets">
                     <div className="flex items-center gap-3">
-                      <Icon icon="lucide:wallet" className="h-5 w-5 text-blue-400" />
+                      <Icon icon="lucide:wallet" className="h-5 w-5 text-white" />
                       <div className="text-left">
                         <p className="text-sm font-medium text-foreground">Manage wallets</p>
                         <p className="text-xs text-muted-foreground">Add, switch, or remove wallets</p>
@@ -208,7 +208,7 @@ export default function WalletSettingsPage() {
                 <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
                   <Link href="/wallet/settings/address-book">
                     <div className="flex items-center gap-3">
-                      <Icon icon="lucide:book-user" className="h-5 w-5 text-purple-400" />
+                      <Icon icon="lucide:book-user" className="h-5 w-5 text-white" />
                       <div className="text-left">
                         <p className="font-medium text-foreground">Address book</p>
                         <p className="text-xs text-muted-foreground">Save frequently used addresses</p>
@@ -221,7 +221,7 @@ export default function WalletSettingsPage() {
                 <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
                   <Link href="/wallet/settings/username">
                     <div className="flex items-center gap-3">
-                      <Icon icon="mdi:at" className="h-5 w-5 text-primary" />
+                      <Icon icon="mdi:at" className="h-5 w-5 text-white" />
                       <div className="text-left">
                         <p className="font-medium text-foreground">Username</p>
                         <p className="text-xs text-muted-foreground">Claim your unique @username</p>
@@ -234,7 +234,7 @@ export default function WalletSettingsPage() {
                 <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
                   <Link href="/wallet/settings/price-alerts">
                     <div className="flex items-center gap-3">
-                      <Icon icon="lucide:bell" className="h-5 w-5 text-yellow-400" />
+                      <Icon icon="lucide:bell" className="h-5 w-5 text-white" />
                       <div className="text-left">
                         <p className="font-medium text-foreground">Price alerts</p>
                         <p className="text-xs text-muted-foreground">Get notified when TON hits a target</p>
@@ -247,7 +247,7 @@ export default function WalletSettingsPage() {
                 <Button variant="ghost" asChild className="w-full flex items-center justify-between h-auto p-4 hover:bg-muted rounded-none transition-colors group">
                   <Link href="/wallet/settings/connected-apps">
                     <div className="flex items-center gap-3">
-                      <Icon icon="lucide:link-2" className="h-5 w-5 text-cyan-400" />
+                      <Icon icon="lucide:link-2" className="h-5 w-5 text-white" />
                       <div className="text-left">
                         <p className="font-medium text-foreground">Connected apps</p>
                         <p className="text-xs text-muted-foreground">Manage TON Connect dApps</p>
@@ -268,7 +268,7 @@ export default function WalletSettingsPage() {
               <CardContent className="p-0">
                 <div className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
-                    <Icon icon="lucide:flask-conical" className="h-5 w-5 text-orange-400" />
+                    <Icon icon="lucide:flask-conical" className="h-5 w-5 text-white" />
                     <div className="text-left">
                       <p className="text-sm font-medium text-foreground">TON testnet mode</p>
                       <p className="text-xs text-muted-foreground">Use TON testnet for testing</p>
@@ -303,16 +303,16 @@ export default function WalletSettingsPage() {
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="bg-card border-0 text-foreground">
-                    <AlertDialogHeader>
-                      <div className="flex items-center gap-3 mb-2">
+                    <AlertDialogHeader className="text-left">
+                      <div className="mb-2 flex items-start gap-3 text-left">
                         <Icon icon="lucide:alert-triangle" className="h-6 w-6 text-red-400" />
-                        <div>
+                        <div className="space-y-1 text-left">
                           <AlertDialogTitle>Remove wallet?</AlertDialogTitle>
                           <AlertDialogDescription className="text-muted-foreground text-xs">This action cannot be undone</AlertDialogDescription>
                         </div>
                       </div>
-                      <div className="bg-red-500/10 border-0 rounded-xl p-3 mt-2">
-                        <p className="text-xs text-red-400 leading-relaxed font-medium">
+                      <div className="mt-2 rounded-xl bg-red-500/10 p-3 text-left">
+                        <p className="text-left text-xs font-medium leading-relaxed text-red-400">
                           Warning: Make sure you have backed up your recovery phrase. Without it, you will permanently lose access to your funds.
                         </p>
                       </div>

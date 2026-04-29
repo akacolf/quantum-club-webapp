@@ -279,8 +279,8 @@ export function BiometricAuth({
               >
                 <Icon icon="lucide:x" className="h-4 w-4" />
               </Button>
-              <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                <Icon icon="lucide:shield-check" className="w-7 h-7 text-primary" />
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center">
+                <Icon icon="lucide:shield-check" className="w-7 h-7 text-white" />
               </div>
               <CardTitle className="text-lg font-bold">{title}</CardTitle>
               <CardDescription className="text-sm">
@@ -295,14 +295,14 @@ export function BiometricAuth({
                   {hasBiometric && (
                     <Button
                       variant="outline"
-                      className="w-full h-14 justify-start gap-4 bg-secondary border-0 hover:bg-secondary/80"
+                      className="w-full h-14 justify-start gap-4 bg-secondary border border-border/70 hover:bg-secondary/80"
                       onClick={() => {
                         setAuthMethod("biometric");
                         authenticateWithBiometric();
                       }}
                     >
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Icon icon="lucide:fingerprint" className="w-5 h-5 text-primary" />
+                      <div className="flex h-10 w-10 items-center justify-center">
+                        <Icon icon="lucide:fingerprint" className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-left">
                         <div className="font-semibold">Biometrics</div>
@@ -315,11 +315,11 @@ export function BiometricAuth({
 
                   <Button
                     variant="outline"
-                    className="w-full h-14 justify-start gap-4 bg-secondary border-0 hover:bg-secondary/80"
+                    className="w-full h-14 justify-start gap-4 bg-secondary border border-border/70 hover:bg-secondary/80"
                     onClick={() => setAuthMethod("pin")}
                   >
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Icon icon="lucide:key-round" className="w-5 h-5 text-primary" />
+                    <div className="flex h-10 w-10 items-center justify-center">
+                      <Icon icon="lucide:key-round" className="w-5 h-5 text-white" />
                     </div>
                     <div className="text-left">
                       <div className="font-semibold">PIN Code</div>
@@ -336,8 +336,8 @@ export function BiometricAuth({
                 <div className="text-center space-y-4 py-4">
                   {isAuthenticating ? (
                     <>
-                      <div className="w-20 h-20 mx-auto bg-primary/10 rounded-full flex items-center justify-center animate-pulse">
-                         <Icon icon="lucide:fingerprint" className="w-10 h-10 text-primary" />
+                      <div className="mx-auto flex h-20 w-20 items-center justify-center animate-pulse">
+                         <Icon icon="lucide:fingerprint" className="w-10 h-10 text-white" />
                       </div>
                       <p className="text-sm text-muted-foreground">
                         Waiting for authentication...
@@ -386,7 +386,7 @@ export function BiometricAuth({
                       value={pin}
                       onChange={(e) => handlePinChange(e.target.value)}
                       placeholder="••••••"
-                      className="text-center text-2xl tracking-[0.5em] h-14 bg-secondary border-0"
+                      className="text-center text-2xl tracking-[0.5em] h-14 bg-secondary border border-border/70"
                       maxLength={6}
                       autoFocus
                     />

@@ -219,9 +219,9 @@ export default function ManageWalletsPage() {
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent className="bg-card border-border text-foreground">
-                              <AlertDialogHeader>
+                              <AlertDialogHeader className="text-left">
                                 <AlertDialogTitle>Remove this wallet?</AlertDialogTitle>
-                                <AlertDialogDescription className="text-muted-foreground">
+                                <AlertDialogDescription className="text-left text-muted-foreground">
                                   This wallet will be removed from this device. You will need your recovery phrase to restore it later.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>

@@ -201,11 +201,11 @@ export default function SwapPage() {
     const [quoteTimedOut, setQuoteTimedOut] = useState(false);
     useEffect(() => {
         if (isQuotingRaw) {
-            setQuoteTimedOut(false);
+            queueMicrotask(() => setQuoteTimedOut(false));
             const timer = setTimeout(() => setQuoteTimedOut(true), 10000);
             return () => clearTimeout(timer);
         } else {
-            setQuoteTimedOut(false);
+            queueMicrotask(() => setQuoteTimedOut(false));
         }
     }, [isQuotingRaw, quoteParams]);
 
@@ -250,8 +250,10 @@ export default function SwapPage() {
         if (swapAssets.length > 0 && !fromAsset && !toAsset) {
             const tonAsset = swapAssets.find((a) => a.kind === "Ton");
             const firstJetton = swapAssets.find((a) => a.kind === "Jetton");
-            if (tonAsset) setFromAsset(tonAsset);
-            if (firstJetton) setToAsset(firstJetton);
+            queueMicrotask(() => {
+                if (tonAsset) setFromAsset(tonAsset);
+                if (firstJetton) setToAsset(firstJetton);
+            });
         }
     }, [swapAssets, fromAsset, toAsset]);
 
@@ -272,11 +274,12 @@ export default function SwapPage() {
     };
 
     // Get user's balance for an asset
-    const getAssetBalance = (asset: SwapAsset | null): string => {
+    const getAssetBalance = (asset: SwapAsset | null, displayDecimals?: number): string => {
         if (!asset) return "0";
 
         if (asset.kind === "Ton") {
-            return tonBalance;
+            const ton = parseFloat(tonBalance) || 0;
+            return displayDecimals === undefined ? tonBalance : ton.toFixed(displayDecimals);
         }
 
         // Convert STON.fi asset address to raw format
@@ -290,9 +293,8 @@ export default function SwapPage() {
         });
 
         if (jetton) {
-            return (
-                parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)
-            ).toFixed(4);
+            const balance = parseFloat(jetton.balance) / Math.pow(10, jetton.decimals);
+            return displayDecimals === undefined ? balance.toString() : balance.toFixed(displayDecimals);
         }
 
         return "0";
@@ -680,7 +682,7 @@ export default function SwapPage() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
-                            className="space-y-4"
+                            className="space-y-3"
                         >
                             {/* Swap Mode Tabs */}
                             <Tabs
@@ -740,7 +742,7 @@ export default function SwapPage() {
                                             onClick={handleMaxAmount}
                                             className="h-auto p-0 text-xs text-primary hover:text-primary/80 hover:bg-transparent"
                                         >
-                                            MAX: {fromAsset ? getAssetBalance(fromAsset) : "0"}
+                                            MAX: {fromAsset ? getAssetBalance(fromAsset, 2) : "0.00"}
                                         </Button>
                                     </div>
 
@@ -817,7 +819,7 @@ export default function SwapPage() {
                                                                 </div>
                                                             </div>
                                                             <div className="text-right text-sm text-muted-foreground">
-                                                                {getAssetBalance(asset)}
+                                                                {getAssetBalance(asset, 2)}
                                                             </div>
                                                         </DropdownMenuItem>)
                                                     ))
@@ -844,12 +846,12 @@ export default function SwapPage() {
                             </Card>
 
                             {/* Swap Direction Toggle */}
-                            <div className="relative z-10 -my-5 flex justify-center">
+                            <div className="relative z-10 -my-6 flex justify-center">
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleToggleDirection}
-                                    className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-background bg-black text-primary transition-all hover:bg-black hover:text-primary/80 active:scale-95"
+                                    className="flex h-11 w-11 items-center justify-center rounded-full border-4 border-background bg-black text-primary transition-all hover:bg-black hover:text-primary/80 active:scale-95"
                                 >
                                     <Icon icon="lucide:arrow-down-up" className="w-5 h-5"/>
                                 </Button>
@@ -861,7 +863,7 @@ export default function SwapPage() {
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm text-muted-foreground">You receive</span>
                                         <span className="text-xs text-muted-foreground">
-                                            Balance: {toAsset ? getAssetBalance(toAsset) : "0"}
+                                            Balance: {toAsset ? getAssetBalance(toAsset, 2) : "0.00"}
                                         </span>
                                     </div>
 
@@ -930,7 +932,7 @@ export default function SwapPage() {
                                                             </div>
                                                         </div>
                                                         <div className="text-right text-sm text-muted-foreground">
-                                                            {getAssetBalance(asset)}
+                                                            {getAssetBalance(asset, 2)}
                                                         </div>
                                                     </DropdownMenuItem>
                                                 ))}

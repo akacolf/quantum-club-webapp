@@ -124,7 +124,7 @@ const HomeCarousel = () => {
                 </div>
                 <div className="min-w-0 space-y-1">
                   <CardTitle className={cardTitleClasses}>
-                    AI Powered Trading
+                    AI powered trading
                   </CardTitle>
                   <CardDescription className={cardDescriptionClasses}>
                     Experience the future of trading with our AI-driven platform.
@@ -145,7 +145,7 @@ const HomeCarousel = () => {
                   </div>
                   <div className="min-w-0 space-y-1">
                     <CardTitle className={cardTitleClasses}>
-                      The Quantum Era
+                      The quantum era
                     </CardTitle>
                     <CardDescription className={cardDescriptionClasses}>
                       Explore your TG story with us. Watch it unfold.
@@ -167,7 +167,7 @@ const HomeCarousel = () => {
                   </div>
                   <div className="min-w-0 space-y-1">
                     <CardTitle className={cardTitleClasses}>
-                      The Race is on
+                      The race is on
                     </CardTitle>
                     <CardDescription className={cardDescriptionClasses}>
                       Check your standings on the global leaderboard.
@@ -188,7 +188,7 @@ const HomeCarousel = () => {
                       width="28"
                       height="28"
                       viewBox="0 0 24 24"
-                      className="text-white"
+                      className="text-[#26A5E4]"
                     >
                       <path
                         fill="currentColor"
@@ -198,7 +198,7 @@ const HomeCarousel = () => {
                   </div>
                   <div className="min-w-0 space-y-1">
                     <CardTitle className={cardTitleClasses}>
-                      The Club of OGs
+                      The club of OGs
                     </CardTitle>
                     <CardDescription className={cardDescriptionClasses}>
                       Stay updated with the latest news. Never miss a beat.
@@ -214,7 +214,7 @@ const HomeCarousel = () => {
               <Card className={`${cardClasses} cursor-pointer`}>
                 <CardHeader className={cardBodyClasses}>
                   <div className={iconWrapClasses}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" className="text-white" viewBox="0 0 24 24">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" className="text-green-400" viewBox="0 0 24 24">
                       <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
                         <path d="m3 17l6-6l4 4l8-8" />
                         <path d="M17 7h4v4" />
@@ -223,7 +223,7 @@ const HomeCarousel = () => {
                   </div>
                   <div className="min-w-0 space-y-1">
                     <CardTitle className={cardTitleClasses}>
-                      The Progress
+                      The progress
                     </CardTitle>
                     <CardDescription className={cardDescriptionClasses}>
                       Building the future. See our roadmap.

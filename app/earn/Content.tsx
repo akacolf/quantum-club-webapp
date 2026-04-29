@@ -189,7 +189,7 @@ const EarnContent = () => {
                 <div className="text-white font-medium text-sm mb-1 truncate">
                   {task.description}
                 </div>
-                <div className="text-[11px] font-semibold text-amber-400">
+                <div className="text-[11px] font-semibold text-green-400">
                   +{task.quant} QNTM
                 </div>
               </div>

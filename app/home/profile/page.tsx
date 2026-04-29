@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
@@ -277,11 +276,7 @@ export default function ProfilePage() {
 
             <div className="relative z-10 p-4 pt-8 space-y-6">
                 {/* Profile Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center space-y-4"
-                >
+                <div className="flex flex-col items-center space-y-4">
                     <div className="relative">
                         <div className="w-28 h-28 rounded-full bg-[#111] flex items-center justify-center overflow-hidden">
                             {photoUrl ? (
@@ -436,15 +431,10 @@ export default function ProfilePage() {
                             </CardContent>
                         </Card>
                     )}
-                </motion.div>
+                </div>
 
                 {/* Stats Grid */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="grid grid-cols-2 gap-3"
-                >
+                <div className="grid grid-cols-2 gap-3">
                     <Card className="bg-[#111] border-none">
                         <CardContent className="p-4">
                             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
@@ -481,14 +471,10 @@ export default function ProfilePage() {
                             <p className="text-xl font-bold text-foreground">{resolvedStats.dailyStreak} day{resolvedStats.dailyStreak !== 1 ? "s" : ""}</p>
                         </CardContent>
                     </Card>
-                </motion.div>
+                </div>
 
                 {/* Linked Accounts */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                >
+                <div>
                     <Card className="bg-[#111] border-none overflow-hidden">
                         <div className="px-4 py-3 bg-[#111]">
                             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -569,15 +555,10 @@ export default function ProfilePage() {
                             )}
                         </CardContent>
                     </Card>
-                </motion.div>
+                </div>
 
                 {/* Achievements Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="space-y-4"
-                >
+                <div className="space-y-4">
                     <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                         <Icon icon="solar:cup-star-bold" className="w-5 h-5 text-yellow-500" />
                         Achievements
@@ -588,9 +569,8 @@ export default function ProfilePage() {
 
                     <div className="grid grid-cols-3 gap-3">
                         {unlocked.map((achievement) => (
-                            <motion.div
+                            <div
                                 key={achievement.id}
-                                whileTap={{ scale: 0.95 }}
                                 onClick={() => handleAchievementClick(achievement)}
                                 className="bg-[#111] border-none rounded-2xl p-3 flex flex-col items-center text-center cursor-pointer active:opacity-80 shadow-sm"
                             >
@@ -602,13 +582,12 @@ export default function ProfilePage() {
                                 <p className={`mt-2.5 text-[9px] font-bold ${RARITY_CONFIG[achievement.rarity].bg}`}>
                                     {RARITY_CONFIG[achievement.rarity].label}
                                 </p>
-                            </motion.div>
+                            </div>
                         ))}
 
                         {locked.map((achievement) => (
-                            <motion.div
+                            <div
                                 key={achievement.id}
-                                whileTap={{ scale: 0.95 }}
                                 onClick={() => handleAchievementClick(achievement)}
                                 className="bg-[#111] border-none rounded-2xl p-3 flex flex-col items-center text-center opacity-60 cursor-pointer hover:opacity-80 active:opacity-40 transition-opacity"
                             >
@@ -620,25 +599,20 @@ export default function ProfilePage() {
                                 <p className={`mt-2.5 text-[9px] font-bold opacity-50 ${RARITY_CONFIG[achievement.rarity].bg}`}>
                                     {RARITY_CONFIG[achievement.rarity].label}
                                 </p>
-                            </motion.div>
+                            </div>
                         ))}
                     </div>
-                </motion.div>
+                </div>
 
                 {/* Support & Legal Links */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
-                    className="grid grid-cols-2 gap-3"
-                >
+                <div className="grid grid-cols-2 gap-3">
                     <a
                         href="https://t.me/QCSupportBot"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#111] border-none hover:bg-[#222] transition-colors group"
                     >
-                        <div className="w-10 h-10 rounded-full bg-[#222] flex items-center justify-center mb-2 group-hover:bg-[#333] transition-colors">
+                        <div className="mb-2 flex h-10 w-10 items-center justify-center transition-colors">
                             <Icon icon="solar:headphones-round-sound-bold" className="w-5 h-5 text-white" />
                         </div>
                         <span className="text-xs font-medium">Get support</span>
@@ -649,7 +623,7 @@ export default function ProfilePage() {
                         rel="noopener noreferrer"
                         className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#111] border-none hover:bg-[#222] transition-colors group"
                     >
-                        <div className="w-10 h-10 rounded-full bg-[#222] flex items-center justify-center mb-2 group-hover:bg-[#333] transition-colors">
+                        <div className="mb-2 flex h-10 w-10 items-center justify-center transition-colors">
                             <Icon icon="solar:users-group-rounded-bold" className="w-5 h-5 text-white" />
                         </div>
                         <span className="text-xs font-medium">Community</span>
@@ -658,8 +632,8 @@ export default function ProfilePage() {
                         href="/legal/terms"
                         className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#111] border-none hover:bg-[#222] transition-colors group"
                     >
-                        <div className="w-10 h-10 rounded-full bg-[#222] flex items-center justify-center mb-2 group-hover:bg-[#333] transition-colors">
-                            <Icon icon="solar:document-text-bold" className="w-5 h-5 text-muted-foreground" />
+                        <div className="mb-2 flex h-10 w-10 items-center justify-center transition-colors">
+                            <Icon icon="solar:document-text-bold" className="w-5 h-5 text-white" />
                         </div>
                         <span className="text-xs font-medium">Terms of service</span>
                     </Link>
@@ -667,12 +641,12 @@ export default function ProfilePage() {
                         href="/legal/privacy"
                         className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#111] border-none hover:bg-[#222] transition-colors group"
                     >
-                        <div className="w-10 h-10 rounded-full bg-[#222] flex items-center justify-center mb-2 group-hover:bg-[#333] transition-colors">
-                            <Icon icon="solar:shield-check-bold" className="w-5 h-5 text-muted-foreground" />
+                        <div className="mb-2 flex h-10 w-10 items-center justify-center transition-colors">
+                            <Icon icon="solar:shield-check-bold" className="w-5 h-5 text-white" />
                         </div>
                         <span className="text-xs font-medium">Privacy policy</span>
                     </Link>
-                </motion.div>
+                </div>
 
                 <div className="pt-4 pb-2 flex flex-col items-center justify-center gap-1.5">
                     <p className="text-center text-[10px] text-muted-foreground/60 font-medium tracking-wide">

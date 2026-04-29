@@ -142,18 +142,6 @@ function AppIcon({ app }: { app: DApp }) {
     );
 }
 
-// Get category badge color
-function getCategoryBadgeColor(category: string) {
-    switch (category) {
-        case "exchange": return "text-blue-400";
-        case "defi": return "text-purple-400";
-        case "nft": return "text-pink-400";
-        case "gaming": return "text-green-400";
-        case "tools": return "text-orange-400";
-        default: return "text-neutral-400";
-    }
-}
-
 export default function ExplorePage() {
     useTelegramBackButton("/wallet");
     const [selectedCategory, setSelectedCategory] = useQueryState("category", parseAsString.withDefault("all").withOptions({ history: "replace" }));
@@ -267,12 +255,7 @@ export default function ExplorePage() {
                                     </div>
                                     <p className="truncate text-sm text-neutral-500">{app.description}</p>
                                 </div>
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                    <span className={`text-[10px] font-medium ${getCategoryBadgeColor(app.category)}`}>
-                                        {app.category}
-                                    </span>
-                                    <Icon icon="lucide:external-link" className="w-4 h-4 text-neutral-500"/>
-                                </div>
+                                <Icon icon="lucide:external-link" className="w-4 h-4 flex-shrink-0 text-neutral-500"/>
                             </motion.button>
                         ))}
                     </div>
