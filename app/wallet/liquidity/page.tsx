@@ -155,8 +155,10 @@ export default function LiquidityPage() {
     if (!swapAssets || tokenA || tokenB) return;
     const tonAsset = swapAssets.find((a) => a.kind === "Ton");
     const firstJetton = swapAssets.find((a) => a.kind === "Jetton");
-    if (tonAsset) setTokenA(tonAsset);
-    if (firstJetton) setTokenB(firstJetton);
+    queueMicrotask(() => {
+      if (tonAsset) setTokenA(tonAsset);
+      if (firstJetton) setTokenB(firstJetton);
+    });
   }, [swapAssets, tokenA, tokenB]);
 
 
@@ -195,7 +197,7 @@ export default function LiquidityPage() {
   // Debounce simulation
   useEffect(() => {
     if (!tokenA || !tokenB || !amountA || parseFloat(amountA) <= 0) {
-      setSimulationResult(null);
+      queueMicrotask(() => setSimulationResult(null));
       return;
     }
 
@@ -347,7 +349,7 @@ export default function LiquidityPage() {
   // Clear amountB when single-sided mode is enabled (user only provides tokenA)
   useEffect(() => {
     if (isSingleSided) {
-      setAmountB("");
+      queueMicrotask(() => setAmountB(""));
     }
   }, [isSingleSided]);
 
@@ -827,7 +829,7 @@ export default function LiquidityPage() {
           </TabsContent>
 
           {/* Add Liquidity Tab */}
-          <TabsContent value="add" className="space-y-4">
+          <TabsContent value="add" className="space-y-3">
             <AnimatePresence mode="wait">
               {step === "input" && (
                 <motion.div
@@ -835,7 +837,7 @@ export default function LiquidityPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="space-y-4"
+                  className="space-y-2"
                 >
                   {/* Token A */}
                   <Card className="bg-secondary border-0 rounded-2xl">
@@ -939,8 +941,8 @@ export default function LiquidityPage() {
                   </Card>
 
                   {/* Plus Icon */}
-                  <div className="relative z-10 -my-5 flex justify-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-background bg-black">
+                  <div className="relative z-10 -my-4 flex justify-center">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border-4 border-background bg-black">
                       <Icon icon="lucide:plus" className="h-5 w-5 text-muted-foreground"/>
                     </div>
                   </div>

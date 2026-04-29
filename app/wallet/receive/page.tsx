@@ -199,7 +199,7 @@ export default function ReceivePage() {
               </div>
 
               {/* Warning */}
-              <Alert variant="warning" className="bg-transparent border-0 p-0 text-yellow-500">
+              <Alert variant="warning" className="bg-transparent border-0 p-0 text-yellow-500 [&>svg]:left-0 [&>svg+div]:translate-x-2">
                 <Icon icon="lucide:shield-alert" className="w-4 h-4"/>
                 <AlertTitle className="text-xs font-bold opacity-80">Warning</AlertTitle>
                 <AlertDescription className="text-xs leading-relaxed opacity-90 mt-1">

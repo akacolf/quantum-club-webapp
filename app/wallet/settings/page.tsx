@@ -270,7 +270,7 @@ export default function WalletSettingsPage() {
                     <Icon icon="lucide:flask-conical" className="h-5 w-5 text-white" />
                     <div className="text-left">
                       <p className="text-sm font-medium text-foreground">TON testnet mode</p>
-                      <p className="text-xs text-muted-foreground">Use TON testnet for testing</p>
+                      <p className="text-xs text-muted-foreground">Use TON testnet for development</p>
                     </div>
                   </div>
                   <TestnetToggle />
@@ -307,7 +307,7 @@ export default function WalletSettingsPage() {
                         <Icon icon="lucide:alert-triangle" className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
                         <div className="space-y-3 text-left">
                           <AlertDialogTitle>Remove wallet?</AlertDialogTitle>
-                          <AlertDialogDescription className="text-muted-foreground text-xs">This action cannot be undone</AlertDialogDescription>
+                          <AlertDialogDescription className="text-muted-foreground text-xs">This action cannot be undone.</AlertDialogDescription>
                           <p className="text-left text-xs font-medium leading-relaxed text-red-400">
                             Warning: Make sure you have backed up your recovery phrase. Without it, you will permanently lose access to your funds.
                           </p>

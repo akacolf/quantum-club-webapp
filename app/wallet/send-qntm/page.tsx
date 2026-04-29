@@ -243,12 +243,16 @@ export default function SendQNTMPage() {
                           onChange={(e) => {
                             field.handleChange(e.target.value);
                             setQcIdError(null); // Clear error when user types
+                            setRecipientUsername("");
                           }}
                           placeholder="Enter recipient's Quantum Club ID"
                           aria-invalid={hasErrors || !!qcIdError}
-                          className={`bg-secondary border-0 h-14 px-4 text-foreground placeholder:text-neutral-500 rounded-xl transition-all ${qcIdError ? 'ring-1 ring-destructive' : ''
+                          className={`bg-secondary border-0 h-14 pl-4 pr-10 text-foreground placeholder:text-neutral-500 rounded-xl transition-all ${qcIdError ? 'ring-1 ring-destructive' : ''
                             }`}
                         />
+                        {recipientUsername && !qcIdError ? (
+                          <Icon icon="lucide:check" className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-500"/>
+                        ) : null}
                       </div>
                       {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
                       {qcIdError ? (

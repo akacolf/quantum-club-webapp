@@ -1026,9 +1026,9 @@ export default function SwapPage() {
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => setSlippage(s)}
-                                                            className={`h-auto rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight transition-all active:scale-95 ${slippage === s
-                                                                ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary hover:text-primary-foreground"
-                                                                : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+                                                            className={`h-auto rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight transition-all active:scale-95 ${slippage === s
+                                                                ? "bg-muted text-foreground hover:bg-muted hover:text-foreground"
+                                                                : "bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground"
                                                                 }`}
                                                         >
                                                             {s}%

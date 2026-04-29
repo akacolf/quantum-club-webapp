@@ -258,8 +258,8 @@ export default function SendMultiplePage() {
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-white">Send to Multiple</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-white">Send to multiple</h1>
+            <p className="text-sm text-muted-foreground">
               Send TON to multiple recipients in one transaction
             </p>
           </div>
@@ -289,13 +289,13 @@ export default function SendMultiplePage() {
                         height={16}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm text-gray-400">Available</span>
+                      <span className="text-sm text-muted-foreground">Available</span>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-white">
                         {tonBalanceNum.toFixed(4)} TON
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         ${(tonBalanceNum * tonPrice).toFixed(2)}
                       </p>
                     </div>
@@ -306,17 +306,17 @@ export default function SendMultiplePage() {
               {/* Recipients List */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm text-gray-400">Recipients</Label>
-                  <span className="text-xs text-gray-500">
+                  <Label className="text-sm text-muted-foreground">Recipients</Label>
+                  <span className="text-xs text-muted-foreground">
                     {recipients.length}/{MAX_BATCH_MESSAGES}
                   </span>
                 </div>
 
                 {recipients.map((recipient, index) => (
-                  <Card key={recipient.id} className="bg-[#111] border-[#222]">
+                  <Card key={recipient.id} className="bg-[#111] border-0">
                     <CardContent className="p-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-400">
+                        <span className="text-xs font-medium text-muted-foreground">
                           #{index + 1}
                         </span>
                         {recipients.length > 2 && (
@@ -356,7 +356,7 @@ export default function SendMultiplePage() {
                           }
                           className="bg-black border-[#333] flex-1"
                         />
-                        <span className="flex items-center text-sm text-gray-400 px-2">
+                        <span className="flex items-center text-sm text-muted-foreground px-2">
                           TON
                         </span>
                       </div>
@@ -372,26 +372,26 @@ export default function SendMultiplePage() {
                 {recipients.length < MAX_BATCH_MESSAGES && (
                   <button
                     onClick={addRecipient}
-                    className="w-full py-3 border border-dashed border-[#333] rounded-xl text-sm text-gray-400 flex items-center justify-center gap-2 hover:bg-white/5"
+                    className="w-full py-3 border border-dashed border-[#333] rounded-xl text-sm text-muted-foreground flex items-center justify-center gap-2 hover:bg-white/5"
                   >
                     <Icon icon="lucide:plus" className="w-4 h-4"/>
-                    Add Recipient
+                    Add recipient
                   </button>
                 )}
               </div>
 
               {/* Summary */}
-              <Card className="bg-[#111] border-[#222]">
+              <Card className="bg-[#111] border-0">
                 <CardContent className="p-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Total Amount</span>
+                    <span className="text-muted-foreground">Total amount</span>
                     <span className="font-medium text-white">
                       {totalAmount.toFixed(4)} TON
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Estimated Gas</span>
-                    <span className="text-gray-400">
+                    <span className="text-muted-foreground">Estimated gas</span>
+                    <span className="text-muted-foreground">
                       ~{estimatedGas.toFixed(4)} TON
                     </span>
                   </div>
@@ -401,7 +401,7 @@ export default function SendMultiplePage() {
                       <span className="font-bold text-white">
                         {totalWithGas.toFixed(4)} TON
                       </span>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         ${totalUsd.toFixed(2)}
                       </p>
                     </div>
@@ -412,8 +412,8 @@ export default function SendMultiplePage() {
               {/* Validation Errors */}
               {!validationResult.valid &&
                 validationResult.errors.length > 0 && (
-                  <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                    <div className="flex items-center gap-2">
+                  <div className="px-1 py-2">
+                    <div className="flex items-start gap-2">
                       <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-yellow-500 shrink-0"/>
                       <div className="space-y-1">
                         {validationResult.errors.map((error, i) => (
@@ -427,10 +427,10 @@ export default function SendMultiplePage() {
                 )}
 
               {/* Info */}
-              <div className="p-3 rounded-xl bg-primary/5 border border-primary/20">
-                <p className="text-xs text-gray-400">
-                  <strong className="text-primary">Batch Transaction:</strong>{" "}
-                  All transfers are executed in a single transaction, saving gas
+              <div className="p-3 rounded-xl bg-primary/5 border-0">
+                <p className="text-xs text-muted-foreground">
+                  <strong className="text-primary">Batch transaction:</strong>{" "}
+                  all transfers are executed in a single transaction, saving gas
                   and confirming simultaneously.
                 </p>
               </div>
@@ -455,11 +455,11 @@ export default function SendMultiplePage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4"
             >
-              <Card className="bg-[#111] border-[#222]">
+              <Card className="bg-[#111] border-0">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Icon icon="lucide:users" className="w-5 h-5 text-primary"/>
-                    Confirm {validRecipients.length} Transfers
+                    Confirm {validRecipients.length} transfers
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -469,7 +469,7 @@ export default function SendMultiplePage() {
                       className="flex items-center justify-between py-2 border-b border-[#222] last:border-0"
                     >
                       <div>
-                        <p className="text-xs text-gray-500">#{i + 1}</p>
+                        <p className="text-xs text-muted-foreground">#{i + 1}</p>
                         <p className="font-mono text-xs text-white">
                           {r.address.slice(0, 8)}...{r.address.slice(-6)}
                         </p>
@@ -516,7 +516,7 @@ export default function SendMultiplePage() {
               <p className="text-white font-medium">
                 Processing batch transaction...
               </p>
-              <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                 This may take a few seconds
               </p>
             </motion.div>
@@ -534,9 +534,9 @@ export default function SendMultiplePage() {
               </div>
               <div className="text-center">
                 <h3 className="text-xl font-bold text-white">
-                  Sent Successfully!
+                  Sent successfully!
                 </h3>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {validRecipients.length} transfers completed in one
                   transaction
                 </p>
@@ -545,7 +545,7 @@ export default function SendMultiplePage() {
                 <p className="text-2xl font-bold text-white">
                   {totalAmount.toFixed(4)} TON
                 </p>
-                <p className="text-sm text-gray-500">${totalUsd.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">${totalUsd.toFixed(2)}</p>
               </div>
 
               {txHash && (
@@ -564,12 +564,12 @@ export default function SendMultiplePage() {
                   }}
                   className="text-sm text-primary flex items-center gap-1"
                 >
-                  View on Explorer <Icon icon="lucide:arrow-right" className="w-4 h-4"/>
+                  View on explorer <Icon icon="lucide:arrow-right" className="w-4 h-4"/>
                 </button>
               )}
 
               <Button onClick={handleReset} variant="outline" className="mt-4">
-                Send Another Batch
+                Send another batch
               </Button>
             </motion.div>
           )}

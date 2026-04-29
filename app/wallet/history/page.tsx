@@ -98,7 +98,7 @@ export default function HistoryPage() {
           // Ignore parse errors
         }
       }
-      setTxLabels(labels);
+      queueMicrotask(() => setTxLabels(labels));
     }
   }, [telegramId]);
 
@@ -322,9 +322,10 @@ export default function HistoryPage() {
         const decimals = burn.jetton?.decimals || 9;
         amount = burn.amount ? (parseFloat(burn.amount) / Math.pow(10, decimals)).toFixed(4) : "0";
         symbol = burn.jetton?.symbol || "TOKEN";
+        address = "";
       }
     } else if (action.type === "DnsItemRenew") {
-      type = "Domain Renewal";
+      type = "Domain renewal";
     } else if (action.type === "AuctionBid") {
       type = "Auction Bid";
       const bid = (action as any).AuctionBid;
@@ -345,9 +346,9 @@ export default function HistoryPage() {
       const operation = exec?.operation || "";
       
       if (operation.toLowerCase().includes("provide_lp") || operation.toLowerCase().includes("add_liquidity")) {
-        type = "Add Liquidity";
+        type = "Liquidity deposit";
       } else if (operation.toLowerCase().includes("remove_lp") || operation.toLowerCase().includes("burn_lp")) {
-        type = "Remove Liquidity";
+        type = "Liquidity burn";
       } else if (operation.toLowerCase().includes("stake") || operation.toLowerCase().includes("deposit")) {
         type = "Stake";
       } else if (operation.toLowerCase().includes("unstake") || operation.toLowerCase().includes("withdraw")) {
@@ -744,14 +745,14 @@ export default function HistoryPage() {
                                   <h4 className="font-bold text-foreground text-sm truncate">{tx.type}</h4>
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     {tx.isSwap ? (
-                                      <span className="font-mono text-purple-400 truncate flex items-center gap-1">
+                                        <span className="font-mono text-muted-foreground truncate flex items-center gap-1">
                                         {tx.fromSymbol} <Icon icon="lucide:arrow-right" className="w-3 h-3"/> {tx.toSymbol}
                                       </span>
-                                    ) : (
-                                      <span className="font-mono text-muted-foreground truncate">
-                                        {formatAddress(tx.address)}
-                                      </span>
-                                    )}
+                                    ) : tx.address ? (
+                                        <span className="font-mono text-muted-foreground truncate">
+                                          {formatAddress(tx.address)}
+                                        </span>
+                                    ) : null}
                                   </div>
                                 </div>
                               </div>
@@ -892,7 +893,7 @@ export default function HistoryPage() {
                                   {isIncoming ? 'Received' : 'Sent'}
                                 </h4>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <span className="font-mono text-orange-400">
+                                  <span className="font-mono text-muted-foreground">
                                     {formatQcId(counterparty || "")}
                                   </span>
                                 </div>

@@ -395,6 +395,8 @@ export default function WalletPage() {
   const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
   const [chartPeriod, setChartPeriod] = useState<'1H' | '1D' | '1W' | '1M' | '6M' | '1Y'>('1D');
   const queryClient = useQueryClient();
+  const tonAssetCount = 1 + jettons.length;
+  const multiChainAssetCount = [btcAddress, ethAddress, solAddress, trxAddress].filter(Boolean).length;
 
   // Virtualized jettons list
   const jettonsContainerRef = useRef<HTMLDivElement>(null);
@@ -588,18 +590,18 @@ export default function WalletPage() {
           <div className="relative overflow-hidden">
             <div className="relative z-10 space-y-6 py-6">
               <div className="flex w-full items-center justify-start">
-                <div className="flex min-w-0 items-center gap-3">
+                <div className="inline-flex h-9 min-w-0 items-center gap-3">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
-                        className="h-9 max-w-48 rounded-full border-0 bg-transparent px-0 text-base font-semibold text-neutral-200 hover:bg-transparent hover:text-white"
+                        className="h-9 max-w-52 rounded-full border-0 bg-transparent px-0 text-sm font-semibold text-neutral-200 hover:bg-transparent hover:text-white"
                       >
-                        <Icon icon={walletSymbol} className="mr-1.5 h-4 w-4 text-neutral-300" />
+                        <Icon icon={walletSymbol} className="mr-2 h-5 w-5 text-neutral-300" />
                         <span className="truncate">
                           {storedWallets.find((wallet) => wallet.address === walletAddress)?.name ?? "Wallet"}
                         </span>
-                        <Icon icon="lucide:chevron-down" className="ml-1.5 h-4 w-4 shrink-0" />
+                        <Icon icon="lucide:chevron-down" className="ml-2 h-4 w-4 shrink-0" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="min-w-60 rounded-2xl border-0 bg-popover p-2 text-white shadow-2xl">
@@ -666,7 +668,7 @@ export default function WalletPage() {
                       navigator.clipboard.writeText(walletAddress);
                       toast.success("Address copied");
                     }}
-                    className="h-9 w-7 shrink-0 rounded-full border-0 bg-transparent p-0 text-neutral-300 hover:bg-transparent hover:text-white"
+                    className="h-9 w-9 shrink-0 rounded-full border-0 bg-transparent p-0 text-neutral-300 hover:bg-transparent hover:text-white"
                     aria-label="Copy wallet address"
                   >
                     <Icon icon="lucide:copy" className="h-5 w-5" />
@@ -932,7 +934,7 @@ export default function WalletPage() {
               ))}
             </div>
             {assetChainTab === "ton" ? (
-              <>
+              <div className="rounded-2xl bg-secondary p-1">
             {/* TON Card */}
             <Card
               className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
@@ -978,7 +980,7 @@ export default function WalletPage() {
                 </div>
               </CardContent>
             </Card>
-            <Separator />
+            {tonAssetCount > 1 ? <Separator /> : null}
 
             {/* Jetton loading skeleton */}
             {(isLoadingAssets || !hasFetched) && jettons.length === 0 && (
@@ -1064,17 +1066,19 @@ export default function WalletPage() {
                           </div>
                         </CardContent>
                       </Card>
-                      <Separator />
+                      {index < jettons.length - 1 ? <Separator /> : null}
                     </div>
                   );
                 })}
               </div>
             )}
-              </>
+              </div>
             ) : null}
 
             {/* BTC Balance Card - Only show in mainnet */}
-            {assetChainTab === "multichain" && !isTestnet && btcAddress && (
+            {assetChainTab === "multichain" && !isTestnet && multiChainAssetCount > 0 ? (
+              <div className="rounded-2xl bg-secondary p-1">
+            {btcAddress && (
               <>
               <Card
                 className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
@@ -1118,12 +1122,12 @@ export default function WalletPage() {
                   </div>
                 </CardContent>
               </Card>
-              <Separator />
+              {multiChainAssetCount > 1 ? <Separator /> : null}
               </>
             )}
 
             {/* ETH Balance Card - Only show in mainnet */}
-            {assetChainTab === "multichain" && !isTestnet && ethAddress && (
+            {ethAddress && (
               <>
               <Card
                 className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
@@ -1167,12 +1171,12 @@ export default function WalletPage() {
                   </div>
                 </CardContent>
               </Card>
-              <Separator />
+              {multiChainAssetCount > [btcAddress].filter(Boolean).length + 1 ? <Separator /> : null}
               </>
             )}
 
             {/* SOL Balance Card - Only show in mainnet */}
-            {assetChainTab === "multichain" && !isTestnet && solAddress && (
+            {solAddress && (
               <>
               <Card
                 className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
@@ -1216,12 +1220,12 @@ export default function WalletPage() {
                   </div>
                 </CardContent>
               </Card>
-              <Separator />
+              {trxAddress ? <Separator /> : null}
               </>
             )}
 
             {/* TRX Balance Card - Only show in mainnet */}
-            {assetChainTab === "multichain" && !isTestnet && trxAddress && (
+            {trxAddress && (
               <>
               <Card
                 className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
@@ -1268,6 +1272,8 @@ export default function WalletPage() {
               <Separator />
               </>
             )}
+              </div>
+            ) : null}
             {assetChainTab === "multichain" && (
               <>
                 {isTestnet ? (

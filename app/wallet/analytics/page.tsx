@@ -214,22 +214,21 @@ export default function AnalyticsPage() {
           animate={{ y: 0, opacity: 1 }}
           className="w-full"
         >
-          <h1 className="text-2xl font-bold text-white mb-1">Portfolio Analytics</h1>
+          <h1 className="text-2xl font-bold text-white mb-1">Portfolio analytics</h1>
           <p className="text-gray-400 text-sm">Track your asset performance</p>
         </motion.div>
 
-        {/* Total Balance Card */}
+        {/* Total balance */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
           className="w-full"
         >
-          <Card className="bg-gradient-to-br from-[#0c0c0c] to-black border-white/5 rounded-2xl">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-2 mb-2">
+          <div className="space-y-2">
+              <div className="flex items-center gap-2">
                 <Icon icon="lucide:wallet" className="w-4 h-4 text-gray-400"/>
-                <span className="text-gray-400 text-sm">Total Portfolio Value</span>
+                <span className="text-gray-400 text-sm">Total portfolio value</span>
               </div>
               {isLoadingAssets ? (
                 <Skeleton className="h-10 w-32 bg-[#222]" />
@@ -249,17 +248,11 @@ export default function AnalyticsPage() {
                       : "bg-red-500/10 text-red-500 border-red-500/20"
                       } text-xs`}
                   >
-                    {change24h >= 0 ? (
-                      <Icon icon="lucide:arrow-up-right" className="w-3 h-3 mr-1"/>
-                    ) : (
-                      <Icon icon="lucide:arrow-down-right" className="w-3 h-3 mr-1"/>
-                    )}
                     {hideBalance ? "••" : `${change24h >= 0 ? "+" : ""}${change24h.toFixed(2)}%`} 24h
                   </Badge>
                 )}
               </div>
-            </CardContent>
-          </Card>
+          </div>
         </motion.div>
 
         {/* AI Portfolio Health */}
@@ -344,7 +337,7 @@ export default function AnalyticsPage() {
             <TabsContent value="allocation" className="mt-4">
               <Card className="bg-[#111] border-[#222] rounded-2xl">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-400 font-medium">Asset Allocation</CardTitle>
+                  <CardTitle className="text-sm text-gray-400 font-medium">Asset allocation</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isLoadingAssets ? (
@@ -443,7 +436,7 @@ export default function AnalyticsPage() {
           transition={{ delay: 0.4 }}
           className="w-full space-y-3"
         >
-          <h3 className="text-sm font-medium text-gray-400 px-1">All Assets</h3>
+          <h3 className="text-sm font-medium text-gray-400 px-1">All assets</h3>
 
           {isLoadingAssets ? (
             <>
