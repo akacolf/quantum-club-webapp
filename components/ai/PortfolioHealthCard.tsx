@@ -134,7 +134,7 @@ export function PortfolioHealthCard({
                                 </div>
                             </div>
                             {isLoading ? (
-                                <span className="text-primary"><ButtonLoader /></span>
+                                <span className="flex w-5 justify-center text-primary"><ButtonLoader /></span>
                             ) : (
                                 <Icon icon="lucide:chevron-right" className="w-5 h-5 text-neutral-500" />
                             )}

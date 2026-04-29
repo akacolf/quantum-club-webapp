@@ -397,6 +397,10 @@ export default function WalletPage() {
   const queryClient = useQueryClient();
   const tonAssetCount = 1 + jettons.length;
   const multiChainAssetCount = [btcAddress, ethAddress, solAddress, trxAddress].filter(Boolean).length;
+  const btcAssetIndex = btcAddress ? 0 : -1;
+  const ethAssetIndex = ethAddress ? [btcAddress].filter(Boolean).length : -1;
+  const solAssetIndex = solAddress ? [btcAddress, ethAddress].filter(Boolean).length : -1;
+  const trxAssetIndex = trxAddress ? [btcAddress, ethAddress, solAddress].filter(Boolean).length : -1;
 
   // Virtualized jettons list
   const jettonsContainerRef = useRef<HTMLDivElement>(null);
@@ -590,7 +594,7 @@ export default function WalletPage() {
           <div className="relative overflow-hidden">
             <div className="relative z-10 space-y-6 py-6">
               <div className="flex w-full items-center justify-start">
-                <div className="inline-flex h-9 min-w-0 items-center gap-3">
+                <div className="inline-flex h-9 min-w-0 items-center gap-1">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -914,7 +918,7 @@ export default function WalletPage() {
           </TabsList>
 
           <TabsContent value="assets" className="mt-4 flex w-full flex-col gap-2 text-sm">
-            <div className="flex items-center gap-2">
+            <div className="mb-2 flex items-center gap-2">
               {([
                 { value: "ton", label: "TON" },
                 { value: "multichain", label: "Multi chain" },
@@ -1122,7 +1126,7 @@ export default function WalletPage() {
                   </div>
                 </CardContent>
               </Card>
-              {multiChainAssetCount > 1 ? <Separator /> : null}
+              {btcAssetIndex < multiChainAssetCount - 1 ? <Separator /> : null}
               </>
             )}
 
@@ -1171,7 +1175,7 @@ export default function WalletPage() {
                   </div>
                 </CardContent>
               </Card>
-              {multiChainAssetCount > [btcAddress].filter(Boolean).length + 1 ? <Separator /> : null}
+              {ethAssetIndex < multiChainAssetCount - 1 ? <Separator /> : null}
               </>
             )}
 
@@ -1220,7 +1224,7 @@ export default function WalletPage() {
                   </div>
                 </CardContent>
               </Card>
-              {trxAddress ? <Separator /> : null}
+              {solAssetIndex < multiChainAssetCount - 1 ? <Separator /> : null}
               </>
             )}
 
@@ -1269,7 +1273,7 @@ export default function WalletPage() {
                   </div>
                 </CardContent>
               </Card>
-              <Separator />
+              {trxAssetIndex < multiChainAssetCount - 1 ? <Separator /> : null}
               </>
             )}
               </div>

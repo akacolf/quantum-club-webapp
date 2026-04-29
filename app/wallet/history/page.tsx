@@ -166,6 +166,43 @@ export default function HistoryPage() {
     return `${qcId.slice(0, 6)}...${qcId.slice(-4)}`;
   };
 
+  const formatTokenQuantity = (rawAmount: unknown, decimals = 9) => {
+    if (rawAmount === undefined || rawAmount === null || rawAmount === "") return "";
+    const value = typeof rawAmount === "object" && rawAmount && "value" in rawAmount
+      ? (rawAmount as { value?: unknown }).value
+      : rawAmount;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "";
+    return (numeric / Math.pow(10, decimals)).toFixed(4);
+  };
+
+  const getTokenSymbol = (token: unknown, fallback = "TOKEN") => {
+    if (!token || typeof token !== "object") return fallback;
+    const record = token as Record<string, unknown>;
+    return String(record.symbol || record.name || fallback);
+  };
+
+  const getDomainName = (payload: unknown) => {
+    if (!payload || typeof payload !== "object") return "";
+    const record = payload as Record<string, unknown>;
+    const nft = record.nft && typeof record.nft === "object" ? record.nft as Record<string, unknown> : null;
+    return String(record.domain || record.name || nft?.dns || nft?.name || "");
+  };
+
+  const getLiquidityDetails = (payload: unknown) => {
+    if (!payload || typeof payload !== "object") return "";
+    const record = payload as Record<string, unknown>;
+    const assetOne = record.asset_1 || record.token_1 || record.jetton_1 || record.jetton_master_1;
+    const assetTwo = record.asset_2 || record.token_2 || record.jetton_2 || record.jetton_master_2;
+    const amountOne = formatTokenQuantity(record.amount_1 || record.amount1 || record.first_amount, Number((assetOne as Record<string, unknown> | undefined)?.decimals ?? 9));
+    const amountTwo = formatTokenQuantity(record.amount_2 || record.amount2 || record.second_amount, Number((assetTwo as Record<string, unknown> | undefined)?.decimals ?? 9));
+    const parts = [
+      amountOne ? `${amountOne} ${getTokenSymbol(assetOne, "TOKEN")}` : "",
+      amountTwo ? `${amountTwo} ${getTokenSymbol(assetTwo, "TOKEN")}` : "",
+    ].filter(Boolean);
+    return parts.join(" + ");
+  };
+
   // Parse transaction data for filtering and display
   const parseTransaction = (event: HistoryEvent) => {
     const action = event.actions && event.actions[0];
@@ -181,7 +218,11 @@ export default function HistoryPage() {
     let toSymbol = "";
     let fromAmount = "";
     let toAmount = "";
+    let detailText = "";
+    let hideAmount = false;
     const status = event.in_progress ? "pending" : (event.is_scam ? "scam" : "ok");
+    const actionPayload = (action as unknown as Record<string, unknown>)[action.type] as Record<string, unknown> | undefined;
+    const normalizedActionType = action.type.toLowerCase().replace(/[_\s-]/g, "");
 
     // Normalize wallet address for comparison
     let normalizedWalletAddress = "";
@@ -324,8 +365,23 @@ export default function HistoryPage() {
         symbol = burn.jetton?.symbol || "TOKEN";
         address = "";
       }
-    } else if (action.type === "DnsItemRenew") {
+    } else if (action.type === "DnsItemRenew" || (normalizedActionType.includes("dns") && normalizedActionType.includes("renew"))) {
       type = "Domain renewal";
+      detailText = getDomainName(actionPayload) || "Domain renewal";
+      hideAmount = true;
+    } else if (normalizedActionType.includes("liquidity") && normalizedActionType.includes("deposit")) {
+      type = "Liquidity deposit";
+      detailText = getLiquidityDetails(actionPayload);
+      amount = formatTokenQuantity(actionPayload?.ton_attached || actionPayload?.amount || actionPayload?.value);
+      symbol = amount ? "TON" : "";
+      hideAmount = !amount;
+      address = typeof actionPayload?.pool === "object" && actionPayload.pool
+        ? String((actionPayload.pool as Record<string, unknown>).address || "")
+        : "";
+    } else if (normalizedActionType.includes("liquidity") && (normalizedActionType.includes("withdraw") || normalizedActionType.includes("burn"))) {
+      type = "Liquidity burn";
+      detailText = getLiquidityDetails(actionPayload);
+      hideAmount = true;
     } else if (action.type === "AuctionBid") {
       type = "Auction Bid";
       const bid = (action as any).AuctionBid;
@@ -369,6 +425,8 @@ export default function HistoryPage() {
         amount = exec.ton_attached ? fromNano(exec.ton_attached.toString()) : "0";
         symbol = "TON";
         address = exec.contract?.address || "";
+        detailText = type === "Liquidity deposit" || type === "Liquidity burn" ? operation : "";
+        hideAmount = (type === "Liquidity burn" && !exec.ton_attached) || (type === "Contract Call" && !exec.ton_attached);
       }
     }
 
@@ -388,6 +446,8 @@ export default function HistoryPage() {
       toSymbol,
       fromAmount,
       toAmount,
+      detailText,
+      hideAmount,
       status,
       formattedDate,
       formattedTime,
@@ -748,6 +808,10 @@ export default function HistoryPage() {
                                         <span className="font-mono text-muted-foreground truncate flex items-center gap-1">
                                         {tx.fromSymbol} <Icon icon="lucide:arrow-right" className="w-3 h-3"/> {tx.toSymbol}
                                       </span>
+                                    ) : tx.detailText ? (
+                                        <span className="text-muted-foreground truncate">
+                                          {tx.detailText}
+                                        </span>
                                     ) : tx.address ? (
                                         <span className="font-mono text-muted-foreground truncate">
                                           {formatAddress(tx.address)}
@@ -770,7 +834,7 @@ export default function HistoryPage() {
                                       tx.status === 'pending' ? 'text-yellow-500' :
                                         tx.isIncoming ? 'text-green-500' : 'text-foreground'
                                       }`}>
-                                      {tx.type === 'Deploy' || tx.type === 'Unknown' ? '' : (tx.isIncoming ? '+' : '-')}{tx.type !== 'Deploy' && tx.type !== 'Unknown' ? `${parseFloat(tx.amount).toFixed(4)} ${tx.symbol}` : ''}
+                                      {tx.type === 'Deploy' || tx.type === 'Unknown' || tx.hideAmount ? '' : (tx.isIncoming ? '+' : '-')}{tx.type !== 'Deploy' && tx.type !== 'Unknown' && !tx.hideAmount ? `${parseFloat(tx.amount).toFixed(4)} ${tx.symbol}` : ''}
                                     </h4>
                                   )}
                                   <p className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">{tx.formattedDate} • {tx.formattedTime}</p>

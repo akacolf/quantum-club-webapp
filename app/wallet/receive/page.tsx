@@ -20,7 +20,6 @@ import Loader from "@/app/(components)/Loader";
 import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CHAIN_INFO, ChainType } from "../utils/multichain";
 import StyledQRCode from "@/components/StyledQRCode";
 import Image from "next/image";
@@ -199,13 +198,13 @@ export default function ReceivePage() {
               </div>
 
               {/* Warning */}
-              <Alert variant="warning" className="bg-transparent border-0 p-0 text-yellow-500 [&>svg]:left-0 [&>svg+div]:translate-x-2">
-                <Icon icon="lucide:shield-alert" className="w-4 h-4"/>
-                <AlertTitle className="text-xs font-bold opacity-80">Warning</AlertTitle>
-                <AlertDescription className="text-xs leading-relaxed opacity-90 mt-1">
+              <div className="mx-auto max-w-xs text-center text-yellow-500">
+                <Icon icon="lucide:shield-alert" className="mx-auto mb-2 h-4 w-4"/>
+                <p className="text-xs font-bold opacity-80">Warning</p>
+                <p className="mt-1 text-xs leading-relaxed opacity-90">
                   {CHAIN_INFO[selectedChain].warningText}
-                </AlertDescription>
-              </Alert>
+                </p>
+              </div>
 
               {/* QC Username (TON only) */}
               {selectedChain === "ton" && qcUsername && (

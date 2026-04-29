@@ -309,7 +309,7 @@ export default function WalletSettingsPage() {
                           <AlertDialogTitle>Remove wallet?</AlertDialogTitle>
                           <AlertDialogDescription className="text-muted-foreground text-xs">This action cannot be undone.</AlertDialogDescription>
                           <p className="text-left text-xs font-medium leading-relaxed text-red-400">
-                            Warning: Make sure you have backed up your recovery phrase. Without it, you will permanently lose access to your funds.
+                            Warning: make sure you have backed up your recovery phrase. Without it, you will permanently lose access to your funds.
                           </p>
                         </div>
                       </div>

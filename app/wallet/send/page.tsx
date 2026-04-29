@@ -2,7 +2,6 @@
 
 import { useState, useEffect, ChangeEvent } from "react";
 import { useForm, useStore } from "@tanstack/react-form";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -33,7 +32,7 @@ import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth"
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, internal, SendMode } from "@ton/ton";
-import { toNano, Address, beginCell, Cell } from "@ton/core";
+import { toNano, Address, beginCell, Cell, external, storeMessage } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { encryptComment as encryptCommentMessage, createTextComment } from "@/lib/ton-encrypted-comment";
@@ -82,6 +81,16 @@ interface MultiChainOption {
   image: string;
   color: string;
   explorerUrl: string;
+}
+
+function buildWalletExternalMessage(wallet: any, body: Cell, includeInit: boolean) {
+  const message = external({
+    to: wallet.address,
+    init: includeInit ? wallet.init : undefined,
+    body,
+  });
+
+  return beginCell().store(storeMessage(message)).endCell();
 }
 
 export default function SendPage() {
@@ -713,21 +722,7 @@ export default function SendPage() {
           messages,
         });
 
-        // Build external message for emulation
-        const externalMessage = beginCell()
-          .storeWritable((builder) => {
-            builder.storeUint(0b10, 2);
-            builder.storeUint(0, 2);
-            builder.storeAddress(wallet.address);
-            builder.storeCoins(0);
-          })
-          .storeBuilder(
-            beginCell()
-              .storeBit(false)
-              .storeBit(true)
-              .storeRef(transfer)
-          )
-          .endCell();
+        const externalMessage = buildWalletExternalMessage(wallet, transfer, isNewWallet);
 
         // Use TON API emulation for accurate fee
         try {
@@ -918,27 +913,7 @@ export default function SendPage() {
             ],
           });
 
-          // Build external message with StateInit for wallet deployment
-          const externalMessage = beginCell()
-            .storeWritable((builder) => {
-              builder.storeUint(0b10, 2); // ext_in_msg_info$10
-              builder.storeUint(0, 2); // src: addr_none$00
-              builder.storeAddress(wallet.address); // dest
-              builder.storeCoins(0); // import_fee
-            })
-            .storeBit(true) // state_init present
-            .storeBit(true) // state_init in ref
-            .storeRef(
-              beginCell()
-                .storeUint(0, 2) // split_depth = 0, special = 0
-                .storeMaybeRef(wallet.init.code) // code
-                .storeMaybeRef(wallet.init.data) // data
-                .storeUint(0, 1) // library = 0
-                .endCell()
-            )
-            .storeBit(true) // body in ref
-            .storeRef(transfer)
-            .endCell();
+          const externalMessage = buildWalletExternalMessage(wallet, transfer, true);
 
           // Send the external message via TonAPI
           const boc = externalMessage.toBoc().toString('base64');
@@ -994,27 +969,7 @@ export default function SendPage() {
             ],
           });
 
-          // Build external message with StateInit for wallet deployment
-          const externalMessage = beginCell()
-            .storeWritable((builder) => {
-              builder.storeUint(0b10, 2); // ext_in_msg_info$10
-              builder.storeUint(0, 2); // src: addr_none$00
-              builder.storeAddress(wallet.address); // dest
-              builder.storeCoins(0); // import_fee
-            })
-            .storeBit(true) // state_init present
-            .storeBit(true) // state_init in ref
-            .storeRef(
-              beginCell()
-                .storeUint(0, 2) // split_depth = 0, special = 0
-                .storeMaybeRef(wallet.init.code) // code
-                .storeMaybeRef(wallet.init.data) // data
-                .storeUint(0, 1) // library = 0
-                .endCell()
-            )
-            .storeBit(true) // body in ref
-            .storeRef(transfer)
-            .endCell();
+          const externalMessage = buildWalletExternalMessage(wallet, transfer, true);
 
           // Send the external message via TonAPI
           const boc = externalMessage.toBoc().toString('base64');
@@ -1206,13 +1161,10 @@ export default function SendPage() {
 
         {/* Multi-chain Send Form */}
         {networkMode === "multichain" && !isTestnet && (
-          <AnimatePresence mode="wait">
+          <>
             {multiChainStep === "input" && (
-              <motion.div
+              <div
                 key="multichain-input"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
                 className="space-y-6"
               >
                 {/* Chain Selection */}
@@ -1360,7 +1312,7 @@ export default function SendPage() {
                     className="bg-secondary border-0 h-12 px-4 text-foreground placeholder:text-muted-foreground/50 rounded-xl focus:ring-0 transition-all text-sm"
                   />
                   <p className="text-[10px] text-muted-foreground/70 ml-1">
-                    Note: Comments are for your records only and may not be stored on all chains.
+                    Note: comments are for your records only and may not be stored on all chains.
                   </p>
                 </div>
 
@@ -1394,15 +1346,12 @@ export default function SendPage() {
                 >
                   Continue
                 </Button>
-              </motion.div>
+              </div>
             )}
 
             {multiChainStep === "confirm" && (
-              <motion.div
+              <div
                 key="multichain-confirm"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
                 className="space-y-6"
               >
                 <Card className="bg-secondary border-0 rounded-2xl overflow-hidden">
@@ -1451,14 +1400,12 @@ export default function SendPage() {
                     {isMultiChainSending ? <ButtonLoader /> : "Confirm and send"}
                   </Button>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {multiChainStep === "processing" && (
-              <motion.div
+              <div
                 key="multichain-processing"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
                 className="flex flex-col items-center justify-center py-16 space-y-6"
               >
                 <div className="relative flex items-center justify-center text-primary">
@@ -1470,14 +1417,12 @@ export default function SendPage() {
                   <p className="text-lg font-semibold">Processing transaction</p>
                   <p className="text-muted-foreground text-sm mt-1">Please wait while we send your {currentChain.symbol}...</p>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {multiChainStep === "success" && (
-              <motion.div
+              <div
                 key="multichain-success"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
                 className="space-y-6"
               >
                 <div className="flex flex-col items-center justify-center py-8">
@@ -1515,20 +1460,17 @@ export default function SendPage() {
                 >
                   Done
                 </Button>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </>
         )}
 
         {/* TON Send Form - Original */}
         {(networkMode === "ton" || isTestnet) && (
-        <AnimatePresence mode="wait">
+        <>
           {step === "input" && (
-            <motion.div
+            <div
               key="input"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
               className="space-y-6"
             >
               {/* Batch Send Feature Link */}
@@ -1808,15 +1750,12 @@ export default function SendPage() {
                   "Continue"
                 )}
               </Button>
-            </motion.div>
+            </div>
           )}
 
           {step === "confirm" && (
-            <motion.div
+            <div
               key="confirm"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
               {isTestnet && (
@@ -1935,14 +1874,12 @@ export default function SendPage() {
                   )}
                 </Button>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {step === "processing" && (
-            <motion.div
+            <div
               key="processing"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
               className="flex flex-col items-center justify-center py-20 space-y-6"
             >
               <div className="relative">
@@ -1955,14 +1892,12 @@ export default function SendPage() {
                 <h2 className="text-xl font-bold text-foreground">Processing transaction</h2>
                 <p className="text-muted-foreground text-sm">Please wait while we broadcast your transaction...</p>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {step === "success" && (
-            <motion.div
+            <div
               key="success"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
               className="flex flex-col items-center justify-center py-10 space-y-6"
             >
               <div className="flex items-center justify-center">
@@ -2005,9 +1940,9 @@ export default function SendPage() {
                   Back to wallet
                 </Button>
               </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </>
         )}
       </div>
 

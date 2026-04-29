@@ -484,7 +484,7 @@ export default function ProfilePage() {
                         </div>
                         <CardContent className="p-0">
                             <div className="flex items-center gap-3 px-4 py-3.5">
-                                <Icon icon="ic:baseline-telegram" className="w-6 h-6 text-[#26A5E4]" />
+                                <Icon icon="logos:telegram" className="w-6 h-6" />
                                 <span className="text-sm font-medium flex-1">Telegram</span>
                                 <Icon icon="solar:check-circle-bold" className="w-5 h-5 text-neutral-400" />
                             </div>

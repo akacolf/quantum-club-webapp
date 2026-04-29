@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -200,13 +199,10 @@ export default function SendQNTMPage() {
           <p className="text-sm text-muted-foreground mt-1">Transfer to another Quantum Club user</p>
         </div>
 
-        <AnimatePresence mode="wait">
+        <>
           {step === "input" && (
-            <motion.div
+            <div
               key="input"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
               className="space-y-6"
             >
               {/* Current Balance */}
@@ -350,15 +346,12 @@ export default function SendQNTMPage() {
                   </Button>
                 )}
               </form.Subscribe>
-            </motion.div>
+            </div>
           )}
 
           {step === "confirm" && (
-            <motion.div
+            <div
               key="confirm"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
               <form.Subscribe selector={(state) => state.values}>
@@ -381,9 +374,7 @@ export default function SendQNTMPage() {
                         </div>
                         <Icon icon="lucide:arrow-right" className="w-6 h-6 text-primary self-start mt-3"/>
                         <div className="text-center">
-                          <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                            <Icon icon="lucide:user" className="w-6 h-6 text-primary"/>
-                          </div>
+                          <Icon icon="lucide:user" className="mx-auto mb-2 h-6 w-6 text-primary"/>
                           <span className="text-xs text-muted-foreground truncate max-w-[80px]">{recipientUsername || "Recipient"}</span>
                         </div>
                       </div>
@@ -436,14 +427,12 @@ export default function SendQNTMPage() {
                   )}
                 </Button>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {step === "processing" && (
-            <motion.div
+            <div
               key="processing"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
               className="flex flex-col items-center justify-center py-20 space-y-6"
             >
               <div className="relative">
@@ -458,14 +447,12 @@ export default function SendQNTMPage() {
                 <h3 className="text-lg font-bold text-foreground">Processing transfer</h3>
                 <p className="text-sm text-muted-foreground mt-1">Please wait...</p>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {step === "success" && (
-            <motion.div
+            <div
               key="success"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
               className="flex flex-col items-center justify-center py-16 space-y-6"
             >
               <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -487,9 +474,9 @@ export default function SendQNTMPage() {
               >
                 <Link href="/wallet">Back to Wallet</Link>
               </Button>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </>
 
         {/* Biometric Auth Modal */}
         <BiometricAuth

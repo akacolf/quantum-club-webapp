@@ -238,7 +238,7 @@ const HomeContent = () => {
       const newRemaining = await solveToEarnMutation.mutateAsync();
       setRemainingSolveToEarn(newRemaining);
       sessionStorage.setItem("remainingSolveToEarn", String(newRemaining));
-      router.push("/earn/solvetoearn");
+      router.push("/earn/solvetoearn?back=/home");
     } catch {
       // Re-enable button on failure
       if (taskElement) {
@@ -320,14 +320,14 @@ const HomeContent = () => {
         />
         
         <div className="mt-6 flex gap-3 w-full">
-          <Link href="/wallet/receive" className="flex-1">
+          <Link href="/wallet/receive?back=/home" className="flex-1">
             <Button className="w-full h-11 rounded-xl font-bold text-sm bg-white text-black hover:bg-white/90 shadow-lg border-0 flex items-center justify-center gap-2 transition-all">
               <Icon icon="lucide:arrow-down" width="18" height="18" />
               Deposit
             </Button>
           </Link>
 
-          <Link href="/ecosystem/trade" className="flex-1">
+          <Link href="/ecosystem/trade?back=/home" className="flex-1">
             <Button variant="secondary" className="w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all">
               <Icon icon="lucide:arrow-left-right" width="18" height="18" />
               Trade
@@ -352,21 +352,21 @@ const HomeContent = () => {
             <span className="text-[11px] font-medium tracking-wide">Solve</span>
           </button>
 
-          <Link href="/home/rewardshistory" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
+          <Link href="/home/rewardshistory?back=/home" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
             <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm">
               <Icon icon="lucide:history" width="20" height="20" />
             </div>
             <span className="text-[11px] font-medium tracking-wide">History</span>
           </Link>
 
-          <Link href="/ecosystem/chat" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
+          <Link href="/ecosystem/chat?back=/home" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
             <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm">
               <Icon icon="lucide:message-circle" width="20" height="20" />
             </div>
             <span className="text-[11px] font-medium tracking-wide">Chat</span>
           </Link>
 
-          <Link href="/ecosystem/chat/qc-ai" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
+          <Link href="/ecosystem/chat/qc-ai?back=/home" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
             <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm relative">
               <Icon icon="lucide:sparkles" width="20" height="20" />
             </div>

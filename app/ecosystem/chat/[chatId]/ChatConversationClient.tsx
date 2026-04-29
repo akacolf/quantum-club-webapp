@@ -211,6 +211,15 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
+function normalizeQcUsername(name: string | null | undefined): string {
+  return name?.replace(/^@+/, "").trim() || "Unknown";
+}
+
+function formatQcHandle(name: string | null | undefined): string {
+  const normalized = normalizeQcUsername(name);
+  return normalized === "Unknown" ? normalized : `@${normalized}`;
+}
+
 function getAvatarColor(name: string): string {
   const colors = [
     "bg-blue-600", "bg-violet-600", "bg-emerald-600",
@@ -1246,7 +1255,7 @@ export default function ChatConversationClient() {
     const currentReply = replyTo;
     setReplyTo(null);
 
-    const senderName = qcUsername || "Unknown";
+    const senderName = normalizeQcUsername(qcUsername);
 
     try {
       // Use participantsRef for latest participants
@@ -1352,7 +1361,7 @@ export default function ChatConversationClient() {
       return;
     }
 
-    const senderName = qcUsername || "Unknown";
+    const senderName = normalizeQcUsername(qcUsername);
     const msgId = `voice_${Date.now()}_${telegramId}`;
 
     try {
@@ -1474,7 +1483,7 @@ export default function ChatConversationClient() {
       return;
     }
 
-    const senderName = qcUsername || "Unknown";
+    const senderName = normalizeQcUsername(qcUsername);
     const msgId = `file_${Date.now()}_${telegramId}`;
     setIsSendingFile(true);
 
@@ -1616,7 +1625,7 @@ export default function ChatConversationClient() {
       return;
     }
 
-    const senderName = qcUsername || "Unknown";
+    const senderName = normalizeQcUsername(qcUsername);
     try {
       const participants = participantsRef.current;
       const epoch = await ensureEpoch();
@@ -1712,7 +1721,7 @@ export default function ChatConversationClient() {
     }
     if (!question.trim() || options.length < 2 || options.some((o) => !o.trim())) return;
     try {
-      const senderName = qcUsername || "Unknown";
+      const senderName = normalizeQcUsername(qcUsername);
       const participants = participantsRef.current;
       const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
 
@@ -1844,7 +1853,7 @@ export default function ChatConversationClient() {
         const destEpochNonce = freshDest.epochNonce ?? destChat.epochNonce;
         const destEpochCounter = freshDest.epochCounter ?? destChat.epochCounter;
         const encryptedText = await encryptMessage(msg.text, destParticipants, destChat.id, telegramId, destIsGroup, destEpochNonce, destEpochCounter);
-        const senderName = qcUsername || "Unknown";
+        const senderName = normalizeQcUsername(qcUsername);
 
         const fwdDoc: Record<string, unknown> = {
           text: encryptedText,
@@ -2981,7 +2990,7 @@ export default function ChatConversationClient() {
                     {msg.replyTo && (
                       <div className="border-l-2 border-primary/50 pl-2 mb-1.5 py-0.5">
                         <p className="text-[10px] font-semibold text-primary">
-                          {msg.replyTo.senderName === qcUsername ? "You" : `@${msg.replyTo.senderName}`}
+                          {normalizeQcUsername(msg.replyTo.senderName) === normalizeQcUsername(qcUsername) ? "You" : formatQcHandle(msg.replyTo.senderName)}
                         </p>
                         <p className="text-[11px] text-muted-foreground truncate max-w-[200px]">
                           {msg.replyTo.text}
@@ -3178,7 +3187,7 @@ export default function ChatConversationClient() {
         <div className="px-3 py-2 border-t border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2">
           <div className="flex-1 min-w-0 border-l-2 border-primary pl-2">
             <p className="text-[11px] font-semibold text-primary truncate">
-              {replyTo.senderName === qcUsername ? "You" : `@${replyTo.senderName}`}
+              {normalizeQcUsername(replyTo.senderName) === normalizeQcUsername(qcUsername) ? "You" : formatQcHandle(replyTo.senderName)}
             </p>
             <p className="text-[11px] text-muted-foreground truncate">
               {replyTo.text}

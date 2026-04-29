@@ -187,7 +187,7 @@ export default function LaunchNftPage() {
                                 disabled={!canProceedStep1}
                                 className="w-full h-12 rounded-xl font-bold"
                             >
-                                Next: Set Details
+                                Next: set details
                             </Button>
                         </motion.div>
                     )}
@@ -287,7 +287,7 @@ export default function LaunchNftPage() {
                                     disabled={!canProceedStep2}
                                     className="flex-1 h-12 rounded-xl font-bold"
                                 >
-                                    Next: Preview
+                                    Next: preview
                                 </Button>
                             </div>
                         </motion.div>
