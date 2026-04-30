@@ -370,7 +370,7 @@ export default function NftDetailPage() {
 
                 {/* Sale Info - If Listed */}
                 {nft.sale && priceInfo && (
-                    <div className="mx-auto w-[90%]">
+                    <div className="w-full">
                         <div className="py-2">
                             <div className="flex items-center justify-between">
                                 <div>

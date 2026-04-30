@@ -148,7 +148,6 @@ export default function ImportWalletPage() {
         if (targetIndex < 24) newPhrase[targetIndex] = word.toLowerCase().trim();
       });
       form.setFieldValue("seedPhrase", newPhrase);
-      if (words.length >= 24) toast.success("Recovery phrase sequence matched");
     }
   };
 

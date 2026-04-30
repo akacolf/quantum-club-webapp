@@ -13,18 +13,18 @@ const CHAINS = [
 
 export default function WalletWelcomeCinematic() {
   return (
-    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden py-6">
+    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden pb-4 pt-2">
       <motion.div
-        className="flex w-[200%] items-center"
+        className="flex w-[240%] items-center"
         animate={{ x: ["0%", "-50%"] }}
         transition={{ duration: 20, ease: "linear", repeat: Infinity }}
       >
         {[0, 1].map((group) => (
-          <div key={group} className="flex min-w-[50%] items-center justify-around">
+          <div key={group} className="flex min-w-[50%] items-center justify-around px-5">
             {CHAINS.map((chain) => (
               <div
                 key={`${chain.name}-${group}`}
-                className="flex h-12 items-center gap-3 px-3"
+                className="mx-4 flex h-12 items-center gap-3 px-4"
               >
                 <Image
                   src={chain.icon}

@@ -379,7 +379,7 @@ export default function BuyNftPage() {
                 </Card>
 
                 {/* Price Breakdown */}
-                <Card className="bg-card border-border">
+                <Card className="w-full bg-card border-border">
                     <CardContent className="p-4 space-y-3">
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">NFT price</span>

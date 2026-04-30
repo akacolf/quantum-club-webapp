@@ -141,7 +141,7 @@ const EcosystemNavigation = () => {
   }
 
   return (
-    <div className="fixed z-50 bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-[420px] h-[70px] bg-white/10 backdrop-blur-2xl rounded-full border border-white/20 overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/10 before:to-transparent before:pointer-events-none">
+    <div className="fixed z-50 bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-[420px] h-[70px] bg-white/10 backdrop-blur-2xl rounded-full overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/10 before:to-transparent before:pointer-events-none">
       <nav
         ref={navRef}
         className="grid h-full items-center relative"
@@ -149,7 +149,7 @@ const EcosystemNavigation = () => {
       >
         <div
           ref={pillRef}
-          className="absolute left-0 top-2 h-[calc(100%-16px)] rounded-full bg-white/10 pointer-events-none will-change-transform"
+          className="absolute left-0 top-2 h-[calc(100%-16px)] rounded-full bg-white/10 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] pointer-events-none will-change-transform"
           aria-hidden
         />
         {navTabs.map((tab) => {
@@ -238,7 +238,7 @@ const EcosystemNavigation = () => {
                     side="top"
                     align="start"
                     sideOffset={12}
-                    className="w-52 p-1.5 bg-[#1a1a1a] border-white/10 rounded-xl ring-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                    className="w-52 p-1.5 bg-[#1a1a1a] border-0 rounded-xl ring-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
                   >
                     <Link
                       href="/ecosystem/trade"
@@ -246,7 +246,7 @@ const EcosystemNavigation = () => {
                       className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${!isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
                       <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                        <Icon icon="solar:rocket-bold" className="w-4 h-4 text-primary" />
+                        <Icon icon="mynaui:rocket-solid" className="w-4 h-4 text-primary" />
                       </div>
                       <div className="flex-1 text-left">
                         <p className="text-sm font-semibold text-white">QC RocketStart</p>

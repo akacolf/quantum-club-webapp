@@ -90,7 +90,7 @@ function TokenCard({ token, index, showRank = true }: { token: Token; index: num
         >
         <Link href={`/ecosystem/trade/${token.id}`} prefetch={true}>
             <Card
-                className="bg-white/5 backdrop-blur-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer overflow-hidden group relative shadow-md hover:shadow-lg hover:bg-white/10"
+                className="bg-white/5 backdrop-blur-xl border-0 transition-all cursor-pointer overflow-hidden group relative shadow-md hover:shadow-lg hover:bg-white/10"
             >
                 {/* Subtle Gradient Glow */}
                 <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 blur-[80px] rounded-full translate-x-10 -translate-y-10 group-hover:bg-primary/10 transition-colors duration-700" />
@@ -186,7 +186,7 @@ function TokenCard({ token, index, showRank = true }: { token: Token; index: num
                     </div>
 
                     {/* Footer Stats - Minimalist Row */}
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                    <div className="flex items-center justify-between mt-3 pt-3">
                          <div className="flex items-center gap-1.5">
                             <Icon icon="solar:chart-2-bold" className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="text-[10px] text-muted-foreground font-medium">MCap:</span>
@@ -212,7 +212,7 @@ function TokenListSkeleton() {
     return (
         <div className="space-y-3">
             {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="bg-white/5 border border-white/5">
+                <Card key={i} className="bg-white/5 border-0">
                     <CardContent className="p-4">
                         <div className="flex gap-4">
                             <Skeleton className="w-16 h-16 rounded-xl" />
@@ -267,7 +267,7 @@ function PositionCard({ position, index }: { position: HolderPosition; index: nu
             transition={{ delay: Math.min(index * 0.05, 0.3) }}
         >
             <Link href={`/ecosystem/trade/${token.id}`} prefetch={true}>
-                <Card className="bg-white/5 backdrop-blur-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer overflow-hidden group shadow-md hover:shadow-lg hover:bg-white/10">
+                <Card className="bg-white/5 backdrop-blur-xl border-0 transition-all cursor-pointer overflow-hidden group shadow-md hover:shadow-lg hover:bg-white/10">
                     <CardContent className="p-3">
                         <div className="flex gap-3 items-center">
                             <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-[#222] ring-1 ring-white/5 flex-shrink-0">
@@ -304,7 +304,7 @@ function PositionCard({ position, index }: { position: HolderPosition; index: nu
                             </div>
                         </div>
                         {hasPnl && (
-                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                            <div className="flex items-center justify-between mt-2 pt-2">
                                 <span className="text-[10px] text-muted-foreground">P/L</span>
                                 <span className={`text-[10px] font-bold ${isPnlPositive ? "text-green-400" : "text-red-400"}`}>
                                     {isPnlPositive ? "+" : ""}{formatCompactNumber(pnlTon, 4)} TON
@@ -434,37 +434,36 @@ export default function TradePage() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">
             {/* Header */}
-            <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-white/5 pb-2">
-                <div className="px-4 pt-4 pb-2">
-                    <div className="flex items-center justify-between mb-4">
+            <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl pb-3">
+                <div className="space-y-4 px-4 pt-4">
+                    <div className="flex items-center justify-between">
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-primary/20 text-primary rounded-md">BETA</span>
+                                <span className="text-[10px] font-bold text-yellow-300">Beta</span>
                             </div>
                             <h1 className="text-2xl font-bold tracking-tight text-white">
                                 QC <span className="text-primary">RocketStart</span>
                             </h1>
-                            <p className="text-xs text-muted-foreground font-medium tracking-wide">Token Launchpad on TON</p>
                         </div>
                         <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.4)] transition-all rounded-full px-5 h-10">
                             <Link href="/ecosystem/trade/create">
-                                <Icon icon="solar:rocket-bold" className="w-5 h-5" />
+                                <Icon icon="mynaui:rocket-solid" className="w-5 h-5" />
                                 Launch
                             </Link>
                         </Button>
                     </div>
 
                     {/* Testnet notice */}
-                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-2.5 flex items-center gap-2.5 mb-1">
-                        <Icon icon="lucide:flask-conical" className="w-4 h-4 text-orange-400 shrink-0"/>
-                        <p className="text-[11px] text-orange-400/90 leading-snug">
+                    <div className="bg-secondary rounded-xl p-3 flex items-center gap-2.5">
+                        <Icon icon="lucide:flask-conical" className="w-4 h-4 text-white shrink-0"/>
+                        <p className="text-[11px] text-white leading-snug">
                             Running on <span className="font-semibold">TON Testnet</span> — no real funds at risk. Make sure to switch to testnet mode from your wallet&apos;s settings. Get 2 TON/hour from{" "}
-                            <a href="https://t.me/testgiver_ton_bot" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-orange-400 hover:text-orange-300">@testgiver_ton_bot</a>.
+                            <a href="https://t.me/testgiver_ton_bot" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-white hover:text-white/80">@testgiver_ton_bot</a>.
                         </p>
                     </div>
 
                     {/* Search */}
-                    <div className="relative group mb-1">
+                    <div className="relative group">
                         <Icon
                             icon="solar:magnifer-linear"
                             className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-white transition-colors z-10"
@@ -474,7 +473,7 @@ export default function TradePage() {
                             placeholder="Search tokens..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 h-11 bg-white/5 border-white/5 text-white placeholder:text-muted-foreground focus:bg-white/10 focus:border-white/20 transition-all rounded-xl backdrop-blur-sm"
+                            className="pl-10 h-11 bg-white/5 border-0 text-white placeholder:text-muted-foreground focus:bg-white/10 transition-all rounded-xl backdrop-blur-sm"
                         />
                         {searchQuery && (
                             <button
@@ -489,10 +488,10 @@ export default function TradePage() {
                     {/* Tabs */}
                     {!searchQuery && (
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-3">
-                            <TabsList className="w-full bg-black/40 backdrop-blur-md p-1 h-12 rounded-xl grid grid-cols-5 gap-1 border border-white/5 items-stretch shadow-inner">
+                            <TabsList className="w-full bg-black/40 backdrop-blur-md p-1 h-12 rounded-xl grid grid-cols-5 gap-1 border-0 items-stretch shadow-inner">
                                 <TabsTrigger
                                     value="trending"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm border-0 rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.fire ? (
@@ -510,7 +509,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="new"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm border-0 rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.sparkles ? (
@@ -528,7 +527,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="holdings"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm border-0 rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.diamond ? (
@@ -546,7 +545,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="created"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300 relative"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm border-0 rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300 relative"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.rocket ? (
@@ -567,7 +566,7 @@ export default function TradePage() {
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="dex"
-                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-white/10 border border-transparent rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
+                                    className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm border-0 rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"
                                 >
                                     <div className="flex items-center justify-center gap-1">
                                         <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-green-400" />
@@ -663,7 +662,7 @@ export default function TradePage() {
                         myTokens.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
                                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                                    <Icon icon="solar:rocket-bold" className="w-8 h-8 text-primary" />
+                                    <Icon icon="mynaui:rocket-solid" className="w-8 h-8 text-primary" />
                                 </div>
                                 <p className="text-white font-medium mb-2">No tokens created yet</p>
                                 <p className="text-xs text-muted-foreground max-w-[200px] mb-4">
@@ -671,7 +670,7 @@ export default function TradePage() {
                                 </p>
                                 <Button asChild className="bg-white hover:bg-white/90 text-black gap-2 font-bold rounded-full px-5">
                                     <Link href="/ecosystem/trade/create">
-                                        <Icon icon="solar:rocket-bold" className="w-4 h-4" />
+                                        <Icon icon="mynaui:rocket-solid" className="w-4 h-4" />
                                         Create token
                                     </Link>
                                 </Button>
@@ -688,7 +687,7 @@ export default function TradePage() {
                                             </Badge>
                                         </div>
                                         {myTokens.filter(t => !t.isDeployed).map((token) => (
-                                            <Card key={token.id} className="bg-[#111] border-[#333] mb-2">
+                                            <Card key={token.id} className="bg-[#111] border-0 mb-2">
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 relative">
@@ -720,7 +719,7 @@ export default function TradePage() {
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <Icon icon="solar:rocket-bold" className="w-4 h-4 mr-1" />
+                                                                    <Icon icon="mynaui:rocket-solid" className="w-4 h-4 mr-1" />
                                                                     Deploy
                                                                 </>
                                                             )}
@@ -808,7 +807,7 @@ export default function TradePage() {
                     animate={{ y: 0, opacity: 1 }}
                     className="fixed bottom-28 left-4 right-4 z-30"
                 >
-                    <div className="bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-xl rounded-full border border-white/20 px-4 py-2.5 flex items-center gap-3 shadow-lg">
+                    <div className="bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-xl rounded-full border-0 px-4 py-2.5 flex items-center gap-3 shadow-lg">
                         <Icon icon="solar:wallet-bold" className="w-5 h-5 text-primary" />
                         <span className="flex-1 text-sm text-white">Connect QC Wallet to trade</span>
                         <Button size="sm" asChild className="bg-white hover:bg-white/90 text-black font-semibold h-8 px-4 rounded-full">

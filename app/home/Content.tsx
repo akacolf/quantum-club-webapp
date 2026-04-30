@@ -166,6 +166,7 @@ function getRankIcon(rank: string | null) {
 const emptySubscribe = () => () => {};
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
+const GREETING_TEXTS = ["GM", "Afternoon", "Evening"];
 
 const HomeContent = () => {
   const router = useRouter();
@@ -266,6 +267,15 @@ const HomeContent = () => {
 
   const TaskTimer = TaskTimerComponent;
   const { walletAddress, totalUsdBalance, isLoadingAssets, hideBalance, toggleHideBalance } = useWallet();
+  const [greetingIndex, setGreetingIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setGreetingIndex((index) => (index + 1) % GREETING_TEXTS.length);
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
 
@@ -275,12 +285,7 @@ const HomeContent = () => {
     return tgUser?.first_name || username || "Quantum User";
   })();
 
-  const greetingText = (() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "GM";
-    if (hour < 18) return "Afternoon";
-    return "Evening";
-  })();
+  const greetingText = GREETING_TEXTS[greetingIndex];
   const subtext = "What would you like to do today?";
 
   return (
@@ -714,7 +719,6 @@ function SpotTokensSection() {
 function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: string; tgFirstName: string; subtext: string }) {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
-  const prompts = ["How do I earn QNTM?", "Check my wallet", "What should I do today?"];
 
   const submitPrompt = (value: string) => {
     const trimmed = value.trim();
@@ -737,26 +741,13 @@ function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: 
         }}
         className="relative"
       >
-        <Icon icon="lucide:sparkles" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
         <input
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
           placeholder="Ask QC..."
-          className="h-11 w-full rounded-full border-0 bg-secondary pl-9 pr-4 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
+          className="h-11 w-full rounded-full border-0 bg-secondary px-4 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
         />
       </form>
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {prompts.map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => submitPrompt(item)}
-            className="shrink-0 rounded-full bg-secondary px-3 py-1.5 text-[11px] font-medium text-neutral-300 active:scale-[0.98]"
-          >
-            {item}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

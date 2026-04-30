@@ -15,12 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
-} from "@/components/ui/carousel";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -53,7 +47,6 @@ const WalletWelcomeCinematic = dynamic(
   () => import("./WalletWelcomeCinematic"),
   { ssr: false, loading: () => <Skeleton className="h-32 w-full bg-secondary" /> }
 );
-import { useStakingApyQuery } from "@/app/(hooks)/queries/use-staking-pools";
 import { usePriceHistoryQuery } from "@/app/(hooks)/queries/use-price-history";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -329,13 +322,7 @@ export default function WalletPage() {
   const [tgFirstName, setTgFirstName] = useState("Quantum User");
   const [walletSymbol, setWalletSymbol] = useState(WALLET_SYMBOLS[0]);
   const [assetChainTab, setAssetChainTab] = useState<AssetChainTab>("ton");
-  const { data: stakingApyData } = useStakingApyQuery(hasWallet);
-  const bestApy = stakingApyData?.bestApy ?? 5.0;
-
-  // Features Carousel state (timed with dots)
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [carouselCurrent, setCarouselCurrent] = useState(0);
-  const [carouselCount, setCarouselCount] = useState(0);
+  const [walletSearch, setWalletSearch] = useState("");
 
   // Scroll to top on navigation
   useEffect(() => {
@@ -355,37 +342,6 @@ export default function WalletPage() {
     }
   }, [telegramId]);
 
-  // Features Carousel - track current slide
-  useEffect(() => {
-    if (!carouselApi) return;
-
-    requestAnimationFrame(() => {
-      setCarouselCount(carouselApi.scrollSnapList().length);
-      setCarouselCurrent(carouselApi.selectedScrollSnap());
-    });
-
-    const handleSelect = () => {
-      setCarouselCurrent(carouselApi.selectedScrollSnap());
-    };
-
-    carouselApi.on("select", handleSelect);
-
-    return () => {
-      carouselApi.off("select", handleSelect);
-    };
-  }, [carouselApi]);
-
-  // Features Carousel - auto-play timer (7 seconds like home page)
-  useEffect(() => {
-    if (!carouselApi) return;
-
-    const timer = setInterval(() => {
-      carouselApi.scrollNext();
-    }, 7000);
-
-    return () => clearInterval(timer);
-  }, [carouselApi]);
-
   // URL-synced wallet tab (shareable)
   const [walletTab, setWalletTab] = useQueryState("tab", parseAsStringLiteral(["assets", "nfts"] as const).withDefault("assets").withOptions({ history: "replace" }));
 
@@ -393,7 +349,23 @@ export default function WalletPage() {
   const [selectedAsset, setSelectedAsset] = useState<AssetDetail | null>(null);
   const [chartPeriod, setChartPeriod] = useState<'1H' | '1D' | '1W' | '1M' | '6M' | '1Y'>('1D');
   const queryClient = useQueryClient();
-  const tonAssetCount = 1 + jettons.length;
+  const normalizedWalletSearch = walletSearch.trim().toLowerCase();
+  const filteredJettons = normalizedWalletSearch
+    ? jettons.filter((jetton) =>
+        [jetton.name, jetton.symbol, jetton.jettonAddress]
+          .filter(Boolean)
+          .some((value) => value!.toLowerCase().includes(normalizedWalletSearch)),
+      )
+    : jettons;
+  const filteredNfts = normalizedWalletSearch
+    ? nfts.filter((nft) =>
+        [nft.name, nft.collectionName, nft.collectionAddress, nft.address]
+          .filter(Boolean)
+          .some((value) => value!.toLowerCase().includes(normalizedWalletSearch)),
+      )
+    : nfts;
+  const showTonAsset = !normalizedWalletSearch || ["ton", "toncoin"].some((value) => value.includes(normalizedWalletSearch));
+  const tonAssetCount = (showTonAsset ? 1 : 0) + filteredJettons.length;
   const multiChainAssetCount = [btcAddress, ethAddress, solAddress, trxAddress].filter(Boolean).length;
   const btcAssetIndex = btcAddress ? 0 : -1;
   const ethAssetIndex = ethAddress ? [btcAddress].filter(Boolean).length : -1;
@@ -403,7 +375,7 @@ export default function WalletPage() {
   // Virtualized jettons list
   const jettonsContainerRef = useRef<HTMLDivElement>(null);
   const jettonsVirtualizer = useWindowVirtualizer({
-    count: jettons.length,
+    count: filteredJettons.length,
     estimateSize: () => 84,
     gap: 12,
     overscan: 5,
@@ -777,105 +749,6 @@ export default function WalletPage() {
           </Card>
         </div>
 
-        {/* Features Carousel - Timed with dots navigation */}
-        <div className="flex flex-col gap-4 w-full order-1 overflow-hidden">
-          <style>{`
-            @keyframes carouselProgress {
-              from { width: 0%; }
-              to { width: 100%; }
-            }
-          `}</style>
-          <Carousel 
-            setApi={setCarouselApi} 
-            className="w-full" 
-            opts={{ loop: true }}
-          >
-            <CarouselContent className="ml-0">
-              {/* Earn and stake slide */}
-              <CarouselItem className="pl-0">
-                <Link
-                  href="/wallet/staking"
-                  className="flex h-32 w-full items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
-                >
-                  <div className="flex flex-col items-start justify-between h-full z-10">
-                    <div className="text-left">
-                      <h4 className="font-bold text-white text-lg leading-tight">Earn and stake</h4>
-                      <p className="text-sm text-neutral-400">Up to {bestApy.toFixed(1)}% APY</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-primary font-medium">
-                      <span>Start earning</span>
-                      <Icon icon="lucide:chevron-right" className="w-4 h-4"/>
-                    </div>
-                  </div>
-                  <Icon icon="lucide:trending-up" className="w-8 h-8 shrink-0 text-primary"/>
-                </Link>
-              </CarouselItem>
-
-              {/* NFT marketplace slide */}
-              <CarouselItem className="pl-0">
-                <Link
-                  href="/wallet/marketplace"
-                  className="flex h-32 w-full items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
-                >
-                  <div className="flex flex-col items-start justify-between h-full z-10">
-                    <div className="text-left">
-                      <h4 className="font-bold text-white text-lg leading-tight">NFT marketplace</h4>
-                      <p className="text-sm text-neutral-400">Discover and collect unique NFTs</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-white/70 font-medium">
-                      <span>Browse NFTs</span>
-                      <Icon icon="lucide:chevron-right" className="w-4 h-4"/>
-                    </div>
-                  </div>
-                  <Icon icon="lucide:image" className="w-8 h-8 shrink-0 text-white/70"/>
-                </Link>
-              </CarouselItem>
-
-              {/* Lending Card */}
-              <CarouselItem className="pl-0">
-                <Link
-                  href="/wallet/lending"
-                  className="flex h-32 w-full items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
-                >
-                  <div className="flex flex-col items-start justify-between h-full z-10">
-                    <div className="text-left">
-                      <h4 className="font-bold text-white text-lg leading-tight">Lending</h4>
-                      <p className="text-sm text-neutral-400">Supply and borrow on EVAA</p>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-white/70 font-medium">
-                      <span>Earn interest</span>
-                      <Icon icon="lucide:chevron-right" className="w-4 h-4"/>
-                    </div>
-                  </div>
-                  <Icon icon="lucide:landmark" className="w-8 h-8 shrink-0 text-white/70"/>
-                </Link>
-              </CarouselItem>
-            </CarouselContent>
-          </Carousel>
-
-          {/* Dots Navigation with Progress */}
-          <div className="flex justify-center gap-1.5 mb-4">
-            {Array.from({ length: carouselCount }).map((_, index) => (
-              <button
-                key={index}
-                onClick={() => carouselApi?.scrollTo(index)}
-                className={`h-1.5 rounded-full transition-all duration-300 overflow-hidden relative cursor-pointer ${
-                  index === carouselCurrent ? "w-8 bg-secondary" : "w-1.5 bg-secondary hover:bg-secondary/80"
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              >
-                {index === carouselCurrent && (
-                  <div
-                    className="absolute top-0 left-0 h-full bg-white"
-                    style={{
-                      animation: 'carouselProgress 7s linear forwards'
-                    }}
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
         <div className="order-3 flex w-[90%] flex-col items-center space-y-6 pt-4">
 
         {isTestnet ? (
@@ -887,6 +760,26 @@ export default function WalletPage() {
             </div>
           </div>
         ) : null}
+
+        <div className="relative w-full">
+          <Icon icon="lucide:search" className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={walletSearch}
+            onChange={(event) => setWalletSearch(event.target.value)}
+            placeholder="Search wallet..."
+            className="h-11 w-full rounded-full border-0 bg-secondary pl-10 pr-10 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
+          />
+          {walletSearch ? (
+            <button
+              type="button"
+              onClick={() => setWalletSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:text-white"
+              aria-label="Clear wallet search"
+            >
+              <Icon icon="lucide:x" className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
 
 
         <Tabs value={walletTab} onValueChange={(v) => setWalletTab(v as typeof walletTab)} className="w-full pb-24">
@@ -904,7 +797,7 @@ export default function WalletPage() {
               NFTs
               {nfts.length > 0 && (
                 <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-[10px] font-semibold text-black group-data-[state=active]:bg-neutral-500 group-data-[state=active]:text-white transition-colors">
-                  {nfts.length}
+                  {filteredNfts.length}
                 </span>
               )}
             </TabsTrigger>
@@ -933,54 +826,58 @@ export default function WalletPage() {
             {assetChainTab === "ton" ? (
               <div className="rounded-2xl bg-secondary p-1">
             {/* TON Card */}
-            <Card
-              className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
-              onClick={() => {
-                setSelectedAsset({
-                  name: "Toncoin",
-                  symbol: "TON",
-                  balance: tonBalance,
-                  value: parseFloat(tonUsdValue) || 0,
-                  priceUsd: tonPrice,
-                  image: TON_ICON,
-                  color: CHART_COLORS[0],
-                }); setChartPeriod('1D');
-              }}
-            >
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#0098ea] rounded-full flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="text-white">
-                      <path fill="currentColor" d="m20.661 7.22l-7.846 12.494a1.06 1.06 0 0 1-1.794-.006L3.328 7.214A2.2 2.2 0 0 1 3 6.05a2.29 2.29 0 0 1 2.324-2.255h13.362C19.963 3.794 21 4.8 21 6.044c0 .413-.116.82-.339 1.175M5.218 6.8l5.723 8.826V5.912H5.816c-.592 0-.857.392-.598.89m7.84 8.826L18.783 6.8c.265-.497-.006-.89-.599-.89H13.06z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">TON</h4>
-                    <p className="text-xs text-neutral-500">Toncoin</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-right">
-                    {(isLoadingAssets || !hasFetched) ? (
-                      <div className="space-y-1 flex flex-col items-end">
-                        <Skeleton className="h-5 w-24 bg-secondary" />
-                        <Skeleton className="h-3 w-16 bg-secondary" />
+            {showTonAsset ? (
+              <>
+                <Card
+                  className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
+                  onClick={() => {
+                    setSelectedAsset({
+                      name: "Toncoin",
+                      symbol: "TON",
+                      balance: tonBalance,
+                      value: parseFloat(tonUsdValue) || 0,
+                      priceUsd: tonPrice,
+                      image: TON_ICON,
+                      color: CHART_COLORS[0],
+                    }); setChartPeriod('1D');
+                  }}
+                >
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#0098ea] rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="text-white">
+                          <path fill="currentColor" d="m20.661 7.22l-7.846 12.494a1.06 1.06 0 0 1-1.794-.006L3.328 7.214A2.2 2.2 0 0 1 3 6.05a2.29 2.29 0 0 1 2.324-2.255h13.362C19.963 3.794 21 4.8 21 6.044c0 .413-.116.82-.339 1.175M5.218 6.8l5.723 8.826V5.912H5.816c-.592 0-.857.392-.598.89m7.84 8.826L18.783 6.8c.265-.497-.006-.89-.599-.89H13.06z" />
+                        </svg>
                       </div>
-                    ) : (
-                      <>
-                        <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(tonBalance)}</h4>
-                        <p className="text-xs text-neutral-500">{hideBalance ? "••••" : formatUsd(tonUsdValue)}</p>
-                      </>
-                    )}
-                  </div>
-                  <Icon icon="lucide:chevron-right" className="w-4 h-4 text-neutral-500"/>
-                </div>
-              </CardContent>
-            </Card>
-            {tonAssetCount > 1 ? <Separator /> : null}
+                      <div>
+                        <h4 className="font-bold text-white">TON</h4>
+                        <p className="text-xs text-neutral-500">Toncoin</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        {(isLoadingAssets || !hasFetched) ? (
+                          <div className="space-y-1 flex flex-col items-end">
+                            <Skeleton className="h-5 w-24 bg-secondary" />
+                            <Skeleton className="h-3 w-16 bg-secondary" />
+                          </div>
+                        ) : (
+                          <>
+                            <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(tonBalance)}</h4>
+                            <p className="text-xs text-neutral-500">{hideBalance ? "••••" : formatUsd(tonUsdValue)}</p>
+                          </>
+                        )}
+                      </div>
+                      <Icon icon="lucide:chevron-right" className="w-4 h-4 text-neutral-500"/>
+                    </div>
+                  </CardContent>
+                </Card>
+                {tonAssetCount > 1 ? <Separator /> : null}
+              </>
+            ) : null}
 
             {/* Jetton loading skeleton */}
-            {(isLoadingAssets || !hasFetched) && jettons.length === 0 && (
+            {(isLoadingAssets || !hasFetched) && filteredJettons.length === 0 && (
               <>
                 {[1, 2].map((i) => (
                   <Card key={i} className="w-full bg-transparent border-0 rounded-none shadow-none">
@@ -1003,18 +900,20 @@ export default function WalletPage() {
             )}
 
             {/* No tokens message */}
-            {!isLoadingAssets && hasFetched && jettons.length === 0 && (
+            {!isLoadingAssets && hasFetched && filteredJettons.length === 0 && (
               <div className="py-4 text-center">
-                <p className="text-xs text-neutral-500">Tokens will appear here automatically.</p>
+                <p className="text-xs text-neutral-500">
+                  {walletSearch ? "No matching tokens found." : "Tokens will appear here automatically."}
+                </p>
               </div>
             )}
 
             {/* TON Jettons (virtualized) */}
-            {jettons.length > 0 && (
+            {filteredJettons.length > 0 && (
               <div ref={jettonsContainerRef} className="relative w-full" style={{ height: `${jettonsVirtualizer.getTotalSize()}px` }}>
                 {jettonsVirtualizer.getVirtualItems().map((virtualItem) => {
                   const index = virtualItem.index;
-                  const jetton = jettons[index];
+                  const jetton = filteredJettons[index];
                   const formattedBalance = formatAmount(parseFloat(jetton.balance) / Math.pow(10, jetton.decimals), 4);
                   const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
                   return (
@@ -1063,7 +962,7 @@ export default function WalletPage() {
                           </div>
                         </CardContent>
                       </Card>
-                      {index < jettons.length - 1 ? <Separator /> : null}
+                      {index < filteredJettons.length - 1 ? <Separator /> : null}
                     </div>
                   );
                 })}
@@ -1290,11 +1189,11 @@ export default function WalletPage() {
 
           <TabsContent value="nfts" className="mt-4 space-y-3">
             {/* Filter Chips */}
-            {nfts.length > 0 && (
-              <NftFilterChips nfts={nfts} />
+            {filteredNfts.length > 0 && (
+              <NftFilterChips nfts={filteredNfts} />
             )}
 
-            {isLoadingNfts && nfts.length === 0 && (
+            {isLoadingNfts && filteredNfts.length === 0 && (
               <div className="grid grid-cols-2 gap-3">
                 {[1, 2, 3, 4].map((i) => (
                   <Card key={i} className="bg-secondary border-0 rounded-2xl shadow-none overflow-hidden">
@@ -1308,11 +1207,13 @@ export default function WalletPage() {
               </div>
             )}
 
-            {!isLoadingNfts && nfts.length === 0 && (
+            {!isLoadingNfts && filteredNfts.length === 0 && (
               <div className="py-8 text-center">
                 <Icon icon="lucide:image" className="w-8 h-8 text-neutral-600 mx-auto mb-2"/>
-                <p className="text-sm text-neutral-500">No NFTs found</p>
-                <p className="text-xs text-neutral-600 mt-1">Your collectibles will appear here</p>
+                <p className="text-sm text-neutral-500">{walletSearch ? "No matching NFTs found" : "No NFTs found"}</p>
+                <p className="text-xs text-neutral-600 mt-1">
+                  {walletSearch ? "Try a different search term" : "Your collectibles will appear here"}
+                </p>
               </div>
             )}
           </TabsContent>
@@ -1459,7 +1360,7 @@ function WalletOnboardingReveal({
   return (
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden px-4 text-center">
       <div className="flex w-full max-w-md flex-col justify-center gap-8">
-      <div className="relative">
+      <div className="relative -translate-y-4">
         <WalletWelcomeCinematic />
       </div>
 
