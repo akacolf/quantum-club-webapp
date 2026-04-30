@@ -13,8 +13,9 @@ export default function QntmBalance({
   walletUsdBalance = "0.00",
   isWalletLoading = false,
   hasWallet = false,
+  hideBalance = false,
+  toggleHideBalance,
 }: QntmBalanceProps) {
-  const [isVisible, setIsVisible] = useState(true);
   const [balanceMode, setBalanceMode] = useState<"qntm" | "wallet">("qntm");
   const showingWallet = balanceMode === "wallet";
   const loadingValue = showingWallet ? isWalletLoading : isLoading;
@@ -32,9 +33,14 @@ export default function QntmBalance({
         <span className="text-sm font-medium text-neutral-400">
           Total balance
         </span>
-        <div onClick={() => setIsVisible(!isVisible)} className="cursor-pointer text-neutral-400 hover:text-white transition-colors">
-          <Icon icon={isVisible ? "lucide:eye" : "lucide:eye-off"} width="16" height="16" />
-        </div>
+        <button
+          type="button"
+          onClick={toggleHideBalance}
+          className="text-neutral-400 transition-colors hover:text-white"
+          aria-label={hideBalance ? "Show balance" : "Hide balance"}
+        >
+          <Icon icon={hideBalance ? "lucide:eye-off" : "lucide:eye"} width="16" height="16" />
+        </button>
         <button
           type="button"
           onClick={() => setBalanceMode((mode) => (mode === "qntm" ? "wallet" : "qntm"))}
@@ -52,7 +58,7 @@ export default function QntmBalance({
           <div
             className="text-5xl font-bold text-white tracking-tight transition-colors"
           >
-            {isVisible ? displayValue : "********"}
+            {hideBalance ? "********" : displayValue}
           </div>
         )}
         {!showingWallet ? (

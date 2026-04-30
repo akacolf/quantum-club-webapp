@@ -1458,12 +1458,12 @@ function WalletOnboardingReveal({
 }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden px-4 text-center">
-      <div className="flex h-full w-full max-w-md flex-col justify-center">
-      <div className="relative flex flex-1 items-center">
+      <div className="flex w-full max-w-md flex-col justify-center gap-8">
+      <div className="relative">
         <WalletWelcomeCinematic />
       </div>
 
-      <div className="space-y-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div className="space-y-5">
         <div className="space-y-3 px-2">
           <h3 className="text-3xl font-bold text-white tracking-tight">
             Welcome to QC Wallet, {tgFirstName}.

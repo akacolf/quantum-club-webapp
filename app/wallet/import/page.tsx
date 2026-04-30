@@ -203,7 +203,7 @@ export default function ImportWalletPage() {
 
       const walletName = `Wallet ${storedWallets.length + 1} (${versionLabel})`;
       addWallet(address, walletName);
-      switchWallet(address);
+      switchWallet(address, { silent: true });
       analyticsEvents.walletImported(address);
 
       // Pre-derive multi-chain addresses so they're ready when /wallet loads
@@ -218,7 +218,7 @@ export default function ImportWalletPage() {
 
       // Clear sensitive data from form state before navigating
       form.reset();
-      toast.success("Wallet restored successfully!");
+      toast.success("Wallet imported successfully");
       router.replace("/wallet");
     } catch (error) {
       console.error("Import error:", error);

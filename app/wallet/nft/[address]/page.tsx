@@ -370,8 +370,8 @@ export default function NftDetailPage() {
 
                 {/* Sale Info - If Listed */}
                 {nft.sale && priceInfo && (
-                    <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/30">
-                        <CardContent className="p-4">
+                    <div className="mx-auto w-[90%]">
+                        <div className="py-2">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-xs text-muted-foreground">Price</p>
@@ -411,8 +411,8 @@ export default function NftDetailPage() {
                                     <span>{priceInfo.totalPriceFormatted} TON</span>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 )}
 
                 {/* NFT Info */}

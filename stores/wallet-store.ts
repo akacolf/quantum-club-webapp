@@ -104,7 +104,7 @@ interface WalletActions {
   toggleTestnet: () => void;
   addWallet: (address: string, name?: string) => void;
   removeWallet: (address: string) => void;
-  switchWallet: (address: string) => void;
+  switchWallet: (address: string, options?: { silent?: boolean }) => void;
   renameWallet: (address: string, newName: string) => void;
   resetBalances: () => void;
   clearWallet: () => void;
@@ -361,7 +361,7 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
     set({ storedWallets: updated });
   },
 
-  switchWallet: (address) => {
+  switchWallet: (address, options) => {
     const { storedWallets, _deps } = get();
     if (!_deps.telegramId) return;
     const updated = storedWallets.map((w) => ({
@@ -393,7 +393,9 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
       walletAddress: address,
       hasFetched: false,
     });
-    toast.success("Wallet switched!");
+    if (!options?.silent) {
+      toast.success("Wallet switched!");
+    }
   },
 
   renameWallet: (address, newName) => {

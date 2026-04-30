@@ -19,6 +19,7 @@ import { haptics } from "@/lib/haptics";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { stakeAmountSchema } from "@/lib/validations";
+import { formatCompactAmount, formatTruncatedAmount } from "@/lib/format";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import {
     unstakeTsTon,
@@ -144,7 +145,7 @@ export default function UnstakePage() {
                         : "Unstake initiated!",
                     {
                         description: unstakeMode === "instant"
-                            ? `Received ~${receivedTonInstant.toFixed(4)} TON`
+                            ? `Received ~${formatTruncatedAmount(receivedTonInstant, 2)} TON`
                             : "Your TON will be available in 18-36 hours",
                     }
                 );
@@ -215,10 +216,10 @@ export default function UnstakePage() {
                                             <span className="text-sm text-neutral-400">Your tsTON</span>
                                         </div>
                                         <div className="text-right">
-                                            <p className="font-bold text-white">{tsTonBalance.toFixed(4)} tsTON</p>
+                                            <p className="font-bold text-white">{formatCompactAmount(tsTonBalance, 2)} tsTON</p>
                                             {stakingInfo && (
                                                 <p className="text-xs text-neutral-500">
-                                                    ≈ {(tsTonBalance * exchangeRate).toFixed(4)} TON
+                                                    ≈ {formatCompactAmount(tsTonBalance * exchangeRate, 2)} TON
                                                 </p>
                                             )}
                                         </div>
@@ -238,7 +239,7 @@ export default function UnstakePage() {
                                         </div>
                                         {withdrawals.map((w, i) => (
                                             <div key={i} className="flex justify-between text-sm py-1">
-                                                <span className="text-neutral-400">{(w.amount / 1e9).toFixed(4)} tsTON</span>
+                                                <span className="text-neutral-400">{formatCompactAmount(w.amount / 1e9, 2)} tsTON</span>
                                                 <span className="text-yellow-400">{formatTimeRemaining(w.estimatedTime)}</span>
                                             </div>
                                         ))}
@@ -334,7 +335,7 @@ export default function UnstakePage() {
                                             <span className="text-sm text-neutral-400">You will receive</span>
                                             <div className="text-right">
                                                 <p className="font-bold text-white">
-                                                    ~{(unstakeMode === "instant" ? receivedTonInstant : receivedTon).toFixed(4)} TON
+                                                    ~{formatCompactAmount(unstakeMode === "instant" ? receivedTonInstant : receivedTon, 2)} TON
                                                 </p>
                                                 {unstakeMode === "instant" && (
                                                     <p className="text-xs text-yellow-500">
@@ -358,7 +359,7 @@ export default function UnstakePage() {
                             {/* Warning for low balance */}
                             {tsTonBalance < 0.1 && (
                                 <div className="py-2">
-                                    <div className="flex flex-col items-start gap-2 text-left">
+                                    <div className="flex items-start gap-2 text-left">
                                         <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-yellow-500 shrink-0"/>
                                         <p className="text-xs text-yellow-400">
                                             You don&apos;t have any tsTON to unstake. Stake TON first to receive tsTON.
@@ -433,9 +434,9 @@ export default function UnstakePage() {
                             </div>
                             <div className="text-center">
                                 <p className="text-2xl font-bold text-white">
-                                    ~{(unstakeMode === "instant" ? receivedTonInstant : receivedTon).toFixed(4)} TON
+                                    ~{formatCompactAmount(unstakeMode === "instant" ? receivedTonInstant : receivedTon, 2)} TON
                                 </p>
-                                <p className="text-sm text-neutral-500">from {unstakeAmountNum.toFixed(4)} tsTON</p>
+                                <p className="text-sm text-neutral-500">from {formatCompactAmount(unstakeAmountNum, 2)} tsTON</p>
                             </div>
                             <Button
                                 variant="outline"
@@ -457,7 +458,7 @@ export default function UnstakePage() {
                 onSuccess={handleAuthSuccess}
                 onCancel={handleAuthCancel}
                 title="Confirm unstake"
-                description={`Unstake ${unstakeAmountNum.toFixed(4)} tsTON`}
+                description={`Unstake ${formatTruncatedAmount(unstakeAmountNum, 2)} tsTON`}
             />
         </div>
     );

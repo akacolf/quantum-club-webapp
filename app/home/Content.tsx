@@ -265,7 +265,7 @@ const HomeContent = () => {
   const loadingDay = claimDailyMutation.isPending;
 
   const TaskTimer = TaskTimerComponent;
-  const { walletAddress, totalUsdBalance, isLoadingAssets } = useWallet();
+  const { walletAddress, totalUsdBalance, isLoadingAssets, hideBalance, toggleHideBalance } = useWallet();
 
   const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
 
@@ -275,27 +275,13 @@ const HomeContent = () => {
     return tgUser?.first_name || username || "Quantum User";
   })();
 
-  const GREETING_PAIRS = [
-    { greeting: "Welcome back to Quantum Club", subtext: "What would you like to do today?" },
-    { greeting: "Ready to make some moves", subtext: "What's on the agenda today?" },
-    { greeting: "It's about time", subtext: "Let's make it happen." },
-    { greeting: "Great to see you again", subtext: "Anything catches your eye?" },
-    { greeting: "Let's build the future together", subtext: "What's on your mind today?" },
-  ];
-
-  const [greetingIndex] = useState(() => {
-    // Pick a random index, avoiding the last-used one stored in sessionStorage
-    const lastIndex = parseInt(sessionStorage.getItem("qc_last_greeting_idx") ?? "-1", 10);
-    let idx: number;
-    do {
-      idx = Math.floor(Math.random() * GREETING_PAIRS.length);
-    } while (idx === lastIndex && GREETING_PAIRS.length > 1);
-    sessionStorage.setItem("qc_last_greeting_idx", String(idx));
-    return idx;
-  });
-
-  const greetingText = GREETING_PAIRS[greetingIndex].greeting;
-  const subtext = GREETING_PAIRS[greetingIndex].subtext;
+  const greetingText = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "GM";
+    if (hour < 18) return "Afternoon";
+    return "Evening";
+  })();
+  const subtext = "What would you like to do today?";
 
   return (
     <div className="flex flex-col min-h-screen pb-16 pt-6 gap-6">
@@ -317,6 +303,8 @@ const HomeContent = () => {
           walletUsdBalance={walletAddress ? totalUsdBalance : "0.00"}
           isWalletLoading={!!walletAddress && isLoadingAssets}
           hasWallet={!!walletAddress}
+          hideBalance={hideBalance}
+          toggleHideBalance={toggleHideBalance}
         />
         
         <div className="mt-6 flex gap-3 w-full">
@@ -724,14 +712,51 @@ function SpotTokensSection() {
 // ─── Home wrapper components ─────────────────────────────────
 
 function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: string; tgFirstName: string; subtext: string }) {
+  const router = useRouter();
+  const [prompt, setPrompt] = useState("");
+  const prompts = ["How do I earn QNTM?", "Check my wallet", "What should I do today?"];
+
+  const submitPrompt = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    router.push(`/ecosystem/chat/qc-ai?prompt=${encodeURIComponent(trimmed)}&back=/home`);
+  };
+
   return (
-    <div className="w-[90%] mx-auto">
+    <div className="w-[90%] mx-auto space-y-3">
       <p className="text-[20px] font-bold text-white leading-tight tracking-tight">
         {greetingText}, {tgFirstName}.
       </p>
       <p className="text-[14px] text-neutral-400 mt-1">
         {subtext}
       </p>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          submitPrompt(prompt);
+        }}
+        className="relative"
+      >
+        <Icon icon="lucide:sparkles" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+        <input
+          value={prompt}
+          onChange={(event) => setPrompt(event.target.value)}
+          placeholder="Ask QC..."
+          className="h-11 w-full rounded-full border-0 bg-secondary pl-9 pr-4 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
+        />
+      </form>
+      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {prompts.map((item) => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => submitPrompt(item)}
+            className="shrink-0 rounded-full bg-secondary px-3 py-1.5 text-[11px] font-medium text-neutral-300 active:scale-[0.98]"
+          >
+            {item}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

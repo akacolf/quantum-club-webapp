@@ -80,6 +80,7 @@ export default function QcAiChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const hydratedRef = useRef(false);
+  const initialPromptRef = useRef(false);
 
   // Load persisted messages from localStorage on mount (single-session, separate
   // from the multi-session key used by AIChatDrawer so they don't conflict)
@@ -97,6 +98,15 @@ export default function QcAiChatPage() {
       console.error("Failed to load AI chat history:", err);
     }
   }, [setMessages]);
+
+  useEffect(() => {
+    if (initialPromptRef.current || isStreaming) return;
+    initialPromptRef.current = true;
+    const prompt = new URLSearchParams(window.location.search).get("prompt");
+    if (prompt?.trim()) {
+      sendMessage({ text: prompt.trim().slice(0, 500) });
+    }
+  }, [isStreaming, sendMessage]);
 
   // Persist messages — debounced via the streaming gate so we only save final state
   useEffect(() => {

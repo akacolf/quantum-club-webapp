@@ -48,6 +48,8 @@ export interface QntmBalanceProps {
     walletUsdBalance?: string;
     isWalletLoading?: boolean;
     hasWallet?: boolean;
+    hideBalance?: boolean;
+    toggleHideBalance?: () => void;
 }
 
 export interface SolveToEarnCardProps {

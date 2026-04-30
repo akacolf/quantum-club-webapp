@@ -69,10 +69,9 @@ export default function StakingPage() {
   });
 
   const stakingInfo = tonstakersQuery.data;
-  const sdkAvailableTon = stakingInfo ? Number(fromNano(stakingInfo.availableBalance)) : null;
   const maxStakeAmount = Math.max(
     0,
-    (sdkAvailableTon ?? tonBalanceNum) - TON_GAS_RESERVE,
+    tonBalanceNum - TON_GAS_RESERVE,
   );
   const currentApy = stakingInfo?.apy ?? 0;
   const yearlyRewards = stakeAmountNum * (currentApy / 100);
@@ -154,14 +153,24 @@ export default function StakingPage() {
       <div className="mx-auto max-w-md space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">TON staking</h1>
-            <p className="text-sm text-neutral-500">Powered by Tonstakers</p>
+            <h1 className="text-2xl font-bold tracking-tight">Stake</h1>
+            <p className="text-sm text-neutral-500">
+              Powered by{" "}
+              <a
+                href="https://tonstakers.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-white underline-offset-4 hover:underline"
+              >
+                Tonstakers
+              </a>
+            </p>
           </div>
           <button
             type="button"
             onClick={() => tonstakersQuery.refetch()}
             disabled={tonstakersQuery.isFetching}
-            className="flex h-10 w-10 items-center justify-center active:bg-white/10"
+            className="flex h-10 w-10 items-center justify-center rounded-full outline-none active:bg-white/10 focus-visible:outline-none focus-visible:ring-0"
             aria-label="Refresh staking stats"
           >
             <Icon icon="lucide:refresh-cw" className={`h-5 w-5 text-neutral-400 ${tonstakersQuery.isFetching ? "animate-spin" : ""}`} />
