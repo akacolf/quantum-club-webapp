@@ -149,7 +149,7 @@ export default function ManageWalletsPage() {
                             </div>
                           ) : (
                             <>
-                              <div className="flex items-baseline gap-2">
+                              <div className="flex items-center gap-2">
                                 <span className="font-semibold text-foreground truncate">{wallet.name}</span>
                                 {wallet.address === walletAddress && (
                                   <span className="text-xs font-medium text-green-400 shrink-0">Active</span>

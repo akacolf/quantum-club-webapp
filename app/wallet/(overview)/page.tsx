@@ -1377,7 +1377,7 @@ export default function WalletPage() {
                 {/* Current Price */}
                 <div className="mb-6 space-y-1">
                   <p className="text-neutral-400 text-sm">Current price</p>
-                  <h2 className="text-3xl font-bold text-white">
+                  <h2 className="block text-left text-3xl font-bold text-white">
                     <AnimatedPrice 
                       value={selectedAsset.priceUsd || 0} 
                       decimals={2}
@@ -1461,11 +1461,11 @@ function WalletOnboardingReveal({
 }) {
   return (
     <div className="flex min-h-[68vh] w-full max-w-md flex-col justify-between text-center">
-      <div className="relative pt-2">
+      <div className="relative pt-8">
         <WalletWelcomeCinematic />
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-5 pb-4">
         <div className="space-y-3 px-2">
           <h3 className="text-3xl font-bold text-white tracking-tight">
             Welcome to QC Wallet, {tgFirstName}.

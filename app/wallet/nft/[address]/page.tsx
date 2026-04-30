@@ -8,7 +8,6 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { FieldError } from "@/components/ui/field";
@@ -352,21 +351,21 @@ export default function NftDetailPage() {
                             </div>
                         )}
                         {nft.sale && (
-                            <Badge className="absolute top-3 right-3 bg-green-600">
+                            <span className="absolute top-3 right-3 inline-flex items-center text-xs font-medium text-green-500">
                                 <Icon icon="lucide:tag" className="w-3 h-3 mr-1" />
-                                For Sale
-                            </Badge>
+                                For sale
+                            </span>
                         )}
                         {categorizeNft(nft) === "gift" && (
-                            <Badge className="absolute top-3 left-3 bg-purple-600">
+                            <span className="absolute top-3 left-3 inline-flex items-center text-xs font-medium text-purple-400">
                                 <Icon icon="solar:gift-bold" className="w-3 h-3 mr-1" />
                                 Gift
-                            </Badge>
+                            </span>
                         )}
                         {categorizeNft(nft) === "sticker" && (
-                            <Badge className="absolute top-3 left-3 bg-blue-600">
+                            <span className="absolute top-3 left-3 text-xs font-medium text-neutral-300">
                                 Sticker
-                            </Badge>
+                            </span>
                         )}
                     </div>
                 </Card>
@@ -481,7 +480,7 @@ export default function NftDetailPage() {
                             {nft.ownerAddress && (
                                 <div>
                                     <h3 className="text-xs text-muted-foreground uppercase mb-2">
-                                        Owner {isOwner && <Badge variant="secondary" className="ml-2 text-xs">You</Badge>}
+                                        Owner {isOwner && <span className="ml-2 text-xs text-green-500">You</span>}
                                     </h3>
                                     <Button
                                         variant="ghost"
@@ -510,7 +509,7 @@ export default function NftDetailPage() {
                             className="w-full bg-green-600 hover:bg-green-700 text-white h-12 rounded-xl font-bold"
                         >
                             <Icon icon="lucide:dollar-sign" className="w-4 h-4 mr-2" />
-                            List for Sale
+                            List for sale
                         </Button>
                     )}
                     {isOwner && nft.sale && (
@@ -535,7 +534,7 @@ export default function NftDetailPage() {
                         className="w-full bg-card border-border text-foreground hover:bg-muted h-12 rounded-xl font-bold"
                     >
                         <Icon icon="solar:share-linear" className="w-4 h-4 mr-2" />
-                        Share to Chat
+                        Share to chat
                     </Button>
                     <Button
                         onClick={openExplorer}
@@ -568,7 +567,7 @@ export default function NftDetailPage() {
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between p-4 border-b border-border">
-                                <h2 className="text-lg font-bold">List for Sale</h2>
+                                <h2 className="text-lg font-bold">List for sale</h2>
                                 <Button
                                     variant="ghost"
                                     size="icon"

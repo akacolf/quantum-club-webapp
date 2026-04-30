@@ -331,9 +331,23 @@ export async function fetchLiveApyData(): Promise<Map<string, number>> {
                 }
                 
                 case "tonstakers": {
-                    // For TON Stakers, we need wallet context for SDK init
-                    // Fall back to official website value
-                    return { id: pool.id, apy: 3.01 };
+                    const response = await fetch("https://api.tonstakers.com/cache/v1/blockchain/staking").catch(() => null);
+                    if (response?.ok) {
+                        const data = await response.json();
+                        const rawApy =
+                            data?.apy ??
+                            data?.APY ??
+                            data?.currentApy ??
+                            data?.current_apy ??
+                            data?.stakingApy ??
+                            data?.staking_apy;
+                        const apy = Number(rawApy);
+                        if (Number.isFinite(apy) && apy > 0) {
+                            return { id: pool.id, apy: apy > 1 ? apy : apy * 100 };
+                        }
+                    }
+
+                    return { id: pool.id, apy: pool.apy };
                 }
                 
                 case "bemo": {

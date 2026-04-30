@@ -4,17 +4,17 @@ import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
-import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useYieldProtocolsQuery } from "@/app/(hooks)/queries/use-yield-protocols";
+import { formatTruncatedAmount } from "@/lib/format";
 
 // Risk level colors
 const RISK_COLORS = {
-    low: { bg: "bg-transparent", text: "text-green-500", border: "border-transparent" },
-    medium: { bg: "bg-yellow-500/10", text: "text-yellow-500", border: "border-yellow-500/20" },
-    high: { bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500/20" },
+    low: { text: "text-green-500" },
+    medium: { text: "text-yellow-500" },
+    high: { text: "text-red-500" },
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -65,7 +65,7 @@ export default function EarnPage() {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
+                    <div className="p-4 rounded-xl bg-[#111] border-0">
                         <div className="flex items-center gap-2 mb-2">
                             <Icon icon="lucide:trending-up" className="w-4 h-4 text-green-500"/>
                             <span className="text-xs text-gray-500">Best APY</span>
@@ -74,13 +74,13 @@ export default function EarnPage() {
                             {bestApy.toFixed(1)}%
                         </p>
                     </div>
-                    <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
+                    <div className="p-4 rounded-xl bg-[#111] border-0">
                         <div className="flex items-center gap-2 mb-2">
                             <Icon icon="lucide:coins" className="w-4 h-4 text-gray-400"/>
-                            <span className="text-xs text-gray-500">Your Balance</span>
+                            <span className="text-xs text-gray-500">Your balance</span>
                         </div>
                         <p className="text-2xl font-bold text-white">
-                            {tonBalanceNum.toFixed(2)} TON
+                            {formatTruncatedAmount(tonBalanceNum, 2)} TON
                         </p>
                         <p className="text-xs text-gray-500">${tonValueUsd.toFixed(2)}</p>
                     </div>
@@ -88,13 +88,13 @@ export default function EarnPage() {
 
                 {/* Potential Earnings Calculator */}
                 {tonBalanceNum > 0 && bestApy > 0 && (
-                    <div className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-green-500/10 border border-primary/20">
+                    <div className="p-4 rounded-xl bg-[#111] border-0">
                         <div className="flex items-center gap-2 mb-2">
-                            <Icon icon="lucide:sparkles" className="w-4 h-4 text-primary"/>
-                            <span className="text-sm font-medium text-white">Potential Earnings</span>
+                            <Icon icon="lucide:sparkles" className="w-4 h-4 text-gray-400"/>
+                            <span className="text-sm font-medium text-white">Potential earnings</span>
                         </div>
                         <p className="text-sm text-gray-400">
-                            At {bestApy.toFixed(1)}% APY, your {tonBalanceNum.toFixed(2)} TON could earn:
+                            At {bestApy.toFixed(1)}% APY, your {formatTruncatedAmount(tonBalanceNum, 2)} TON could earn:
                         </p>
                         <div className="flex items-center gap-4 mt-2">
                             <div>
@@ -116,33 +116,29 @@ export default function EarnPage() {
 
                 {/* Quick Access Cards */}
                 <div className="space-y-3">
-                    <h2 className="text-base font-semibold text-white">Earning Options</h2>
+                    <h2 className="text-base font-semibold text-white">Earning options</h2>
                     <div className="grid grid-cols-2 gap-3">
                         <Link
                             href="/wallet/staking"
-                            className="p-4 rounded-xl bg-gradient-to-br from-[#111] to-primary/10 border border-primary/20 text-left active:scale-[0.98] transition-transform"
+                            className="p-4 rounded-xl bg-[#111] border-0 text-left active:scale-[0.98] transition-transform"
                         >
-                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mb-3">
-                                <Icon icon="lucide:circle-dollar-sign" className="w-5 h-5 text-primary"/>
-                            </div>
+                            <Icon icon="lucide:circle-dollar-sign" className="mb-3 w-5 h-5 text-gray-400"/>
                             <h3 className="font-semibold text-white mb-1">Stake TON</h3>
-                            <p className="text-xs text-gray-500">~5% APY · Low Risk</p>
-                            <div className="flex items-center gap-1 text-xs text-primary mt-2">
-                                <span>Stake Now</span>
+                            <p className="text-xs text-gray-500">~{bestApy.toFixed(1)}% APY · <span className="text-green-500">Low risk</span></p>
+                            <div className="flex items-center gap-1 text-xs text-gray-300 mt-2">
+                                <span>Stake now</span>
                                 <Icon icon="lucide:arrow-right" className="w-3 h-3"/>
                             </div>
                         </Link>
 
                         <Link
                             href="/wallet/liquidity"
-                            className="p-4 rounded-xl bg-gradient-to-br from-[#111] to-blue-500/10 border border-blue-500/20 text-left active:scale-[0.98] transition-transform"
+                            className="p-4 rounded-xl bg-[#111] border-0 text-left active:scale-[0.98] transition-transform"
                         >
-                            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center mb-3">
-                                <Icon icon="lucide:droplets" className="w-5 h-5 text-blue-500"/>
-                            </div>
-                            <h3 className="font-semibold text-white mb-1">Add Liquidity</h3>
-                            <p className="text-xs text-gray-500">~12% APY · Med Risk</p>
-                            <div className="flex items-center gap-1 text-xs text-blue-500 mt-2">
+                            <Icon icon="lucide:droplets" className="mb-3 w-5 h-5 text-gray-400"/>
+                            <h3 className="font-semibold text-white mb-1">Add liquidity</h3>
+                            <p className="text-xs text-gray-500">~12% APY · <span className="text-yellow-500">Medium risk</span></p>
+                            <div className="flex items-center gap-1 text-xs text-gray-300 mt-2">
                                 <span>Start</span>
                                 <Icon icon="lucide:arrow-right" className="w-3 h-3"/>
                             </div>
@@ -153,7 +149,7 @@ export default function EarnPage() {
                 {/* Protocols List */}
                 <div className="space-y-3">
                     <h2 className="text-base font-semibold text-white">
-                        Available Protocols
+                        Available protocols
                         <span className="text-gray-500 font-normal ml-2">({protocols.length})</span>
                     </h2>
 
@@ -170,10 +166,10 @@ export default function EarnPage() {
                                 return (
                                     <button key={protocol.id}
                                         onClick={() => router.push(protocol.route)}
-                                        className="w-full p-4 rounded-xl bg-[#111] border border-[#222] active:bg-[#161616] transition-colors text-left"
+                                        className="w-full p-4 rounded-xl bg-[#111] border-0 active:bg-[#161616] transition-colors text-left"
                                     >
                                         <div className="flex items-start gap-3">
-                                            <div className="w-12 h-12 rounded-xl bg-white/10 overflow-hidden flex-shrink-0">
+                                            <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
                                                 <Image
                                                     src={protocol.icon}
                                                     alt={protocol.name}
@@ -185,14 +181,14 @@ export default function EarnPage() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <h3 className="font-medium text-white">{protocol.name}</h3>
-                                                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5 whitespace-nowrap">
+                                                    <span className="inline-flex items-center text-[10px] text-gray-500 whitespace-nowrap">
                                                         <Icon icon={typeIcon} className="w-3 h-3 mr-0.5" />
                                                         {protocol.type}
-                                                    </Badge>
+                                                    </span>
                                                 </div>
                                                 <p className="text-sm text-gray-500 mb-2 line-clamp-1">{protocol.description}</p>
-                                                <div className="flex items-center gap-2 text-xs flex-wrap">
-                                                    <span className={`px-2 py-0.5 rounded-full ${riskColors.bg} ${riskColors.text} border ${riskColors.border} whitespace-nowrap`}>
+                                                <div className="flex items-center gap-3 text-xs flex-wrap">
+                                                    <span className={`${riskColors.text} whitespace-nowrap`}>
                                                         {protocol.riskLevel} risk
                                                     </span>
                                                     <span className="text-gray-500 whitespace-nowrap">TVL: {protocol.tvl}</span>
@@ -215,12 +211,12 @@ export default function EarnPage() {
                 </div>
 
                 {/* Info Card */}
-                <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
+                <div className="p-4 rounded-xl bg-[#111] border-0">
                     <div className="flex gap-3">
                         <Icon icon="lucide:info" className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5"/>
                         <div>
                             <p className="text-sm font-medium text-gray-400">
-                                Understanding DeFi Yields
+                                Understanding DeFi yields
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
                                 APY (Annual Percentage Yield) is the estimated yearly return. Actual returns may vary based on market conditions and protocol performance.

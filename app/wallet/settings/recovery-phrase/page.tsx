@@ -113,16 +113,9 @@ export default function ViewRecoveryPhrasePage() {
             </p>
           </div>
 
-          {/* Warning */}
-          <div>
-            <p className="text-xs text-destructive leading-relaxed text-left">
-              <strong>Warning:</strong> Anyone with this phrase can access your wallet. Never share it with anyone, including Quantum Club support.
-            </p>
-          </div>
-
           {/* Mnemonic Grid */}
           <div className="relative">
-            <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 transition-all duration-500 ${!isRevealed ? 'blur-md select-none opacity-50' : 'opacity-100'}`}>
+            <div className={`mx-auto grid max-w-sm grid-cols-2 place-items-center gap-3 sm:grid-cols-3 transition-all duration-500 ${!isRevealed ? 'blur-md select-none opacity-50' : 'opacity-100'}`}>
               {mnemonic.map((word, i) => (
                 <div key={i} className="flex items-center space-x-2 bg-transparent rounded-lg px-1 py-2.5">
                   <span className="text-[10px] font-mono text-muted-foreground/50 w-4 select-none">{i + 1}.</span>
@@ -154,6 +147,13 @@ export default function ViewRecoveryPhrasePage() {
                 <Icon icon="lucide:eye-off" className="w-3 h-3" />
               </Button>
             )}
+          </div>
+
+          {/* Warning */}
+          <div>
+            <p className="text-xs text-destructive leading-relaxed text-left">
+              <strong>Warning:</strong> Anyone with this phrase can access your wallet. Never share it with anyone, including Quantum Club support.
+            </p>
           </div>
 
           {/* Actions */}

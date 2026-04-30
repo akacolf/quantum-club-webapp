@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -139,7 +138,7 @@ export default function LaunchNftPage() {
                             className="space-y-4"
                         >
                             <Card
-                                className="bg-card border-border border-dashed rounded-2xl cursor-pointer hover:bg-accent/50 transition-colors"
+                                className="bg-card border-0 rounded-2xl cursor-pointer hover:bg-accent/50 transition-colors"
                                 onClick={() => fileInputRef.current?.click()}
                             >
                                 <CardContent className="p-0">
@@ -157,11 +156,9 @@ export default function LaunchNftPage() {
                                         </div>
                                     ) : (
                                         <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
-                                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                                                <Icon icon="solar:camera-add-bold" className="w-8 h-8 text-primary" />
-                                            </div>
+                                            <Icon icon="solar:camera-add-bold" className="w-8 h-8 text-primary" />
                                             <div className="text-center">
-                                                <p className="text-sm font-medium">Upload Image</p>
+                                                <p className="text-sm font-medium">Upload image</p>
                                                 <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
                                             </div>
                                         </div>
@@ -287,7 +284,7 @@ export default function LaunchNftPage() {
                         <div key="step3"
                             className="space-y-4"
                         >
-                            <Card className="bg-card border-border rounded-2xl overflow-hidden">
+                            <Card className="bg-card border-0 rounded-2xl overflow-hidden">
                                 {imagePreview && (
                                     <div className="relative w-full aspect-square">
                                         <Image
@@ -335,26 +332,23 @@ export default function LaunchNftPage() {
                             className="space-y-4"
                         >
                             {deploySuccess ? (
-                                <Card className="bg-card border-border">
+                                <Card className="bg-card border-0">
                                     <CardContent className="p-8 text-center space-y-4">
-                                        <div className="w-16 h-16 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
-                                            <Icon icon="solar:check-circle-bold" className="w-8 h-8 text-green-500" />
-                                        </div>
-                                        <h2 className="text-lg font-bold">NFT Minted!</h2>
+                                        <Icon icon="solar:check-circle-bold" className="mx-auto w-8 h-8 text-green-500" />
+                                        <h2 className="text-lg font-bold">NFT minted!</h2>
                                         <p className="text-sm text-muted-foreground">
                                             Your NFT has been deployed to the TON blockchain
                                         </p>
-                                        <Badge className="bg-primary/10 text-primary">
+                                        <span className="text-sm font-medium text-primary">
                                             Check your wallet NFTs tab
-                                        </Badge>
+                                        </span>
                                     </CardContent>
                                 </Card>
                             ) : (
-                                <Card className="bg-card border-border">
+                                <Card className="bg-card border-0">
                                     <CardContent className="p-6 space-y-4">
                                         <div className="text-center space-y-2">
-                                            <Icon icon="solar:rocket-bold" className="w-10 h-10 text-primary mx-auto" />
-                                            <h2 className="text-lg font-bold">Ready to Deploy</h2>
+                                            <h2 className="text-lg font-bold">Ready to deploy</h2>
                                             <p className="text-sm text-muted-foreground">
                                                 This will mint your NFT on the TON blockchain
                                             </p>
@@ -369,7 +363,7 @@ export default function LaunchNftPage() {
                                                 <span className="font-medium">{validAttributes.length}</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Network Fee</span>
+                                                <span className="text-muted-foreground">Network fee</span>
                                                 <span className="font-medium">~0.05 TON</span>
                                             </div>
                                         </div>
@@ -393,7 +387,6 @@ export default function LaunchNftPage() {
                                         "Done"
                                     ) : (
                                         <>
-                                            <Icon icon="solar:rocket-bold" className="w-4 h-4 mr-2" />
                                             Mint NFT
                                         </>
                                     )}

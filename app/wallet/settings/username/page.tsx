@@ -193,7 +193,7 @@ export default function QCDomainPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="mt-2 h-7 border-0 text-[10px]"
+                        className="mt-2 h-7 border border-border text-[10px]"
                         onClick={handleUpdateAddress}
                       >
                         Update to current wallet address

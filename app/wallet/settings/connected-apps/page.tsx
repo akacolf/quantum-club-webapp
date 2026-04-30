@@ -296,22 +296,6 @@ export default function ConnectedAppsPage() {
                 </Card>
             )}
 
-            {/* Info Card */}
-            <Card className="bg-primary/5 border-0 mb-6">
-                <CardContent className="p-4 flex items-start gap-3">
-                    <Icon icon="lucide:shield" className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                    <div>
-                        <h3 className="font-semibold text-foreground text-sm">TON Connect Ready</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                            Scan the QR code on any TON dApp to connect securely.
-                            {walletKit.isTestnet && (
-                                <span className="text-orange-400"> (Testnet Mode)</span>
-                            )}
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-
             {/* Sessions List */}
             <ScrollArea className="flex-1">
                 <div className="space-y-3 pb-20">

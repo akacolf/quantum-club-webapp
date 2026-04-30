@@ -94,8 +94,8 @@ export default function ReceiveAssetPage() {
           </div>
         </div>
 
-        <div className="mx-auto max-w-xs text-left text-yellow-500">
-          <Icon icon="lucide:shield-alert" className="mb-2 h-4 w-4"/>
+        <div className="mx-auto max-w-xs text-center text-yellow-500">
+          <Icon icon="lucide:shield-alert" className="mx-auto mb-2 h-4 w-4"/>
           <p className="text-xs font-bold opacity-80">Warning</p>
           <p className="mt-1 text-xs leading-relaxed opacity-90">
             {chainInfo.warningText}

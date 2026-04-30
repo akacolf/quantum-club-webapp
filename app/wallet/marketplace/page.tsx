@@ -9,7 +9,6 @@ import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
@@ -79,7 +78,6 @@ export default function MarketplacePage() {
                             href="/wallet/marketplace/launch"
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
                         >
-                            <Icon icon="solar:rocket-bold" className="w-3.5 h-3.5" />
                             Mint
                         </Link>
                     </div>
@@ -196,9 +194,9 @@ export default function MarketplacePage() {
                                                                                         {col.itemsCount > 0 ? `${col.itemsCount.toLocaleString()} items` : "Unlimited items"}
                                                                                     </span>
                                                                                     {col.floorPrice && (
-                                                                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                                                        <span className="text-[10px] text-muted-foreground">
                                                                                             Floor: {(col.floorPrice / 1e9).toFixed(2)} TON
-                                                                                        </Badge>
+                                                                                        </span>
                                                                                     )}
                                                                                 </div>
                                                                             </CardContent>
@@ -309,9 +307,9 @@ export default function MarketplacePage() {
                                                                                 <Icon icon="solar:gallery-minimalistic-linear" className="w-8 h-8 text-muted-foreground" />
                                                                             </div>
                                                                         )}
-                                                                        <Badge className="absolute top-2 right-2 bg-green-600 text-[10px]">
+                                                                        <span className="absolute top-2 right-2 text-[10px] font-medium text-green-500">
                                                                             {listing.price} TON
-                                                                        </Badge>
+                                                                        </span>
                                                                     </div>
                                                                     <CardContent className="p-3">
                                                                         <h4 className="font-bold text-sm truncate">{listing.nftName}</h4>

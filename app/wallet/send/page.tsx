@@ -465,7 +465,7 @@ export default function SendPage() {
         type: "ton",
         symbol: "TON",
         name: "Toncoin",
-        balance: tonBalance,
+        balance: formatTruncatedAmount(tonBalance, 2),
         decimals: 9,
         image: "/svg/ton-logo.svg",
         priceUsd: tonPrice
@@ -477,7 +477,7 @@ export default function SendPage() {
         type: "jetton",
         symbol: jetton.symbol,
         name: jetton.name,
-        balance: (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4),
+        balance: formatTruncatedAmount(parseFloat(jetton.balance) / Math.pow(10, jetton.decimals), 2),
         decimals: jetton.decimals,
         image: jetton.image,
         jettonAddress: jetton.jettonAddress,

@@ -7,7 +7,6 @@ import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { toast } from "sonner";
@@ -199,7 +198,7 @@ export default function PriceAlertsPage() {
                                         <Button
                                             variant="outline"
                                             onClick={() => setShowTokenPicker(!showTokenPicker)}
-                                            className="w-full h-12 justify-between bg-muted border-0"
+                                            className="w-full h-12 justify-between bg-muted border border-border"
                                         >
                                             <div className="flex items-center gap-2">
                                                 <Image
@@ -219,7 +218,7 @@ export default function PriceAlertsPage() {
                                         
                                             {showTokenPicker && (
                                                 <div
-                                                    className="absolute z-10 w-full mt-2 bg-card border-0 rounded-xl overflow-hidden shadow-lg"
+                                                    className="absolute z-10 w-full mt-2 bg-card border border-border rounded-xl overflow-hidden shadow-lg"
                                                 >
                                                     {SUPPORTED_TOKENS.map((token) => (
                                                         <button
@@ -261,10 +260,10 @@ export default function PriceAlertsPage() {
                                         <Button
                                             variant="ghost"
                                             onClick={() => form.setFieldValue("direction", "above")}
-                                            className={`flex items-center justify-center gap-2 h-12 rounded-xl border-0 transition-colors ${
+                                            className={`flex items-center justify-center gap-2 h-12 rounded-xl border transition-colors ${
                                                 direction === "above"
-                                                    ? "bg-muted text-green-500 hover:bg-muted hover:text-green-500"
-                                                    : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+                                                    ? "bg-muted border-border text-green-500 hover:bg-muted hover:text-green-500"
+                                                    : "bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                                             }`}
                                         >
                                             <Icon icon="lucide:trending-up" className="w-4 h-4" />
@@ -273,10 +272,10 @@ export default function PriceAlertsPage() {
                                         <Button
                                             variant="ghost"
                                             onClick={() => form.setFieldValue("direction", "below")}
-                                            className={`flex items-center justify-center gap-2 h-12 rounded-xl border-0 transition-colors ${
+                                            className={`flex items-center justify-center gap-2 h-12 rounded-xl border transition-colors ${
                                                 direction === "below"
-                                                    ? "bg-destructive/20 text-destructive hover:bg-destructive/30"
-                                                    : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+                                                    ? "bg-destructive/20 border-destructive/50 text-destructive hover:bg-destructive/30"
+                                                    : "bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                                             }`}
                                         >
                                             <Icon icon="lucide:trending-down" className="w-4 h-4" />
@@ -304,7 +303,7 @@ export default function PriceAlertsPage() {
                                                                     ? (currentPrices[selectedToken.symbol] * (direction === "above" ? 1.1 : 0.9)).toFixed(2)
                                                                     : "0.00"
                                                             })`}
-                                                            className="bg-muted border-0 text-foreground pl-7"
+                                                            className="bg-muted border border-border text-foreground pl-7"
                                                         />
                                                     </div>
                                                     {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
@@ -329,7 +328,7 @@ export default function PriceAlertsPage() {
                                                 form.reset();
                                                 setShowTokenPicker(false);
                                             }}
-                                            className="flex-1 bg-muted border-0 text-foreground"
+                                            className="flex-1 bg-muted border border-border text-foreground"
                                             disabled={isSaving}
                                         >
                                             Cancel
@@ -342,7 +341,7 @@ export default function PriceAlertsPage() {
                                             {isSaving ? (
                                                 <ButtonLoader />
                                             ) : (
-                                                "Create Alert"
+                                                "Create alert"
                                             )}
                                         </Button>
                                     </div>
@@ -366,9 +365,9 @@ export default function PriceAlertsPage() {
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-sm font-medium text-muted-foreground">Active</h2>
-                                    <Badge variant="outline" className="border-0 text-[10px]">
+                                    <span className="text-[10px] text-muted-foreground">
                                         {activeAlerts.length} / 10
-                                    </Badge>
+                                    </span>
                                 </div>
                                 {activeAlerts.map((alert) => {
                                     const token = getTokenInfo(alert.symbol);
@@ -431,7 +430,7 @@ export default function PriceAlertsPage() {
                                                         </div>
                                                         <div className="text-xs text-green-500">
                                                             {alert.notified ? "Notified via Telegram" : "Triggered"}
-                                                            <Icon icon={alert.notified ? "charm:tick" : "charm:tick"} className="ml-1 inline-block h-3.5 w-3.5 align-[-2px]" />
+                                                            <Icon icon={alert.notified ? "charm:tick" : "basil:cross-outline"} className="ml-1 inline-block h-3.5 w-3.5 align-[-2px]" />
                                                         </div>
                                                     </div>
                                                 </div>

@@ -8,7 +8,6 @@ import { Icon } from "@iconify/react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -188,7 +187,7 @@ export default function CollectionDetailPage() {
                     <div className="flex items-center justify-between">
                         <h2 className="text-lg font-semibold">For Sale</h2>
                         {!isLoadingItems && (
-                            <Badge variant="outline">{items.length} available</Badge>
+                            <span className="text-xs text-muted-foreground">{items.length} available</span>
                         )}
                     </div>
 

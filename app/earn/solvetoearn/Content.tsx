@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useTelegramCloseConfirmation } from "@/app/(hooks)/useCloseConfirmation";
 import { useGameSaveMutation } from "@/app/(hooks)/queries/use-mining-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +13,7 @@ const SolveToEarnContent = () => {
   const [again, setAgain] = useState(true);
   const [answers, setAnswers] = useState(0);
   const [leftTime, setLeftTime] = useState(60);
+  const [totalQuestions, setTotalQuestions] = useState(0);
   const router = useRouter();
   const [mathProcess, setMathProcess] = useState("");
   const [options, setOptions] = useState(["first", "second", "third", "fourth"]);
@@ -22,9 +22,9 @@ const SolveToEarnContent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const answersRef = useRef(answers);
   const correctRef = useRef(correctAnswer);
+  const totalQuestionsRef = useRef(totalQuestions);
 
-  useTelegramCloseConfirmation();
-  useTelegramBackButton("/home", { closeConfirmation: true });
+  useTelegramBackButton("/home");
 
   // Reset scroll position and lock body scroll
   useEffect(() => {
@@ -43,6 +43,10 @@ const SolveToEarnContent = () => {
   useEffect(() => {
     correctRef.current = correctAnswer;
   }, [correctAnswer]);
+
+  useEffect(() => {
+    totalQuestionsRef.current = totalQuestions;
+  }, [totalQuestions]);
 
   useEffect(() => {
     const MathCreator = async () => {
@@ -288,6 +292,8 @@ const SolveToEarnContent = () => {
     MathCreator();
   }, [again]);
   const checkAnswer = (sort: number) => {
+    totalQuestionsRef.current += 1;
+    setTotalQuestions(totalQuestionsRef.current);
     const mathprocessSplit = mathProcess.split(" ");
     const value1 = Number(mathprocessSplit[0]);
     const value2 = Number(mathprocessSplit[2]);
@@ -345,6 +351,7 @@ const SolveToEarnContent = () => {
         if (prevTime <= 0) {
           clearInterval(interval);
           setIsLoading(true);
+          sessionStorage.setItem("solveToEarnTotalQuestions", String(totalQuestionsRef.current));
           gameSaveMutation.mutate(
             {
               telegramId: telegramId!,
@@ -407,7 +414,7 @@ const SolveToEarnContent = () => {
               </div>
 
               <div className="w-full mb-12 text-center">
-                <span className="text-gray-400 text-sm uppercase tracking-widest mb-4 block font-medium">Solve This</span>
+                <span className="text-neutral-400 text-sm mb-4 block font-medium">Solve this</span>
                 <div className="font-bold text-6xl text-white tracking-tight animate-in fade-in zoom-in duration-300 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">
                   {mathProcess}
                 </div>

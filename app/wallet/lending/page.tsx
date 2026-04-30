@@ -12,7 +12,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -331,13 +330,21 @@ export default function LendingPage() {
                 <div className="mb-6 text-center">
                     <h1 className="text-2xl font-bold text-foreground">Lending</h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Supply & borrow on <span className="font-semibold text-foreground">EVAA Protocol</span>
+                        Supply & borrow on{" "}
+                        <a
+                            href="https://evaa.finance"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-semibold text-foreground underline-offset-4 hover:underline"
+                        >
+                            EVAA Protocol
+                        </a>
                     </p>
                 </div>
 
                 {/* User Overview */}
                 {userPositions && userPositions.positions.length > 0 && viewMode === "markets" && (
-                    <Card className="mb-4 bg-card/80 backdrop-blur-xl border-border rounded-2xl">
+                    <Card className="mb-4 bg-card/80 backdrop-blur-xl border-0 rounded-2xl">
                         <CardContent className="p-4">
                             <div className="grid grid-cols-3 gap-3 text-center">
                                 <div>
@@ -382,7 +389,7 @@ export default function LendingPage() {
                                         return (
                                             <Card
                                                 key={pos.assetName}
-                                                className="bg-card/80 backdrop-blur-xl border-border rounded-2xl"
+                                                className="bg-card/80 backdrop-blur-xl border-0 rounded-2xl"
                                             >
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center justify-between mb-2">
@@ -390,9 +397,9 @@ export default function LendingPage() {
                                                             <TokenIcon name={pos.assetName} size={32} />
                                                             <span className="font-bold">{pos.assetName}</span>
                                                         </div>
-                                                        <Badge variant="outline" className="text-xs">
+                                                        <span className="text-xs text-green-500">
                                                             {market ? `${(market.supplyApy * 100).toFixed(2)}% APY` : "—"}
-                                                        </Badge>
+                                                        </span>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-2 text-sm">
                                                         <div>
@@ -418,7 +425,7 @@ export default function LendingPage() {
                                                                     <Button
                                                                         size="sm"
                                                                         variant="outline"
-                                                                        className="flex-1 h-8 text-xs"
+                                                                        className="flex-1 h-8 text-xs bg-white/10 hover:bg-white/15"
                                                                         onClick={() => handleWithdraw(market)}
                                                                     >
                                                                         Withdraw
@@ -440,7 +447,7 @@ export default function LendingPage() {
                             {markets.map((asset) => (
                                 <Card
                                     key={asset.name}
-                                    className="bg-card/80 backdrop-blur-xl border-border rounded-2xl"
+                                    className="bg-card/80 backdrop-blur-xl border-0 rounded-2xl"
                                 >
                                     <CardContent className="p-4">
                                         <div className="flex items-center justify-between">
@@ -481,7 +488,7 @@ export default function LendingPage() {
                                         <div className="flex gap-2 mt-3">
                                             <Button
                                                 size="sm"
-                                                className="flex-1 h-9"
+                                                className="flex-1 h-9 bg-white/10 text-foreground hover:bg-white/15"
                                                 onClick={() => handleSupply(asset)}
                                                 disabled={parseFloat(getWalletBalance(asset.name)) <= 0}
                                             >
@@ -491,7 +498,7 @@ export default function LendingPage() {
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="flex-1 h-9"
+                                                className="flex-1 h-9 bg-white/10 text-foreground hover:bg-white/15 border-0"
                                                 onClick={() => handleWithdraw(asset)}
                                                 disabled={parseFloat(getUserSupplied(asset.name)) <= 0}
                                             >
@@ -509,7 +516,7 @@ export default function LendingPage() {
                         <div key={viewMode}
                             className="space-y-4"
                         >
-                            <Card className="bg-card/80 backdrop-blur-xl border-border rounded-2xl">
+                            <Card className="bg-card/80 backdrop-blur-xl border-0 rounded-2xl">
                                 <CardContent className="p-5">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
@@ -521,9 +528,9 @@ export default function LendingPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <Badge variant="outline">
+                                        <span className="text-sm font-medium text-green-500">
                                             {(selectedAsset.supplyApy * 100).toFixed(2)}% APY
-                                        </Badge>
+                                        </span>
                                     </div>
 
                                     <div className="space-y-3">
@@ -549,7 +556,7 @@ export default function LendingPage() {
                                                         }
                                                     }}
                                                 >
-                                                    MAX: {viewMode === "supply"
+                                                    Max: {viewMode === "supply"
                                                         ? (selectedAsset.name === "TON"
                                                             ? Math.max(0, parseFloat(getWalletBalance(selectedAsset.name)) - TON_GAS_RESERVE).toFixed(4)
                                                             : getWalletBalance(selectedAsset.name))
@@ -577,7 +584,7 @@ export default function LendingPage() {
                                             </p>
                                         )}
 
-                                        <div className="bg-accent/30 rounded-xl p-3 space-y-2 text-sm">
+                                        <div className="bg-white/10 rounded-xl p-3 space-y-2 text-sm">
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Supply APY</span>
                                                 <span className="text-green-500 font-medium">
@@ -591,7 +598,7 @@ export default function LendingPage() {
                                                 </span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Available Liquidity</span>
+                                                <span className="text-muted-foreground">Available liquidity</span>
                                                 <span className="font-medium">
                                                     {parseFloat(selectedAsset.availableLiquidity).toFixed(2)} {selectedAsset.symbol}
                                                 </span>

@@ -11,7 +11,6 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
@@ -28,6 +27,7 @@ import {
     type StakingPool,
 } from "@/lib/staking-service";
 import { useStakingApyQuery } from "@/app/(hooks)/queries/use-staking-pools";
+import { formatTruncatedAmount } from "@/lib/format";
 
 
 
@@ -44,7 +44,7 @@ export default function StakingPage() {
     } = useBiometricAuth();
     
     useEffect(() => {
-        router.prefetch("/wallet");
+        router.prefetch("/wallet/earn");
         router.prefetch("/wallet/unstake");
     }, [router]);
 
@@ -75,7 +75,7 @@ export default function StakingPage() {
                 setStep("input");
             } else {
                 // Go back to wallet
-                router.push("/wallet");
+                router.push("/wallet/earn");
             }
         };
 
@@ -205,7 +205,7 @@ export default function StakingPage() {
                             {/* Header */}
                             <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
-                                    <h1 className="text-2xl font-bold text-white">TON Staking</h1>
+                                    <h1 className="text-2xl font-bold text-white">TON staking</h1>
                                     <p className="text-sm text-gray-500">
                                         Stake TON and earn passive rewards
                                     </p>
@@ -221,22 +221,22 @@ export default function StakingPage() {
 
                             {/* Stats Overview */}
                             <div className="grid grid-cols-3 gap-2">
-                                <div className="p-3 rounded-xl bg-[#111] border border-[#222] text-center">
+                                <div className="p-3 rounded-xl bg-[#111] border-0 text-center">
                                     <p className="text-xs text-gray-500 mb-1">Avg APY</p>
                                     <p className="text-lg font-bold text-green-500">{avgApy.toFixed(2)}%</p>
                                 </div>
-                                <div className="p-3 rounded-xl bg-[#111] border border-[#222] text-center">
-                                    <p className="text-xs text-gray-500 mb-1">Your Balance</p>
-                                    <p className="text-lg font-bold text-white">{tonBalanceNum.toFixed(2)}</p>
+                                <div className="p-3 rounded-xl bg-[#111] border-0 text-center">
+                                    <p className="text-xs text-gray-500 mb-1">Your balance</p>
+                                    <p className="text-lg font-bold text-white">{formatTruncatedAmount(tonBalanceNum, 2)}</p>
                                 </div>
-                                <div className="p-3 rounded-xl bg-[#111] border border-[#222] text-center">
+                                <div className="p-3 rounded-xl bg-[#111] border-0 text-center">
                                     <p className="text-xs text-gray-500 mb-1">Providers</p>
                                     <p className="text-lg font-bold text-white">{pools.length}</p>
                                 </div>
                             </div>
 
                             {/* Available Balance Card */}
-                            <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
+                            <div className="p-4 rounded-xl bg-[#111] border-0">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
                                         <Image
@@ -247,8 +247,8 @@ export default function StakingPage() {
                                             className="w-8 h-8"
                                         />
                                         <div>
-                                            <p className="text-sm text-gray-500">Available to Stake</p>
-                                            <p className="text-xl font-bold text-white">{tonBalanceNum.toFixed(4)} TON</p>
+                                            <p className="text-sm text-gray-500">Available to stake</p>
+                                            <p className="text-xl font-bold text-white">{formatTruncatedAmount(tonBalanceNum, 4)} TON</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
@@ -256,7 +256,7 @@ export default function StakingPage() {
                                     </div>
                                 </div>
                                 {tonBalanceNum > 1 && avgApy > 0 && (
-                                    <div className="pt-3 border-t border-[#222]">
+                                    <div className="pt-3">
                                         <p className="text-xs text-gray-500">
                                             If you stake all: <span className="text-green-500 font-medium">
                                                 +{(tonBalanceNum * avgApy / 100).toFixed(3)} TON/year
@@ -269,12 +269,10 @@ export default function StakingPage() {
                             {/* Unstake Button */}
                             <Link
                                 href="/wallet/unstake"
-                                className="w-full p-4 rounded-xl bg-[#111] border border-[#222] flex items-center justify-between hover:bg-[#161616] transition-colors"
+                                className="w-full p-4 rounded-xl bg-[#111] border-0 flex items-center justify-between hover:bg-[#161616] transition-colors"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-[#222] flex items-center justify-center">
-                                        <Icon icon="lucide:arrow-up-right" className="w-5 h-5 text-gray-400"/>
-                                    </div>
+                                    <Icon icon="lucide:arrow-up-right" className="w-5 h-5 text-gray-400"/>
                                     <div className="text-left">
                                         <p className="font-medium text-white text-sm">Unstake tsTON</p>
                                         <p className="text-xs text-gray-500">Convert tsTON back to TON</p>
@@ -285,7 +283,7 @@ export default function StakingPage() {
 
                             {/* Staking Pools */}
                             <div className="space-y-3">
-                                <h2 className="text-base font-semibold text-white">Choose a Pool</h2>
+                                <h2 className="text-base font-semibold text-white">Choose a pool</h2>
 
                                 {isLoading ? (
                                     <div className="flex justify-center py-8">
@@ -298,7 +296,7 @@ export default function StakingPage() {
                                             
                                             return (
                                                 <div key={pool.id}
-                                                    className="rounded-xl bg-[#111] border border-[#222] overflow-hidden"
+                                                    className="rounded-xl bg-[#111] border-0 overflow-hidden"
                                                 >
                                                     <button
                                                         onClick={() => handleSelectPool(pool)}
@@ -318,9 +316,9 @@ export default function StakingPage() {
                                                                 <div className="flex items-center gap-2 mb-1">
                                                                     <h3 className="font-semibold text-white">{pool.name}</h3>
                                                                     {pool.isInstantUnstake && (
-                                                                        <Badge variant="secondary" className="text-[10px] h-5 whitespace-nowrap">
-                                                                            Instant Unstake
-                                                                        </Badge>
+                                                                        <span className="text-[10px] text-green-500 whitespace-nowrap">
+                                                                            Instant unstake
+                                                                        </span>
                                                                     )}
                                                                 </div>
                                                                 
@@ -351,7 +349,7 @@ export default function StakingPage() {
                                                             <div className="text-right flex-shrink-0">
                                                                 <p className="text-xl font-bold text-green-500">{pool.liveApy.toFixed(2)}%</p>
                                                                 <p className="text-xs text-gray-500">APY</p>
-                                                                <p className="text-[10px] text-blue-400 mt-1 flex items-center gap-0.5">
+                                                                <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-0.5">
                                                                     <Icon icon="lucide:arrow-right" className="w-3 h-3"/> {pool.liquidToken}
                                                                 </p>
                                                             </div>
@@ -359,7 +357,7 @@ export default function StakingPage() {
 
                                                         {/* Potential Rewards */}
                                                         {tonBalanceNum >= pool.minStake && (
-                                                            <div className="mt-3 pt-3 border-t border-[#222] grid grid-cols-3 gap-2 text-center">
+                                                            <div className="mt-3 pt-3 grid grid-cols-3 gap-2 text-center">
                                                                 <div>
                                                                     <p className="text-xs text-gray-500">Daily</p>
                                                                     <p className="text-sm font-medium text-white">
@@ -382,7 +380,7 @@ export default function StakingPage() {
                                                         )}
 
                                                         <div className="mt-3 flex items-center justify-center gap-2 text-sm text-primary">
-                                                            <span>Stake Now</span>
+                                                            <span>Stake now</span>
                                                             <Icon icon="lucide:arrow-right" className="w-4 h-4"/>
                                                         </div>
                                                     </button>
@@ -394,12 +392,12 @@ export default function StakingPage() {
                             </div>
 
                             {/* Info Card */}
-                            <div className="p-4 rounded-xl bg-[#111] border border-[#222]">
+                            <div className="p-4 rounded-xl bg-[#111] border-0">
                                 <div className="flex gap-3">
                                     <Icon icon="lucide:info" className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5"/>
                                     <div>
                                         <p className="text-sm font-medium text-gray-400">
-                                            What is Liquid Staking?
+                                            What is liquid staking?
                                         </p>
                                         <p className="text-xs text-gray-500 mt-1">
                                             Liquid staking lets you stake TON while receiving a liquid token (like tsTON or stTON) that you can use in DeFi while still earning staking rewards. Your staked TON automatically compounds.
@@ -441,7 +439,7 @@ export default function StakingPage() {
                                     >
                                         {/* Pool Info Card */}
                                         {selectedPool && (
-                                            <Card className="bg-[#111] border-[#222]">
+                                            <Card className="bg-[#111] border-0">
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-12 h-12 rounded-xl bg-[#222] overflow-hidden">
@@ -467,12 +465,12 @@ export default function StakingPage() {
                                         )}
 
                                         {/* Amount Input */}
-                                        <Card className="bg-[#111] border-[#222]">
+                                        <Card className="bg-[#111] border-0">
                                             <CardContent className="p-4 space-y-3">
                                                 <div className="flex items-center justify-between">
-                                                    <Label className="text-sm text-gray-400">Amount to Stake</Label>
+                                                    <Label className="text-sm text-gray-400">Amount to stake</Label>
                                                     <span className="text-xs text-gray-500">
-                                                        Balance: {tonBalanceNum.toFixed(4)} TON
+                                                        Max: {formatTruncatedAmount(Math.max(0, tonBalanceNum - 0.1), 4)} TON
                                                     </span>
                                                 </div>
                                                 <form.Field name="amount">
@@ -506,9 +504,9 @@ export default function StakingPage() {
                                                                     variant="outline"
                                                                     size="sm"
                                                                     onClick={handleMax}
-                                                                    className="text-primary border-primary/30"
+                                                                    className="text-primary border-0"
                                                                 >
-                                                                    MAX
+                                                                    Max
                                                                 </Button>
                                                             </div>
                                                             {field.state.meta.errors.length > 0 && (
@@ -527,10 +525,10 @@ export default function StakingPage() {
 
                                         {/* You Will Receive */}
                                         {selectedPool && stakeAmountNum > 0 && (
-                                            <Card className="bg-[#111] border-[#222]">
+                                            <Card className="bg-[#111] border-0">
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center justify-between mb-3">
-                                                        <span className="text-sm text-gray-400">You Will Receive</span>
+                                                        <span className="text-sm text-gray-400">You will receive</span>
                                                         <div className="flex items-center gap-2">
                                                             <Image
                                                                 src={selectedPool.liquidTokenIcon}
@@ -607,7 +605,7 @@ export default function StakingPage() {
                                         <div className="relative mx-auto w-20 h-20">
                                             <div className="w-full h-full rounded-full border-4 animate-spin text-primary" style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)", borderTopColor: "currentColor" }} />
                                         </div>
-                                        <h2 className="text-xl font-bold text-white">Staking in Progress...</h2>
+                                        <h2 className="text-xl font-bold text-white">Staking in progress...</h2>
                                         <p className="text-gray-500 text-sm">
                                             Please wait while your transaction is processed
                                         </p>
@@ -621,7 +619,7 @@ export default function StakingPage() {
                                         <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
                                             <Icon icon="lucide:check-circle" className="w-10 h-10 text-green-500"/>
                                         </div>
-                                        <h2 className="text-xl font-bold text-green-500">Staked Successfully!</h2>
+                                        <h2 className="text-xl font-bold text-green-500">Staked successfully!</h2>
                                         <p className="text-gray-500 text-sm">
                                             You&apos;ve staked {stakeAmount} TON with {selectedPool?.name}
                                         </p>
@@ -638,7 +636,7 @@ export default function StakingPage() {
                                             variant="outline"
                                             className="mt-4"
                                         >
-                                            Back to Pools
+                                            Back to pools
                                         </Button>
                                     </div>
                                 )}
