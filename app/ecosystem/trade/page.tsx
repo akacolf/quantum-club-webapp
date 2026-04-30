@@ -75,7 +75,6 @@ const calculateProgress = (marketCapNano: string, thresholdTon: string) => {
 };
 
 function TokenCard({ token, index, showRank = true }: { token: Token; index: number; showRank?: boolean }) {
-    const trades = token.trades || 0;
     // Use tonReserve (on-chain) or fall back to marketCap for progress
     const progress = calculateProgress(
         token.tonReserve || token.marketCap,
@@ -155,17 +154,13 @@ function TokenCard({ token, index, showRank = true }: { token: Token; index: num
                                     <div className="font-medium text-white text-sm tracking-tight">
                                         {formatPrice(BigInt(token.currentPrice || "0"))}
                                     </div>
-                                    <div className="flex items-center justify-end gap-0.5 text-[10px] font-bold mt-0.5 text-muted-foreground">
-                                        <Icon icon="solar:transfer-horizontal-bold" className="w-2.5 h-2.5" />
-                                        {trades} trade{trades !== 1 ? "s" : ""}
-                                    </div>
                                 </div>
                             </div>
                             
                              {/* Progress Bar - Slim & Elegant */}
                              <div className="space-y-1">
                                 <div className="flex justify-between items-center text-[9px] font-medium opacity-60">
-                                    <span className="text-muted-foreground uppercase tracking-wider">Bonding Curve</span>
+                                    <span className="text-muted-foreground">Bonding curve</span>
                                     <span className={progress > 90 ? "text-green-400" : "text-white"}>{progress.toFixed(1)}%</span>
                                 </div>
                                 <div className="h-1 w-full bg-[#333] rounded-full overflow-hidden">
@@ -241,9 +236,7 @@ function TokenListSkeleton() {
 function EmptyState({ message }: { message: string }) {
     return (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                <Icon icon="solar:box-minimalistic-bold" className="w-8 h-8 text-muted-foreground" />
-            </div>
+            <Icon icon="solar:box-minimalistic-bold" className="mb-4 w-8 h-8 text-muted-foreground" />
             <p className="text-muted-foreground">{message}</p>
         </div>
     );
@@ -436,16 +429,16 @@ export default function TradePage() {
             {/* Header */}
             <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl pb-3">
                 <div className="space-y-4 px-4 pt-4">
-                    <div className="relative flex h-12 items-center justify-center">
-                        <div className="text-center">
-                            <div className="flex items-center justify-center gap-2">
+                    <div className="flex min-h-14 items-center justify-between">
+                        <div className="relative flex items-center">
+                            <div className="absolute -top-3 left-0 flex items-center gap-2">
                                 <span className="text-[10px] font-bold text-yellow-300">Beta</span>
                             </div>
                             <h1 className="text-2xl font-bold tracking-tight text-white">
                                 QC <span className="text-primary">RocketStart</span>
                             </h1>
                         </div>
-                        <Button asChild className="absolute right-0 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.4)] transition-all rounded-full px-5 h-10">
+                        <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold transition-all rounded-full px-5 h-10">
                             <Link href="/ecosystem/trade/create">
                                 <Icon icon="mynaui:rocket-solid" className="w-5 h-5" />
                                 Launch
@@ -768,9 +761,7 @@ export default function TradePage() {
                         )
                     ) : displayTokens.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                                <Icon icon="solar:box-minimalistic-bold" className="w-8 h-8 text-muted-foreground" />
-                            </div>
+                            <Icon icon="solar:box-minimalistic-bold" className="mb-4 w-8 h-8 text-muted-foreground" />
                             <p className="text-muted-foreground mb-4">No tokens available yet. Be the first to create one!</p>
                         </div>
                     ) : (
@@ -805,9 +796,9 @@ export default function TradePage() {
                 <motion.div
                     initial={{ y: 50, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    className="fixed bottom-28 left-4 right-4 z-30"
+                    className="fixed bottom-32 left-4 right-4 z-30"
                 >
-                    <div className="bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-xl rounded-full border-0 px-4 py-2.5 flex items-center gap-3 shadow-lg">
+                    <div className="bg-secondary backdrop-blur-xl rounded-full border-0 px-4 py-2.5 flex items-center gap-3 shadow-lg">
                         <Icon icon="solar:wallet-bold" className="w-5 h-5 text-primary" />
                         <span className="flex-1 text-sm text-white">Connect QC Wallet to trade</span>
                         <Button size="sm" asChild className="bg-white hover:bg-white/90 text-black font-semibold h-8 px-4 rounded-full">

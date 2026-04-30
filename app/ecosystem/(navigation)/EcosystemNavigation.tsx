@@ -248,7 +248,7 @@ const EcosystemNavigation = () => {
                       <Icon icon="mynaui:rocket-solid" className="w-5 h-5 shrink-0 text-primary" />
                       <div className="flex-1 text-left">
                         <p className="whitespace-nowrap text-sm font-semibold text-white">QC RocketStart</p>
-                        <p className="text-[10px] text-muted-foreground">Token Launchpad</p>
+                        <p className="text-[10px] text-muted-foreground">Launchpad</p>
                       </div>
                       {!isOnSpot && (
                         <Icon icon="lucide:check" className="w-4 h-4 text-primary" />
@@ -261,8 +261,8 @@ const EcosystemNavigation = () => {
                     >
                       <Icon icon="solar:chart-2-bold" className="w-5 h-5 shrink-0 text-green-400" />
                       <div className="flex-1 text-left">
-                        <p className="text-sm font-semibold text-white">Spot Trading</p>
-                        <p className="text-[10px] text-muted-foreground">Trade DEX tokens</p>
+                        <p className="text-sm font-semibold text-white">Spot</p>
+                        <p className="text-[10px] text-muted-foreground">Trade tokens</p>
                       </div>
                       {isOnSpot && (
                         <Icon icon="lucide:check" className="w-4 h-4 text-green-400" />

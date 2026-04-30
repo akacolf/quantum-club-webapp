@@ -351,7 +351,7 @@ export default function CreateTokenPage() {
             {/* Header - No back button, using Telegram's native back button */}
             <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-white/5">
                 <div className="px-4 py-4">
-                    <h1 className="text-xl font-bold text-white">Create Token</h1>
+                    <h1 className="text-xl font-bold text-white">Create token</h1>
                     <p className="text-sm text-muted-foreground">Launch your token on TON</p>
                 </div>
             </div>
@@ -361,46 +361,17 @@ export default function CreateTokenPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    {/* Token Protections - Unified Card */}
-                    <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 mb-6">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Icon icon="solar:shield-check-bold" className="w-5 h-5 text-primary" />
-                                <h3 className="font-semibold text-white">Platform Utilities</h3>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="flex items-center gap-2">
-                                    <Icon icon="solar:lock-bold" className="w-4 h-4 text-green-400" />
-                                    <span className="text-xs text-muted-foreground">Locked Liquidity</span>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <Icon icon="solar:rocket-2-bold" className="w-4 h-4 text-purple-400" />
-                                    <span className="text-xs text-muted-foreground">Auto DEX at 2,000 TON</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Icon icon="solar:hand-money-bold" className="w-4 h-4 text-amber-400" />
-                                    <span className="text-xs text-muted-foreground">Referral Program</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4 text-blue-400" />
-                                    <span className="text-xs text-muted-foreground">Fair Launch</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
                     {/* Form */}
                     <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }} className="space-y-6">
                         <Card className="bg-white/5 border-white/10">
                             <CardHeader>
-                                <CardTitle className="text-white">Token Details</CardTitle>
+                                <CardTitle className="text-white">Token details</CardTitle>
                                 <CardDescription>Enter your token information</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 {/* Token Image Upload */}
                                 <div className="space-y-2">
-                                    <Label className="text-white">Token Image</Label>
+                                    <Label className="text-white">Token image</Label>
                                     <div className="flex items-center gap-4">
                                         {/* Image Preview / Upload Button */}
                                         <div
@@ -455,7 +426,7 @@ export default function CreateTokenPage() {
                                         const hasErrors = field.state.meta.errors.length > 0;
                                         return (
                                             <Field data-invalid={hasErrors}>
-                                                <FieldLabel htmlFor={field.name} className="text-white">Token Name *</FieldLabel>
+                                                <FieldLabel htmlFor={field.name} className="text-white">Token name *</FieldLabel>
                                                 <Input
                                                     id={field.name}
                                                     type="text"
@@ -483,7 +454,7 @@ export default function CreateTokenPage() {
                                         const isInvalid = hasFormErrors || hasSymbolError;
                                         return (
                                             <Field data-invalid={isInvalid}>
-                                                <FieldLabel htmlFor={field.name} className="text-white">Token Symbol *</FieldLabel>
+                                                <FieldLabel htmlFor={field.name} className="text-white">Token symbol *</FieldLabel>
                                                 <div className="relative">
                                                     <Input
                                                         id={field.name}
@@ -565,7 +536,7 @@ export default function CreateTokenPage() {
                                     <div className="pr-4">
                                         <CardTitle className="text-white text-base flex items-center gap-1.5">
                                             <Icon icon="solar:bag-heart-bold" className="w-5 h-5 text-primary" />
-                                            Initial Buy
+                                            Initial buy
                                             <span className="text-xs font-normal text-muted-foreground">(Optional)</span>
                                         </CardTitle>
                                         <CardDescription className="text-xs mt-1">
@@ -646,11 +617,11 @@ export default function CreateTokenPage() {
                             <CardContent className="p-4">
                                 <div className="flex items-center gap-2 mb-3">
                                     <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-muted-foreground" />
-                                    <span className="text-sm text-muted-foreground">Token Details</span>
+                                <span className="text-sm text-muted-foreground">Token details</span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 text-xs">
                                     <div className="p-2 rounded-lg bg-white/5">
-                                        <p className="text-muted-foreground mb-1">Max Supply</p>
+                                        <p className="text-muted-foreground mb-1">Max supply</p>
                                         <p className="text-white font-medium">{MAX_SUPPLY_FORMATTED}</p>
                                     </div>
                                     <div className="p-2 rounded-lg bg-white/5">
@@ -680,7 +651,7 @@ export default function CreateTokenPage() {
                         <Alert className="bg-card border-0">
                             <Icon icon="solar:gas-station-bold" className="w-4 h-4 text-green-400" />
                             <AlertDescription className="text-muted-foreground">
-                                <span className="font-medium text-green-400">Deployment Cost</span>
+                                <span className="font-medium text-white">Deployment cost</span>
                                 <br />
                                 <span className="text-xs">
                                     Gas: ~0.05-0.1 TON
@@ -689,7 +660,7 @@ export default function CreateTokenPage() {
                                     <>
                                         <br />
                                         <span className="text-xs">
-                                            Initial Buy: {initialBuyValue} TON
+                                            Initial buy: {initialBuyValue} TON
                                         </span>
                                     </>
                                 )}

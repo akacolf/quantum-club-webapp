@@ -13,19 +13,7 @@ export default function Loading() {
       </div>
 
       <div className="px-4 py-6 max-w-md mx-auto space-y-6">
-        {/* Platform Utilities Card */}
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <Skeleton className="h-5 w-36 mb-3" />
-            <div className="grid grid-cols-2 gap-3">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-4 w-28" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Token Details Card */}
+        {/* Token details card */}
         <Card className="bg-white/5 border-white/10">
           <CardHeader>
             <Skeleton className="h-5 w-28" />

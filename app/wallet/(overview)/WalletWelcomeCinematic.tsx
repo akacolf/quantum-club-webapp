@@ -11,27 +11,31 @@ const CHAINS = [
 ];
 
 export default function WalletWelcomeCinematic() {
-  const marqueeChains = [...CHAINS, ...CHAINS];
+  const marqueeChains = [...CHAINS, ...CHAINS, ...CHAINS];
 
   return (
     <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden pb-4 pt-2">
-      <div className="flex w-max items-center gap-10 qc-chain-marquee">
-        {marqueeChains.map((chain, index) => (
-          <div
-            key={`${chain.name}-${index}`}
-            className="flex h-12 shrink-0 items-center gap-3 px-2"
-          >
-            <Image
-              src={chain.icon}
-              alt={chain.name}
-              width={30}
-              height={30}
-              className="size-7 rounded-full"
-              unoptimized
-            />
-            <span className="whitespace-nowrap text-sm font-semibold text-neutral-200">
-              {chain.name}
-            </span>
+      <div className="flex w-max items-center qc-chain-marquee">
+        {[0, 1].map((group) => (
+          <div key={group} className="flex shrink-0 items-center gap-12 pr-12">
+            {marqueeChains.map((chain, index) => (
+              <div
+                key={`${chain.name}-${group}-${index}`}
+                className="flex h-12 shrink-0 items-center gap-3"
+              >
+                <Image
+                  src={chain.icon}
+                  alt={chain.name}
+                  width={30}
+                  height={30}
+                  className="size-7 rounded-full"
+                  unoptimized
+                />
+                <span className="whitespace-nowrap text-sm font-semibold text-neutral-200">
+                  {chain.name}
+                </span>
+              </div>
+            ))}
           </div>
         ))}
       </div>

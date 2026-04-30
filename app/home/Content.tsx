@@ -101,7 +101,7 @@ const TaskTimerComponent: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  });
 
   return <div>{remainingTime}</div>;
 };
@@ -166,6 +166,13 @@ function getRankIcon(rank: string | null) {
 const emptySubscribe = () => () => {};
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
+const BASE_GREETING_PAIRS = [
+  { greeting: "Welcome back to Quantum Club", subtext: "What would you like to do today?" },
+  { greeting: "Ready to make some moves", subtext: "What's on the agenda today?" },
+  { greeting: "It's about time", subtext: "Let's make it happen." },
+  { greeting: "Great to see you again", subtext: "Anything catches your eye?" },
+  { greeting: "Let's build the future together", subtext: "What's on your mind today?" },
+];
 const PROMPT_SUGGESTIONS = [
   "How is the market doing today?",
   "What is Quantum Club?",
@@ -177,6 +184,13 @@ function getTimeGreeting() {
   if (hour < 12) return "Gm";
   if (hour < 18) return "Afternoon";
   return "Evening";
+}
+
+function getGreetingPairs() {
+  return [
+    ...BASE_GREETING_PAIRS,
+    { greeting: getTimeGreeting(), subtext: "What would you like to do today?" },
+  ];
 }
 
 const HomeContent = () => {
@@ -278,15 +292,17 @@ const HomeContent = () => {
 
   const TaskTimer = TaskTimerComponent;
   const { walletAddress, totalUsdBalance, isLoadingAssets, hideBalance, toggleHideBalance } = useWallet();
-  const [greetingIndex, setGreetingIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setGreetingIndex((index) => (index + 1) % 2);
-    }, 4000);
-
-    return () => window.clearInterval(timer);
-  }, []);
+  const [greetingIndex] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    const pairs = getGreetingPairs();
+    const lastIndex = parseInt(sessionStorage.getItem("qc_last_greeting_idx") ?? "-1", 10);
+    let idx: number;
+    do {
+      idx = Math.floor(Math.random() * pairs.length);
+    } while (idx === lastIndex && pairs.length > 1);
+    sessionStorage.setItem("qc_last_greeting_idx", String(idx));
+    return idx;
+  });
 
   const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
 
@@ -296,11 +312,10 @@ const HomeContent = () => {
     return tgUser?.first_name || username || "Quantum User";
   })();
 
-  const timeGreeting = mounted ? getTimeGreeting() : "Gm";
-  const greetingText = greetingIndex === 0
-    ? `Welcome back to Quantum Club, ${tgFirstName}.`
-    : `${timeGreeting}, ${tgFirstName}.`;
-  const subtext = "What would you like to do today?";
+  const greetingPairs = mounted ? getGreetingPairs() : BASE_GREETING_PAIRS;
+  const greeting = greetingPairs[greetingIndex] ?? greetingPairs[0];
+  const greetingText = greeting.greeting;
+  const subtext = greeting.subtext;
 
   return (
     <div className="flex flex-col min-h-screen pb-16 pt-6 gap-6">
@@ -308,7 +323,7 @@ const HomeContent = () => {
 
       <HomeSearch />
       
-      <GreetingReveal greetingText={greetingText} subtext={subtext} />
+      <GreetingReveal greetingText={greetingText} tgFirstName={tgFirstName} subtext={subtext} />
 
       {/* Live crypto ticker */}
       <MarketPulse />
@@ -730,7 +745,7 @@ function SpotTokensSection() {
 
 // ─── Home wrapper components ─────────────────────────────────
 
-function GreetingReveal({ greetingText, subtext }: { greetingText: string; subtext: string }) {
+function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: string; tgFirstName: string; subtext: string }) {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
 
@@ -743,7 +758,7 @@ function GreetingReveal({ greetingText, subtext }: { greetingText: string; subte
   return (
     <div className="w-[90%] mx-auto space-y-3">
       <p className="text-[20px] font-bold text-white leading-tight tracking-tight">
-        {greetingText}
+        {greetingText}, {tgFirstName}.
       </p>
       <p className="text-[14px] text-neutral-400 mt-1">
         {subtext}
