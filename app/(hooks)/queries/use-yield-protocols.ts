@@ -19,45 +19,17 @@ interface YieldProtocol {
 const YIELD_PROTOCOLS: YieldProtocol[] = [
     {
         id: "ton-staking",
-        name: "TON Staking",
+        name: "TON staking",
         icon: "/svg/ton-logo.svg",
         type: "staking",
         apy: 5.0,
         tvl: "$500M+",
         asset: "TON",
         description:
-            "Stake TON and receive liquid staking tokens (tsTON, stTON, hTON)",
+            "Stake TON with Tonstakers and receive tsTON",
         route: "/wallet/staking",
-        minAmount: "0.5 TON",
+        minAmount: "0.01 TON",
         riskLevel: "low",
-    },
-    {
-        id: "liquidity-provision",
-        name: "Liquidity Pools",
-        icon: "/png/stonfi-logo.png",
-        type: "lp",
-        apy: 12.0,
-        tvl: "$50M+",
-        asset: "TON/USDT",
-        description:
-            "Provide liquidity to DEX pools and earn trading fees",
-        route: "/wallet/liquidity",
-        minAmount: "1 TON",
-        riskLevel: "medium",
-    },
-    {
-        id: "lp-farming",
-        name: "LP Farming",
-        icon: "/png/stonfi-logo.png",
-        type: "lp",
-        apy: 25.0,
-        tvl: "$20M+",
-        asset: "LP Tokens",
-        description:
-            "Stake LP tokens in farms to earn additional STON rewards",
-        route: "/wallet/farming",
-        minAmount: "Any LP",
-        riskLevel: "medium",
     },
 ];
 

@@ -124,7 +124,11 @@ export default function TokenDetailClient() {
     // Load token and refresh balance
     useEffect(() => {
         if (!tokenId) return;
-        setTokenLoadError(null);
+        const resetTimer = window.setTimeout(() => {
+            setTokenLoadError(null);
+            setPreview(null);
+            setAmount("");
+        }, 0);
 
         let cancelled = false;
 
@@ -152,11 +156,7 @@ export default function TokenDetailClient() {
         if (walletAddress) {
             fetchWalletAssets();
         }
-        // Reset preview when switching tokens
-        setPreview(null);
-        setAmount("");
-
-        return () => { cancelled = true; clearTimeout(timeout); };
+        return () => { cancelled = true; clearTimeout(timeout); window.clearTimeout(resetTimer); };
     }, [tokenId, selectToken, walletAddress, fetchWalletAssets]);
 
     // Get user position
@@ -166,8 +166,8 @@ export default function TokenDetailClient() {
     // Preview calculation
     useEffect(() => {
         if (!amount || parseFloat(amount) <= 0 || !selectedToken) {
-            setPreview(null);
-            return;
+            const timer = window.setTimeout(() => setPreview(null), 0);
+            return () => window.clearTimeout(timer);
         }
 
         const fetchPreview = async () => {

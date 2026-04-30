@@ -336,15 +336,19 @@ export default function TradePage() {
     const [hasWallet, setHasWallet] = useState(true); // Default to true to avoid flash
 
     useEffect(() => {
-        // If context has wallet address, we definitely have a wallet
-        if (walletAddress) {
-            setHasWallet(true);
-            return;
-        }
-        
-        // If context is empty, check localStorage (for SSR hydration)
-        // This will be empty after logout due to clearWallet()
-        setHasWallet(hasMnemonic(telegramId));
+        const timer = window.setTimeout(() => {
+            // If context has wallet address, we definitely have a wallet
+            if (walletAddress) {
+                setHasWallet(true);
+                return;
+            }
+
+            // If context is empty, check localStorage (for SSR hydration)
+            // This will be empty after logout due to clearWallet()
+            setHasWallet(hasMnemonic(telegramId));
+        }, 0);
+
+        return () => window.clearTimeout(timer);
     }, [walletAddress, telegramId]);
 
     // Handle retry deployment

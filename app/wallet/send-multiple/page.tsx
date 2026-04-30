@@ -27,6 +27,7 @@ import {
   MAX_BATCH_MESSAGES,
   type BatchTransaction,
 } from "@/lib/transaction-batching";
+import { formatTruncatedAmount } from "@/lib/format";
 
 interface Recipient {
   id: string;
@@ -219,7 +220,7 @@ export default function SendMultiplePage() {
         setViewMode("success");
         haptics.success();
         toast.success(`Sent to ${transactions.length} recipients`, {
-          description: `Total: ${totalAmount.toFixed(4)} TON`,
+          description: `Total: ${formatTruncatedAmount(totalAmount, 4)} TON`,
         });
 
         // Refresh balances
@@ -288,7 +289,7 @@ export default function SendMultiplePage() {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-white">
-                        {tonBalanceNum.toFixed(4)} TON
+                        {formatTruncatedAmount(tonBalanceNum, 4)} TON
                       </p>
                       <p className="text-xs text-muted-foreground">
                         ${(tonBalanceNum * tonPrice).toFixed(2)}
@@ -381,20 +382,20 @@ export default function SendMultiplePage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Total amount</span>
                     <span className="font-medium text-white">
-                      {totalAmount.toFixed(4)} TON
+                      {formatTruncatedAmount(totalAmount, 4)} TON
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Estimated gas</span>
                     <span className="text-muted-foreground">
-                      ~{estimatedGas.toFixed(4)} TON
+                      ~{formatTruncatedAmount(estimatedGas, 4)} TON
                     </span>
                   </div>
                   <div className="border-t border-[#222] pt-2 flex justify-between">
                     <span className="font-medium text-white">Total</span>
                     <div className="text-right">
                       <span className="font-bold text-white">
-                        {totalWithGas.toFixed(4)} TON
+                        {formatTruncatedAmount(totalWithGas, 4)} TON
                       </span>
                       <p className="text-xs text-muted-foreground">
                         ${totalUsd.toFixed(2)}
@@ -466,14 +467,14 @@ export default function SendMultiplePage() {
                         </p>
                       </div>
                       <p className="font-medium text-white">
-                        {parseFloat(r.amount).toFixed(4)} TON
+                        {formatTruncatedAmount(parseFloat(r.amount), 4)} TON
                       </p>
                     </div>
                   ))}
                   <div className="pt-2 flex justify-between font-semibold">
                     <span className="text-white">Total</span>
                     <span className="text-primary">
-                      {totalWithGas.toFixed(4)} TON
+                      {formatTruncatedAmount(totalWithGas, 4)} TON
                     </span>
                   </div>
                 </CardContent>
@@ -528,7 +529,7 @@ export default function SendMultiplePage() {
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-white">
-                  {totalAmount.toFixed(4)} TON
+                  {formatTruncatedAmount(totalAmount, 4)} TON
                 </p>
                 <p className="text-sm text-muted-foreground">${totalUsd.toFixed(2)}</p>
               </div>

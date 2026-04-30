@@ -93,7 +93,7 @@ export default function BroadcastManagePage({
       if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
       if (coverPreviewUrl) URL.revokeObjectURL(coverPreviewUrl);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const form = useForm({
@@ -181,7 +181,7 @@ export default function BroadcastManagePage({
     if (!broadcast) return;
     form.setFieldValue("name", broadcast.name);
     form.setFieldValue("bio", broadcast.bio ?? "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [broadcast?.id]);
 
   // Redirect non-admins

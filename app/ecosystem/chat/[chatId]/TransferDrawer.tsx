@@ -93,8 +93,11 @@ export default function TransferDrawer({
   // Reset form + asset when drawer opens
   useEffect(() => {
     if (open) {
-      form.reset();
-      setSelectedAsset({ type: "ton" });
+      const timer = window.setTimeout(() => {
+        form.reset();
+        setSelectedAsset({ type: "ton" });
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [open]);
 

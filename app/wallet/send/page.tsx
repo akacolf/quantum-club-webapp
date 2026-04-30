@@ -311,8 +311,8 @@ export default function SendPage() {
   // Validate multi-chain address
   useEffect(() => {
     if (!multiChainRecipient.trim()) {
-      setMultiChainAddressError("");
-      return;
+      const timer = window.setTimeout(() => setMultiChainAddressError(""), 0);
+      return () => window.clearTimeout(timer);
     }
 
     const debounceTimer = setTimeout(() => {
@@ -447,15 +447,18 @@ export default function SendPage() {
 
   // Redirect if no wallet
   useEffect(() => {
-    const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
-    if (!storedWallet) {
-      router.push("/wallet");
-    }
-    // Load saved addresses
-    const storedAddresses = localStorage.getItem(`quantum_address_book_${telegramId}`);
-    if (storedAddresses) {
-      try { setSavedAddresses(JSON.parse(storedAddresses)); } catch {}
-    }
+    const timer = window.setTimeout(() => {
+      const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
+      if (!storedWallet) {
+        router.push("/wallet");
+      }
+      // Load saved addresses
+      const storedAddresses = localStorage.getItem(`quantum_address_book_${telegramId}`);
+      if (storedAddresses) {
+        try { setSavedAddresses(JSON.parse(storedAddresses)); } catch {}
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [router, telegramId]);
 
   // Get sendable assets from context data
@@ -492,7 +495,8 @@ export default function SendPage() {
   // Set default asset when data is ready
   useEffect(() => {
     if (hasFetched && !selectedAsset && sendableAssets.length > 0) {
-      setSelectedAsset(sendableAssets[0]);
+      const timer = window.setTimeout(() => setSelectedAsset(sendableAssets[0]), 0);
+      return () => window.clearTimeout(timer);
     }
   }, [hasFetched, selectedAsset, sendableAssets]);
 

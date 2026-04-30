@@ -115,9 +115,9 @@ export default function ViewRecoveryPhrasePage() {
 
           {/* Mnemonic Grid */}
           <div className="relative">
-            <div className={`mx-auto grid max-w-sm grid-cols-2 place-items-center gap-3 sm:grid-cols-3 transition-all duration-500 ${!isRevealed ? 'blur-md select-none opacity-50' : 'opacity-100'}`}>
+            <div className={`mx-auto grid max-w-sm grid-cols-2 gap-3 sm:grid-cols-3 transition-all duration-500 ${!isRevealed ? 'blur-md select-none opacity-50' : 'opacity-100'}`}>
               {mnemonic.map((word, i) => (
-                <div key={i} className="flex items-center space-x-2 bg-transparent rounded-lg px-1 py-2.5">
+                <div key={i} className="flex items-center space-x-2 bg-secondary rounded-lg px-3 py-2.5">
                   <span className="text-[10px] font-mono text-muted-foreground/50 w-4 select-none">{i + 1}.</span>
                   <span className="text-sm font-medium text-foreground font-mono">{word}</span>
                 </div>
@@ -132,7 +132,7 @@ export default function ViewRecoveryPhrasePage() {
                   className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl"
                 >
                   <Icon icon="lucide:eye" className="w-4 h-4 mr-2" />
-                  Reveal Phrase
+                  Reveal phrase
                 </Button>
               </div>
             )}
@@ -164,7 +164,7 @@ export default function ViewRecoveryPhrasePage() {
               className="w-full bg-card border-0 text-foreground hover:bg-muted h-12 transition-colors"
             >
               {copied ? <Icon icon="lucide:check" className="w-4 h-4 mr-2 text-green-500" /> : <Icon icon="lucide:copy" className="w-4 h-4 mr-2" />}
-              {copied ? "Copied to Clipboard" : "Copy to Clipboard"}
+              {copied ? "Copied to clipboard" : "Copy to clipboard"}
             </Button>
           </div>
         </div>

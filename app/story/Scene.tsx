@@ -9,15 +9,16 @@ import * as THREE from "three";
 const QuantumCore = ({ storyIndex }: { storyIndex: number }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   
-  // Create an array of random points to connect
+  // Create a stable pseudo-random point cloud to connect.
   const points = useMemo(() => {
     const pts = [];
     for (let i = 0; i < 100; i++) {
+      const seed = i + 1;
       pts.push(
         new THREE.Vector3(
-          (Math.random() - 0.5) * 4,
-          (Math.random() - 0.5) * 4,
-          (Math.random() - 0.5) * 4
+          ((Math.sin(seed * 12.9898) * 43758.5453) % 1 - 0.5) * 4,
+          ((Math.sin(seed * 78.233) * 12345.6789) % 1 - 0.5) * 4,
+          ((Math.sin(seed * 37.719) * 98765.4321) % 1 - 0.5) * 4
         )
       );
     }

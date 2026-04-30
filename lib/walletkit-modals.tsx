@@ -115,7 +115,10 @@ function TransactionModal() {
     // Check validUntil expiration (matching demo-wallet pattern)
     const [isExpired, setIsExpired] = useState(false);
     useEffect(() => {
-        if (!pendingTransaction) { setIsExpired(false); return; }
+        if (!pendingTransaction) {
+            const timer = window.setTimeout(() => setIsExpired(false), 0);
+            return () => window.clearTimeout(timer);
+        }
         const checkExpiration = () => {
             const validUntil = pendingTransaction.request?.validUntil;
             if (validUntil) {

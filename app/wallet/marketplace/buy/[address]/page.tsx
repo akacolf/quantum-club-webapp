@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -52,25 +52,18 @@ export default function BuyNftPage() {
     const { data: nft, isLoading, error: nftFetchError } = useNftDetailsQuery(nftAddress, isTestnet);
     const [viewMode, setViewMode] = useState<ViewMode>("preview");
     const [error, setError] = useState<string | null>(null);
-
-    // Sync fetch error into local error state
-    useEffect(() => {
-        if (nftFetchError) setError("Failed to load NFT");
-    }, [nftFetchError]);
+    const displayError = nftFetchError ? "Failed to load NFT" : error;
     const [paymentMethod, setPaymentMethod] = useState<"TON" | "STARS">("TON");
-    const [starsAmount, setStarsAmount] = useState<number | null>(null);
 
     // Calculate price with fee
     const priceInfo = nft?.sale ? calculateTotalPrice(nft.sale.price) : null;
 
     // Calculate Stars equivalent when price or TON price changes
-    useEffect(() => {
-        if (priceInfo) {
+    const starsAmount = useMemo(() => {
+        if (!priceInfo) return null;
             const tonPriceUsd = tonPrice > 0 ? tonPrice : 5.5; // Live price from wallet, fallback $5.50
             const tonAmount = Number(priceInfo.totalPrice) / 1e9;
-            const stars = convertTonToStars(tonAmount, tonPriceUsd);
-            setStarsAmount(stars);
-        }
+            return convertTonToStars(tonAmount, tonPriceUsd);
     }, [priceInfo, tonPrice]);
 
     // Check balance - tonBalance is a string in WalletContext
@@ -245,7 +238,7 @@ export default function BuyNftPage() {
                     <Icon icon="lucide:x-circle" className="w-16 h-16 text-destructive mx-auto mb-4" />
                     <p className="text-lg font-semibold">Not Available</p>
                     <p className="text-sm text-muted-foreground mt-2">
-                        {error || "This NFT is not for sale"}
+                        {displayError || "This NFT is not for sale"}
                     </p>
                     <Button
                         onClick={() => router.back()}
@@ -334,7 +327,7 @@ export default function BuyNftPage() {
                     <div>
                         <h2 className="text-xl font-bold">Purchase Failed</h2>
                         <p className="text-sm text-muted-foreground mt-2">
-                            {error || "Something went wrong"}
+                            {displayError || "Something went wrong"}
                         </p>
                     </div>
                     <Button
@@ -501,4 +494,3 @@ export default function BuyNftPage() {
         </div>
     );
 }
-

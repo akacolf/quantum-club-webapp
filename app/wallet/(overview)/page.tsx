@@ -318,9 +318,9 @@ export default function WalletPage() {
   useEffect(() => {
     router.prefetch("/wallet/send");
     router.prefetch("/wallet/receive");
-    router.prefetch("/wallet/history");
-    router.prefetch("/wallet/analytics");
-    router.prefetch("/wallet/swap");
+      router.prefetch("/wallet/history");
+      router.prefetch("/wallet/more" as any);
+      router.prefetch("/wallet/swap");
   }, [router]);
 
   const [hasWallet, setHasWallet] = useState(false);
@@ -475,14 +475,11 @@ export default function WalletPage() {
       router.prefetch("/wallet/settings");
       router.prefetch("/wallet/send-qntm");
       router.prefetch("/wallet/analytics");
-      router.prefetch("/wallet/earn");
       router.prefetch("/wallet/staking");
       router.prefetch("/wallet/explore");
       router.prefetch("/wallet/send-multiple");
-      router.prefetch("/wallet/farming");
       router.prefetch("/wallet/unstake");
       router.prefetch("/wallet/marketplace");
-      router.prefetch("/wallet/liquidity");
       // Prefetch all settings subpages
       router.prefetch("/wallet/settings/wallets");
       router.prefetch("/wallet/settings/recovery-phrase");
@@ -708,12 +705,12 @@ export default function WalletPage() {
                   { icon: <Icon icon="lucide:send" className="w-5 h-5"/>, label: "Send", path: "/wallet/send" as const, disabled: false },
                   { icon: <Icon icon="lucide:arrow-down-left" className="w-5 h-5"/>, label: "Receive", path: "/wallet/receive" as const, disabled: false },
                   { icon: <Icon icon="lucide:history" className="w-5 h-5"/>, label: "History", path: "/wallet/history" as const, disabled: false },
-                  { icon: <Icon icon="lucide:pie-chart" className="w-5 h-5"/>, label: "Portfolio", path: "/wallet/analytics" as const, disabled: false },
+                  { icon: <Icon icon="lucide:ellipsis" className="w-5 h-5"/>, label: "More", path: "/wallet/more" as const, disabled: false },
                 ]).map((action, i) => (
                   <Button
                     key={i}
                     variant="ghost"
-                    onClick={() => !action.disabled && router.push(action.path)}
+                    onClick={() => !action.disabled && router.push(action.path as any)}
                     disabled={action.disabled}
                     className={`h-auto w-full flex flex-col items-center gap-2 p-0 bg-transparent hover:bg-transparent transition-none ${action.disabled
                       ? 'cursor-not-allowed opacity-50'
@@ -797,7 +794,7 @@ export default function WalletPage() {
               {/* Earn and stake slide */}
               <CarouselItem className="pl-0">
                 <Link
-                  href="/wallet/earn"
+                  href="/wallet/staking"
                   className="mx-auto flex h-32 w-[90%] items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
                 >
                   <div className="flex flex-col items-start justify-between h-full z-10">
@@ -1460,12 +1457,12 @@ function WalletOnboardingReveal({
   createWallet: () => Promise<void>;
 }) {
   return (
-    <div className="flex min-h-[68vh] w-full max-w-md flex-col justify-between text-center">
-      <div className="relative pt-8">
+    <div className="flex min-h-[calc(100svh-7rem)] w-full max-w-md flex-col text-center">
+      <div className="relative flex flex-1 items-center">
         <WalletWelcomeCinematic />
       </div>
 
-      <div className="space-y-5 pb-4">
+      <div className="space-y-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div className="space-y-3 px-2">
           <h3 className="text-3xl font-bold text-white tracking-tight">
             Welcome to QC Wallet, {tgFirstName}.

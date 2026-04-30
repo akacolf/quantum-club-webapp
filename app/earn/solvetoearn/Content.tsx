@@ -386,7 +386,7 @@ const SolveToEarnContent = () => {
             <CardContent className="p-0 flex flex-col items-center">
 
               {/* Unified Header Stats */}
-              <div className={`flex items-center gap-6 bg-white/5 backdrop-blur-md border border-white/10 px-8 py-4 rounded-full mb-24 shadow-2xl`}>
+              <div className="flex items-center gap-6 bg-white/5 backdrop-blur-md px-8 py-4 rounded-full mb-24 shadow-2xl">
                 {/* Score Section */}
                 <div className="flex items-center gap-3">
                   <div className="text-white">

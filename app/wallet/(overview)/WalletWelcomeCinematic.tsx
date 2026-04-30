@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 const CHAINS = [
   { name: "TON", icon: "/svg/ton-logo.svg" },
@@ -11,19 +12,14 @@ const CHAINS = [
 ];
 
 export default function WalletWelcomeCinematic() {
-  const marqueeItems = [...CHAINS, ...CHAINS, ...CHAINS];
+  const marqueeItems = [...CHAINS, ...CHAINS];
 
   return (
-    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden py-3">
-      <style>{`
-        @keyframes wallet-chain-marquee {
-          from { transform: translateX(0); }
-          to { transform: translateX(-33.333%); }
-        }
-      `}</style>
-      <div
+    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden py-6">
+      <motion.div
         className="flex w-max items-center gap-8"
-        style={{ animation: "wallet-chain-marquee 18s linear infinite" }}
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 20, ease: "linear", repeat: Infinity }}
       >
         {marqueeItems.map((chain, index) => (
           <div
@@ -43,7 +39,7 @@ export default function WalletWelcomeCinematic() {
             </span>
           </div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }

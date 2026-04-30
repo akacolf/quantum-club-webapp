@@ -253,7 +253,7 @@ export default function ManageWalletsPage() {
           >
             <Link href="/wallet/import">
               <Icon icon="lucide:plus" className="w-5 h-5 mr-2" />
-              Import Another Wallet
+              Import another wallet
             </Link>
           </Button>
         </div>

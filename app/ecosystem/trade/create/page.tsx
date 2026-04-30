@@ -99,20 +99,24 @@ export default function CreateTokenPage() {
 
         // Reset if symbol is empty or too short
         if (!symbol || symbol.length < 2) {
-            setSymbolAvailable(null);
-            setSymbolError(null);
-            setIsCheckingSymbol(false);
-            return;
+            const timer = window.setTimeout(() => {
+                setSymbolAvailable(null);
+                setSymbolError(null);
+                setIsCheckingSymbol(false);
+            }, 0);
+            return () => window.clearTimeout(timer);
         }
 
         // Validate format first
         if (!/^[A-Za-z0-9]+$/.test(symbol)) {
-            setSymbolAvailable(null);
-            setSymbolError(null);
-            return;
+            const timer = window.setTimeout(() => {
+                setSymbolAvailable(null);
+                setSymbolError(null);
+            }, 0);
+            return () => window.clearTimeout(timer);
         }
 
-        setIsCheckingSymbol(true);
+        const checkingTimer = window.setTimeout(() => setIsCheckingSymbol(true), 0);
 
         const debounce = setTimeout(async () => {
             try {
@@ -136,7 +140,10 @@ export default function CreateTokenPage() {
             }
         }, 500);
 
-        return () => clearTimeout(debounce);
+        return () => {
+            window.clearTimeout(checkingTimer);
+            clearTimeout(debounce);
+        };
     }, [watchedSymbol]);
 
     const validateExtras = (): boolean => {

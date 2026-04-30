@@ -36,7 +36,8 @@ export default function SpotTradingPanel({ token, open, onOpenChange, initialTab
     // Sync tab when the sheet opens with a specific initial tab
     useEffect(() => {
         if (open && initialTab) {
-            setActiveTab(initialTab);
+            const timer = window.setTimeout(() => setActiveTab(initialTab), 0);
+            return () => window.clearTimeout(timer);
         }
     }, [open, initialTab]);
     const { tonBalance, walletAddress, sendTransaction, jettons } = useWallet();
@@ -51,9 +52,12 @@ export default function SpotTradingPanel({ token, open, onOpenChange, initialTab
     const [quoteParams, setQuoteParams] = useState<QuoteParams | null>(null);
 
     useEffect(() => {
-        setAmount("");
-        setPreview(null);
-        setQuoteParams(null);
+        const timer = window.setTimeout(() => {
+            setAmount("");
+            setPreview(null);
+            setQuoteParams(null);
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, [activeTab]);
 
     // Find user's balance for this token (convert from raw units)
@@ -77,8 +81,8 @@ export default function SpotTradingPanel({ token, open, onOpenChange, initialTab
 
     useEffect(() => {
         if (!amount || parseFloat(amount) <= 0) {
-            setQuoteParams(null);
-            return;
+            const timer = window.setTimeout(() => setQuoteParams(null), 0);
+            return () => window.clearTimeout(timer);
         }
 
         const isBuying = activeTab === "buy";
@@ -115,8 +119,8 @@ export default function SpotTradingPanel({ token, open, onOpenChange, initialTab
     // Simulation preview (quick estimate while Omniston streams)
     useEffect(() => {
         if (!amount || parseFloat(amount) <= 0 || !open) {
-            setPreview(null);
-            return;
+            const timer = window.setTimeout(() => setPreview(null), 0);
+            return () => window.clearTimeout(timer);
         }
 
         const simulate = async () => {

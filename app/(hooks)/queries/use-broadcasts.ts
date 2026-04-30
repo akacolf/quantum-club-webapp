@@ -93,7 +93,7 @@ export function useBroadcastsDiscovery(enabled = true) {
       },
     );
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [enabled]);
 
   return useQuery<Broadcast[]>({
@@ -145,7 +145,7 @@ export function useMyBroadcastSubscriptions(
       },
     );
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [enabled, qcId]);
 
   return useQuery<Broadcast[]>({
@@ -197,7 +197,7 @@ export function useBroadcastByHandle(handle: string | null) {
     return () => {
       if (unsubBroadcast) unsubBroadcast();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [handle]);
 
   return useQuery<Broadcast | null>({
@@ -234,7 +234,7 @@ export function useBroadcastPosts(broadcastId: string | null) {
       (err) => console.error("[useBroadcastPosts] listener error:", err),
     );
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [broadcastId]);
 
   return useQuery<BroadcastPost[]>({
@@ -274,7 +274,7 @@ export function useBroadcastPost(
       (err) => console.error("[useBroadcastPost] listener error:", err),
     );
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [broadcastId, postId]);
 
   return useQuery<BroadcastPost | null>({
@@ -358,7 +358,7 @@ export function useBroadcastSubscriptionStatus(
         console.error("[useBroadcastSubscriptionStatus] listener error:", err),
     );
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [broadcastId, qcId]);
 
   return useQuery<BroadcastSubscriptionStatus>({
@@ -394,7 +394,7 @@ export function useIsBroadcastAdmin(
       (err) => console.error("[useIsBroadcastAdmin] listener error:", err),
     );
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [broadcastId, qcId]);
 
   return useQuery<boolean>({
@@ -440,7 +440,7 @@ export function useUserReaction(
       (err) => console.error("[useUserReaction] listener error:", err),
     );
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [broadcastId, postId, qcId]);
 
   return useQuery<UserReaction | null>({
@@ -542,7 +542,7 @@ export function useBroadcastSubscribers(broadcastId: string | null) {
         console.error("[useBroadcastSubscribers] listener error:", err),
     );
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [broadcastId]);
 
   return useQuery<BroadcastSubscriberRow[]>({
