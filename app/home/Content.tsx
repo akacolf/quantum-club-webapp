@@ -166,7 +166,18 @@ function getRankIcon(rank: string | null) {
 const emptySubscribe = () => () => {};
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
-const GREETING_TEXTS = ["GM", "Afternoon", "Evening"];
+const PROMPT_SUGGESTIONS = [
+  "How is the market doing today?",
+  "What is Quantum Club?",
+  "Tell me about QC's ecosystem",
+];
+
+function getTimeGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Gm";
+  if (hour < 18) return "Afternoon";
+  return "Evening";
+}
 
 const HomeContent = () => {
   const router = useRouter();
@@ -271,7 +282,7 @@ const HomeContent = () => {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setGreetingIndex((index) => (index + 1) % GREETING_TEXTS.length);
+      setGreetingIndex((index) => (index + 1) % 2);
     }, 4000);
 
     return () => window.clearInterval(timer);
@@ -285,7 +296,10 @@ const HomeContent = () => {
     return tgUser?.first_name || username || "Quantum User";
   })();
 
-  const greetingText = GREETING_TEXTS[greetingIndex];
+  const timeGreeting = mounted ? getTimeGreeting() : "Gm";
+  const greetingText = greetingIndex === 0
+    ? `Welcome back to Quantum Club, ${tgFirstName}.`
+    : `${timeGreeting}, ${tgFirstName}.`;
   const subtext = "What would you like to do today?";
 
   return (
@@ -294,7 +308,7 @@ const HomeContent = () => {
 
       <HomeSearch />
       
-      <GreetingReveal greetingText={greetingText} tgFirstName={tgFirstName} subtext={subtext} />
+      <GreetingReveal greetingText={greetingText} subtext={subtext} />
 
       {/* Live crypto ticker */}
       <MarketPulse />
@@ -716,7 +730,7 @@ function SpotTokensSection() {
 
 // ─── Home wrapper components ─────────────────────────────────
 
-function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: string; tgFirstName: string; subtext: string }) {
+function GreetingReveal({ greetingText, subtext }: { greetingText: string; subtext: string }) {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
 
@@ -729,7 +743,7 @@ function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: 
   return (
     <div className="w-[90%] mx-auto space-y-3">
       <p className="text-[20px] font-bold text-white leading-tight tracking-tight">
-        {greetingText}, {tgFirstName}.
+        {greetingText}
       </p>
       <p className="text-[14px] text-neutral-400 mt-1">
         {subtext}
@@ -748,6 +762,20 @@ function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: 
           className="h-11 w-full rounded-full border-0 bg-secondary px-4 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
         />
       </form>
+      <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto scrollbar-hide">
+        <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-1">
+          {PROMPT_SUGGESTIONS.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => submitPrompt(suggestion)}
+              className="h-9 shrink-0 rounded-full bg-secondary px-4 text-xs font-semibold text-neutral-300 transition-colors hover:text-white"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

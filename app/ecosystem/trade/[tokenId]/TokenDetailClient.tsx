@@ -433,7 +433,7 @@ export default function TokenDetailClient() {
                                 {formatPrice(BigInt(selectedToken.currentPrice || "0"))} TON
                             </p>
                             <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[8px]">
-                                ON-CHAIN
+                                On-chain
                             </Badge>
                         </div>
                     </div>

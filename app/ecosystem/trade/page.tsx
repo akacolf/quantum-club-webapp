@@ -436,16 +436,16 @@ export default function TradePage() {
             {/* Header */}
             <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl pb-3">
                 <div className="space-y-4 px-4 pt-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="flex items-center gap-2">
+                    <div className="relative flex h-12 items-center justify-center">
+                        <div className="text-center">
+                            <div className="flex items-center justify-center gap-2">
                                 <span className="text-[10px] font-bold text-yellow-300">Beta</span>
                             </div>
                             <h1 className="text-2xl font-bold tracking-tight text-white">
                                 QC <span className="text-primary">RocketStart</span>
                             </h1>
                         </div>
-                        <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.4)] transition-all rounded-full px-5 h-10">
+                        <Button asChild className="absolute right-0 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 font-bold shadow-[0_0_20px_rgba(var(--primary),0.3)] hover:shadow-[0_0_25px_rgba(var(--primary),0.4)] transition-all rounded-full px-5 h-10">
                             <Link href="/ecosystem/trade/create">
                                 <Icon icon="mynaui:rocket-solid" className="w-5 h-5" />
                                 Launch
@@ -488,7 +488,7 @@ export default function TradePage() {
                     {/* Tabs */}
                     {!searchQuery && (
                         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-3">
-                            <TabsList className="w-full bg-black/40 backdrop-blur-md p-1 h-12 rounded-xl grid grid-cols-5 gap-1 border-0 items-stretch shadow-inner">
+                            <TabsList className="w-full bg-white/5 backdrop-blur-md p-1 h-12 rounded-xl grid grid-cols-5 gap-1 border-0 items-stretch shadow-inner">
                                 <TabsTrigger
                                     value="trending"
                                     className="h-full data-[state=active]:bg-white/10 data-[state=active]:text-white data-[state=active]:shadow-sm border-0 rounded-lg text-[11px] font-bold tracking-wide transition-all duration-300"

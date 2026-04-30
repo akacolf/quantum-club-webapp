@@ -25,10 +25,9 @@ function getMessageText(msg: UIMessage): string {
 }
 
 const SUGGESTED_PROMPTS = [
-  "How do I earn QNTM?",
-  "What's bonding curve trading?",
-  "How do referrals work?",
-  "Explain the Quantum Club ecosystem",
+  "How is the market doing today?",
+  "What is Quantum Club?",
+  "Tell me about QC's ecosystem",
 ];
 
 export default function QcAiChatPage() {
@@ -204,17 +203,19 @@ export default function QcAiChatPage() {
                 earning QNTM, or how the ecosystem works.
               </p>
             </div>
-            <div className="flex flex-wrap gap-1.5 justify-center max-w-[320px] mt-2">
+            <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto scrollbar-hide mt-2">
+              <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-1">
               {SUGGESTED_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
                   onClick={() => submitPrompt(prompt)}
-                  className="px-3 py-1.5 rounded-full text-[11px] font-medium bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+                  className="h-9 shrink-0 rounded-full bg-muted/40 px-4 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
                 >
                   {prompt}
                 </button>
               ))}
+              </div>
             </div>
           </div>
         ) : (

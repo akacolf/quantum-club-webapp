@@ -3,6 +3,19 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@keyframes qc-chain-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.qc-chain-marquee {
+  animation: qc-chain-marquee 22s linear infinite;
+}
+
 /* Telegram WKWebView: prevent double-tap zoom and overscroll bounce */
 html {
   touch-action: manipulation;

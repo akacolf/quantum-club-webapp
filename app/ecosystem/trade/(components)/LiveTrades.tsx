@@ -75,7 +75,7 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                         <Icon icon="solar:transfer-horizontal-bold" className="w-5 h-5 text-primary animate-pulse" />
                         <h3 className="font-semibold text-white">Live Trades</h3>
                         <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[9px] ml-auto">
-                            ON-CHAIN
+                            On-chain
                         </Badge>
                     </div>
                     <div className="flex items-center justify-center py-6 text-muted-foreground text-sm">
@@ -112,7 +112,7 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                         <Icon icon="solar:transfer-horizontal-bold" className="w-5 h-5 text-primary" />
                         <h3 className="font-semibold text-white">Live Trades</h3>
                         <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[9px] ml-auto">
-                            ON-CHAIN
+                            On-chain
                         </Badge>
                     </div>
                     <div className="flex flex-col items-center justify-center py-6 text-center">
@@ -136,7 +136,7 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                         </div>
                         <h3 className="font-semibold text-white">Live Trades</h3>
                         <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[9px]">
-                            ON-CHAIN
+                            On-chain
                         </Badge>
                     </div>
                     <Badge variant="secondary" className="bg-white/5 text-xs">

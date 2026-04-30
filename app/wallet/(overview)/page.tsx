@@ -487,6 +487,28 @@ export default function WalletPage() {
     }
   };
 
+  const walletSearchBar = (
+    <div className="relative w-full">
+      <Icon icon="lucide:search" className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <input
+        value={walletSearch}
+        onChange={(event) => setWalletSearch(event.target.value)}
+        placeholder="Search wallet..."
+        className="h-11 w-full rounded-full border-0 bg-secondary pl-10 pr-10 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
+      />
+      {walletSearch ? (
+        <button
+          type="button"
+          onClick={() => setWalletSearch("")}
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:text-white"
+          aria-label="Clear wallet search"
+        >
+          <Icon icon="lucide:x" className="h-4 w-4" />
+        </button>
+      ) : null}
+    </div>
+  );
+
   if (isChecking) {
     return (
       <div className="min-h-screen">
@@ -560,6 +582,8 @@ export default function WalletPage() {
         >
           <div className="relative overflow-hidden">
             <div className="relative z-10 space-y-8 py-7">
+              {walletSearchBar}
+
               <div className="flex w-full items-center justify-center">
                 <div className="inline-flex h-9 min-w-0 items-center gap-1">
                   <DropdownMenu>
@@ -760,27 +784,6 @@ export default function WalletPage() {
             </div>
           </div>
         ) : null}
-
-        <div className="relative w-full">
-          <Icon icon="lucide:search" className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={walletSearch}
-            onChange={(event) => setWalletSearch(event.target.value)}
-            placeholder="Search wallet..."
-            className="h-11 w-full rounded-full border-0 bg-secondary pl-10 pr-10 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
-          />
-          {walletSearch ? (
-            <button
-              type="button"
-              onClick={() => setWalletSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:text-white"
-              aria-label="Clear wallet search"
-            >
-              <Icon icon="lucide:x" className="h-4 w-4" />
-            </button>
-          ) : null}
-        </div>
-
 
         <Tabs value={walletTab} onValueChange={(v) => setWalletTab(v as typeof walletTab)} className="w-full pb-24">
           <TabsList className="w-full h-12 border-0 bg-secondary">
@@ -1359,7 +1362,7 @@ function WalletOnboardingReveal({
 }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden px-4 text-center">
-      <div className="flex w-full max-w-md flex-col justify-center gap-8">
+      <div className="flex w-full max-w-md flex-col justify-center gap-10">
       <div className="relative -translate-y-4">
         <WalletWelcomeCinematic />
       </div>

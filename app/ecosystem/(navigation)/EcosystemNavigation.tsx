@@ -141,7 +141,7 @@ const EcosystemNavigation = () => {
   }
 
   return (
-    <div className="fixed z-50 bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-[420px] h-[70px] bg-white/10 backdrop-blur-2xl rounded-full overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/10 before:to-transparent before:pointer-events-none">
+    <div className="fixed z-50 bottom-12 left-1/2 -translate-x-1/2 w-[92%] max-w-[420px] h-[70px] bg-white/10 backdrop-blur-2xl rounded-full overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/10 before:to-transparent before:pointer-events-none">
       <nav
         ref={navRef}
         className="grid h-full items-center relative"
@@ -245,11 +245,9 @@ const EcosystemNavigation = () => {
                       onClick={() => setTradePopoverOpen(false)}
                       className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${!isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
-                      <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                        <Icon icon="mynaui:rocket-solid" className="w-4 h-4 text-primary" />
-                      </div>
+                      <Icon icon="mynaui:rocket-solid" className="w-5 h-5 shrink-0 text-primary" />
                       <div className="flex-1 text-left">
-                        <p className="text-sm font-semibold text-white">QC RocketStart</p>
+                        <p className="whitespace-nowrap text-sm font-semibold text-white">QC RocketStart</p>
                         <p className="text-[10px] text-muted-foreground">Token Launchpad</p>
                       </div>
                       {!isOnSpot && (
@@ -261,9 +259,7 @@ const EcosystemNavigation = () => {
                       onClick={() => setTradePopoverOpen(false)}
                       className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
-                      <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                        <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-green-400" />
-                      </div>
+                      <Icon icon="solar:chart-2-bold" className="w-5 h-5 shrink-0 text-green-400" />
                       <div className="flex-1 text-left">
                         <p className="text-sm font-semibold text-white">Spot Trading</p>
                         <p className="text-[10px] text-muted-foreground">Trade DEX tokens</p>
