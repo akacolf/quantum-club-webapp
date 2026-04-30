@@ -86,7 +86,7 @@ export function PortfolioHealthCard({
                 {isLoading ? (
                     <ButtonLoader size="sm" />
                 ) : (
-                    <Icon icon="lucide:sparkles" className="w-4 h-4" />
+                    <Icon icon="iconoir:spark" className="w-4 h-4" />
                 )}
                 AI Health Check
             </Button>

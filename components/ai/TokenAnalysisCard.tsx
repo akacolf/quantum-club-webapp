@@ -118,6 +118,7 @@ export function TokenAnalysisCard({
                         className="w-full p-4 flex items-center justify-between hover:bg-[#161616] transition-colors"
                     >
                         <div className="flex items-center gap-3">
+                            <Icon icon="iconoir:spark" className="w-5 h-5 text-primary" />
                             <div className="text-left">
                                 <p className="text-sm font-medium text-white">AI analysis</p>
                                 <p className="text-xs text-neutral-500">

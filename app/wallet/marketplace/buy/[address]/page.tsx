@@ -420,7 +420,7 @@ export default function BuyNftPage() {
                 {nft.sale.market === "QC Marketplace" ? (
                     <Card className="bg-primary/5 border-primary/20">
                         <CardContent className="p-3 flex items-center gap-2 text-xs">
-                            <Icon icon="lucide:sparkles" className="w-4 h-4 text-primary shrink-0" />
+                            <Icon icon="iconoir:spark" className="w-4 h-4 text-primary shrink-0" />
                             <span className="text-primary font-medium">
                                 QC Marketplace • Only {QC_MARKETPLACE_FEE_PERCENT}% fee
                             </span>

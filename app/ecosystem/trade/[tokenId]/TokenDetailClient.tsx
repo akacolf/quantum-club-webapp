@@ -313,7 +313,7 @@ export default function TokenDetailClient() {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-40">
-            <div className="px-4 pt-4 space-y-4">
+            <div className="px-4 pt-4 space-y-6">
                 {/* Token Header — matches Spot Trading style */}
                 <div className="flex items-center gap-3">
                     <button
@@ -366,7 +366,11 @@ export default function TokenDetailClient() {
 
                 {/* Graduation Progress */}
                 {!selectedToken.isGraduated && (
-                    <GraduationProgress token={selectedToken} tonPriceUsd={tonPrice || 5} />
+                    <GraduationProgress
+                        token={selectedToken}
+                        tonPriceUsd={tonPrice || 5}
+                        verifiedVolumeTon={onChainStats.volume24h}
+                    />
                 )}
 
                 {/* Market Stats — matches Spot Trading card layout */}

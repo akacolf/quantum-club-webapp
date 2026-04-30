@@ -13,8 +13,9 @@
 }
 
 .qc-chain-marquee {
-  animation: qc-chain-marquee 14s linear infinite;
+  animation: qc-chain-marquee 32s linear infinite;
   will-change: transform;
+  transform: translate3d(0, 0, 0);
 }
 
 /* Telegram WKWebView: prevent double-tap zoom and overscroll bounce */

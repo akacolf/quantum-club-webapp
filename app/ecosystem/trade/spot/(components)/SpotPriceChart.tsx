@@ -207,7 +207,7 @@ export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol 
     }, [candles, effectiveMode]);
 
     return (
-        <Card className="bg-[#111] border-[#222] overflow-hidden">
+        <Card className="bg-[#111] border-0 overflow-hidden">
             <CardContent className="p-0">
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 pt-3 pb-1">
@@ -226,7 +226,7 @@ export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol 
                     {canToggleMode && (
                         <button
                             onClick={() => setChartMode(chartMode === "candle" ? "area" : "candle")}
-                            className="w-7 h-7 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+                            className="w-7 h-7 rounded flex items-center justify-center text-neutral-500 hover:text-white hover:bg-white/5 transition-colors"
                         >
                             <Icon
                                 icon={chartMode === "candle" ? "solar:chart-2-linear" : "solar:chart-bold"}
@@ -245,7 +245,7 @@ export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol 
                             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors ${
                                 timeframe === tf.value
                                     ? "bg-white/10 text-white"
-                                    : "text-gray-500 hover:text-white"
+                                    : "text-neutral-500 hover:text-white"
                             }`}
                         >
                             {tf.label}
@@ -263,13 +263,13 @@ export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol 
                         <div ref={containerRef} className="w-full h-full [&_a[href*='tradingview']]:!hidden" />
                         {tooltip && (
                             <div
-                                className="absolute bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 shadow-xl pointer-events-none z-10"
+                                className="absolute bg-[#1a1a1a] border-0 rounded-lg px-3 py-2 shadow-xl pointer-events-none z-10"
                                 style={{
                                     left: Math.min(tooltip.x, (containerRef.current?.clientWidth ?? 200) - 150),
                                     top: Math.max(0, tooltip.y - 65),
                                 }}
                             >
-                                <p className="text-[10px] text-gray-500 mb-0.5">{tooltip.time}</p>
+                                <p className="text-[10px] text-neutral-500 mb-0.5">{tooltip.time}</p>
                                 <p className="text-sm font-semibold text-white">
                                     ${formatChartPrice(tooltip.price)}
                                 </p>
@@ -281,9 +281,9 @@ export default function SpotPriceChart({ poolAddress, tokenAddress, tokenSymbol 
                     </div>
                 ) : (
                     <div className="h-[220px] flex flex-col items-center justify-center text-center px-4">
-                        <Icon icon="solar:chart-2-linear" className="w-8 h-8 text-gray-700 mb-2" />
-                        <p className="text-xs text-gray-500">No chart data for {tokenSymbol}</p>
-                        <p className="text-[10px] text-gray-600">This token may not have enough trading history</p>
+                        <Icon icon="solar:chart-2-linear" className="w-8 h-8 text-neutral-700 mb-2" />
+                        <p className="text-xs text-neutral-500">No chart data for {tokenSymbol}</p>
+                        <p className="text-[10px] text-neutral-600">This token may not have enough trading history</p>
                     </div>
                 )}
             </CardContent>

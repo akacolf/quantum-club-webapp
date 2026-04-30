@@ -120,16 +120,11 @@ export default function SpotTradingPage() {
             <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-white/5 pb-3">
                 <div className="px-4 pt-4">
                     <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                            <Icon icon="solar:chart-2-bold" className="w-4.5 h-4.5 text-green-400" />
-                        </div>
+                        <Icon icon="solar:chart-2-bold" className="w-5 h-5 text-green-400" />
                         <div>
                             <h1 className="text-xl font-bold tracking-tight text-white">
-                                Spot Trading
+                                Spot trading
                             </h1>
-                            <p className="text-[10px] text-muted-foreground font-medium tracking-wide">
-                                Trade TON Jettons
-                            </p>
                         </div>
                     </div>
 
@@ -141,7 +136,7 @@ export default function SpotTradingPage() {
                                 activeTab === "tokens" ? "bg-white/10 text-white" : "text-muted-foreground"
                             }`}
                         >
-                            All Tokens
+                            All tokens
                         </button>
                         <button
                             onClick={() => setActiveTab("positions")}
@@ -240,18 +235,18 @@ export default function SpotTradingPage() {
                             const isPnlPositive = totalPnl24h >= 0;
 
                             return (
-                                <Card className="bg-white/5 border-white/5 mb-3">
+                                <Card className="bg-white/5 border-0 mb-3">
                                     <CardContent className="p-4">
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Portfolio Value</p>
+                                                <p className="text-[10px] text-muted-foreground mb-1">Portfolio value</p>
                                                 <p className="text-2xl font-bold text-white">
                                                     {totalPositionValue > 0 ? `$${totalPositionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "--"}
                                                 </p>
                                             </div>
                                             {hasPnlData && (
                                                 <div className="text-right">
-                                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">P/L 24h</p>
+                                                    <p className="text-[10px] text-muted-foreground mb-1">P/L 24h</p>
                                                     <p className={`text-lg font-bold ${isPnlPositive ? "text-green-400" : "text-red-400"}`}>
                                                         {isPnlPositive ? "+" : ""}${Math.abs(totalPnl24h).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </p>

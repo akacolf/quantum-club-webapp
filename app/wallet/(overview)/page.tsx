@@ -1361,13 +1361,12 @@ function WalletOnboardingReveal({
   createWallet: () => Promise<void>;
 }) {
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-hidden px-4 text-center">
-      <div className="flex w-full max-w-md flex-col justify-center gap-10">
-      <div className="relative -translate-y-4">
+    <div className="fixed inset-0 overflow-hidden px-4 text-center">
+      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2">
         <WalletWelcomeCinematic />
       </div>
 
-      <div className="space-y-5">
+      <div className="absolute bottom-[35%] left-1/2 w-full max-w-md -translate-x-1/2 translate-y-1/2 space-y-5 px-4">
         <div className="space-y-3 px-2">
           <h3 className="text-3xl font-bold text-white tracking-tight">
             Welcome to QC Wallet, {tgFirstName}.
@@ -1404,7 +1403,6 @@ function WalletOnboardingReveal({
             </Link>
           </Button>
         </div>
-      </div>
       </div>
     </div>
   );

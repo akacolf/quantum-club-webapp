@@ -390,7 +390,7 @@ const HomeContent = () => {
 
           <Link href="/ecosystem/chat/qc-ai?back=/home" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
             <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm relative">
-              <Icon icon="lucide:sparkles" width="20" height="20" />
+              <Icon icon="iconoir:spark" width="20" height="20" />
             </div>
             <span className="text-[11px] font-medium tracking-wide">AI</span>
           </Link>
@@ -770,11 +770,12 @@ function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: 
         }}
         className="relative"
       >
+        <Icon icon="iconoir:spark" className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
         <input
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
           placeholder="Ask QC..."
-          className="h-11 w-full rounded-full border-0 bg-secondary px-4 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
+          className="h-11 w-full rounded-full border-0 bg-secondary pl-10 pr-4 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
         />
       </form>
       <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto scrollbar-hide">

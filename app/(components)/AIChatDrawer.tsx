@@ -507,7 +507,7 @@ export default function AIChatDrawer() {
                 animate={{ opacity: 1, scale: 1 }}
                 aria-label="Open Quantum Club AI"
             >
-                <Icon icon="lucide:sparkles" className="w-6 h-6 text-primary-foreground" />
+                <Icon icon="iconoir:spark" className="w-6 h-6 text-primary-foreground" />
             </motion.button>
 
             {/* Chat Drawer */}

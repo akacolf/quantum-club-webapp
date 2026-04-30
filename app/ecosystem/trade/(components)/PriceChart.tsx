@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTradeEvents } from "@/app/(hooks)/queries/use-trades";
@@ -294,23 +293,23 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
 
     if (isLoading) {
         return (
-            <Card className="bg-[#111] border-0">
-                <CardContent className="p-4">
+            <section className="relative left-1/2 w-screen -translate-x-1/2 px-4">
+                <div className="p-0">
                     <div className="flex items-center gap-2 mb-3">
                         <div className="w-5 h-5 rounded bg-white/5 animate-pulse" />
                         <div className="w-20 h-4 rounded bg-white/5 animate-pulse" />
                     </div>
                     <div className="h-[160px] bg-white/[0.02] rounded-lg animate-pulse" />
-                </CardContent>
-            </Card>
+                </div>
+            </section>
         );
     }
 
     return (
-        <Card className="bg-[#111] border-0 overflow-hidden">
-            <CardContent className="p-0">
+        <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden px-4">
+            <div className="p-0">
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 pt-3 pb-2 z-20 relative">
+                <div className="flex items-center justify-between pb-2 z-20 relative">
                     <div className="flex items-center gap-2">
                         {/* Chart mode toggle */}
                         <button
@@ -326,7 +325,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
                     </div>
 
                     {/* Time Range Controls */}
-                    <div className="flex items-center gap-1 bg-[#1a1a1a] rounded-full px-1.5 py-0.5 border-0">
+                    <div className="flex items-center gap-1 bg-secondary rounded-full px-1.5 py-0.5 border-0">
                         <button
                             onClick={() => handleSlide("left")}
                             disabled={timeRangeIndex === 0}
@@ -349,7 +348,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
 
                 {/* Chart */}
                 {hasData ? (
-                    <div className="relative h-[160px] px-2">
+                    <div className="relative h-[160px]">
                         <div ref={containerRef} className="w-full h-full [&_a[href*='tradingview']]:!hidden" />
                         {/* Custom tooltip */}
                         {tooltip?.visible && (
@@ -381,7 +380,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
                         </p>
                     </div>
                 )}
-            </CardContent>
-        </Card>
+            </div>
+        </section>
     );
 }

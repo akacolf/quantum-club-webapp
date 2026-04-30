@@ -90,8 +90,8 @@ const EcosystemNavigation = () => {
 
     const navRect = nav.getBoundingClientRect();
     const activeRect = activeEl.getBoundingClientRect();
-    const targetX = activeRect.left - navRect.left + 4;
-    const targetWidth = activeRect.width - 8;
+    const targetX = activeRect.left - navRect.left;
+    const targetWidth = activeRect.width;
 
     if (prevActiveTab.current === activeTab) return;
 
@@ -124,8 +124,8 @@ const EcosystemNavigation = () => {
 
     const navRect = nav.getBoundingClientRect();
     const activeRect = activeEl.getBoundingClientRect();
-    const targetX = activeRect.left - navRect.left + 4;
-    const targetWidth = activeRect.width - 8;
+    const targetX = activeRect.left - navRect.left;
+    const targetWidth = activeRect.width;
 
     if (prevActiveTab.current === activeTab) {
       pill.style.transform = `translateX(${targetX}px)`;
@@ -149,7 +149,7 @@ const EcosystemNavigation = () => {
       >
         <div
           ref={pillRef}
-          className="absolute left-0 top-2 h-[calc(100%-16px)] rounded-full bg-white/10 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] pointer-events-none will-change-transform"
+          className="absolute left-0 top-0 h-full rounded-full bg-white/10 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] pointer-events-none will-change-transform"
           aria-hidden
         />
         {navTabs.map((tab) => {
@@ -265,7 +265,7 @@ const EcosystemNavigation = () => {
                         <p className="text-[10px] text-muted-foreground">Trade tokens</p>
                       </div>
                       {isOnSpot && (
-                        <Icon icon="lucide:check" className="w-4 h-4 text-green-400" />
+                        <Icon icon="lucide:check" className="w-4 h-4 text-white" />
                       )}
                     </Link>
                   </PopoverContent>

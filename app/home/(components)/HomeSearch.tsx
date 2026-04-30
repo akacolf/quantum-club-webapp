@@ -12,7 +12,7 @@ const SEARCH_ITEMS = [
   { label: "Solve", description: "Solve to earn", href: "/earn/solvetoearn", icon: "lucide:brain" },
   { label: "Frens", description: "Invite and track referrals", href: "/frens", icon: "lucide:user-plus" },
   { label: "Chat", description: "Open ecosystem chat", href: "/ecosystem/chat", icon: "lucide:message-circle" },
-  { label: "QC AI", description: "Ask the club assistant", href: "/ecosystem/chat/qc-ai", icon: "lucide:sparkles" },
+  { label: "QC AI", description: "Ask the club assistant", href: "/ecosystem/chat/qc-ai", icon: "iconoir:spark" },
   { label: "Leaderboard", description: "View rankings", href: "/leaderboard", icon: "lucide:trophy" },
   { label: "Story", description: "Your ecosystem activity", href: "/story", icon: "lucide:book-open" },
   { label: "Roadmap", description: "See Quantum Club goals", href: "/home/roadmap", icon: "lucide:route" },
