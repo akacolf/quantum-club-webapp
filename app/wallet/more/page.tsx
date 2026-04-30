@@ -7,21 +7,18 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 const SERVICES = [
   {
     title: "Stake",
-    description: "Stake TON with Tonstakers",
     href: "/wallet/staking",
     icon: "lucide:circle-dollar-sign",
   },
   {
-    title: "NFT",
-    description: "Browse and manage collectibles",
-    href: "/wallet/marketplace",
-    icon: "lucide:image",
-  },
-  {
-    title: "Lending",
-    description: "Supply and borrow on EVAA",
+    title: "Lend",
     href: "/wallet/lending",
     icon: "lucide:landmark",
+  },
+  {
+    title: "NFT",
+    href: "/wallet/marketplace",
+    icon: "lucide:image",
   },
 ] as const;
 
@@ -40,13 +37,12 @@ export default function WalletMorePage() {
             <Link
               key={service.href}
               href={service.href}
-              className="flex min-h-28 flex-col items-center justify-center gap-3 rounded-2xl bg-secondary px-3 py-4 text-center active:scale-[0.98]"
+              className="group flex flex-col items-center justify-center gap-2 text-center active:scale-[0.98]"
             >
-              <Icon icon={service.icon} className="h-6 w-6 text-neutral-200" />
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-white">{service.title}</p>
-                <p className="text-[11px] leading-snug text-neutral-500">{service.description}</p>
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-white transition-transform duration-200 group-hover:scale-105">
+                <Icon icon={service.icon} className="h-5 w-5" />
               </div>
+              <p className="text-xs font-medium text-white">{service.title}</p>
             </Link>
           ))}
         </div>

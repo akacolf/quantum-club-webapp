@@ -146,7 +146,7 @@ export default function CollectionDetailPage() {
                             <CardContent className="p-3 text-center">
                                 <Icon icon="lucide:grid-3x3" className="w-4 h-4 text-primary mx-auto mb-1" />
                                 <p className="text-lg font-bold">{formatItemsCount(collection.itemsCount)}</p>
-                                <p className="text-xs text-muted-foreground">Items</p>
+                                <p className="text-xs text-muted-foreground">items</p>
                             </CardContent>
                         </Card>
                         {collection.ownersCount && (
@@ -185,7 +185,7 @@ export default function CollectionDetailPage() {
                     className="space-y-3"
                 >
                     <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-semibold">For Sale</h2>
+                        <h2 className="text-lg font-semibold">For sale</h2>
                         {!isLoadingItems && (
                             <span className="text-xs text-muted-foreground">{items.length} available</span>
                         )}
@@ -227,7 +227,7 @@ export default function CollectionDetailPage() {
                                         {pair.map((item) => (
                                             <Link
                                                 key={item.address}
-                                                href={`/wallet/nft/${encodeURIComponent(item.address)}`}
+                                                href={`/wallet/nft/${encodeURIComponent(item.address)}?collection=${encodeURIComponent(collectionAddress)}`}
                                                 prefetch={true}
                                             >
                                                 <Card className="bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all">

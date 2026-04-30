@@ -73,7 +73,7 @@ export default function MarketplacePage() {
                     className="space-y-1"
                 >
                     <div className="flex items-center justify-between">
-                        <h1 className="text-2xl font-bold">NFT Marketplace</h1>
+                        <h1 className="text-2xl font-bold">NFT marketplace</h1>
                         <Link
                             href="/wallet/marketplace/launch"
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
@@ -108,7 +108,7 @@ export default function MarketplacePage() {
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
                         <TabsList className="w-full">
                             <TabsTrigger value="trending" className="flex-1">Trending</TabsTrigger>
-                            <TabsTrigger value="qc-listed" className="flex-1">QC Listed</TabsTrigger>
+                            <TabsTrigger value="qc-listed" className="flex-1">QC listed</TabsTrigger>
                         </TabsList>
 
                         {/* Trending Collections Tab */}
@@ -128,7 +128,7 @@ export default function MarketplacePage() {
                             )}
 
                             {!collectionsQuery.isLoading && filteredCollections.length === 0 && (
-                                <div className="py-8 text-center bg-card rounded-2xl border border-border border-dashed">
+                                <div className="py-8 text-center rounded-2xl border border-border border-dashed">
                                     <Icon icon="solar:gallery-minimalistic-linear" className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                                     <p className="text-sm text-muted-foreground">
                                         {searchQuery ? "No collections match your search" : "No collections found"}
@@ -262,7 +262,7 @@ export default function MarketplacePage() {
                             )}
 
                             {!listingsQuery.isLoading && filteredListings.length === 0 && (
-                                <div className="py-8 text-center bg-card rounded-2xl border border-border border-dashed">
+                                <div className="py-8 text-center rounded-2xl border border-border border-dashed">
                                     <Icon icon="solar:tag-price-linear" className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                                     <p className="text-sm text-muted-foreground">
                                         {searchQuery ? "No listings match your search" : "No active listings yet"}

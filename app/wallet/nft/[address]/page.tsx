@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -31,9 +31,11 @@ import { collection, addDoc, doc, updateDoc, getDoc, increment, serverTimestamp 
 export default function NftDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { isTestnet, walletAddress } = useWallet();
     const { telegramId, qcUsername } = useUserContext();
     const nftAddress = decodeURIComponent(params.address as string);
+    const sourceCollectionAddress = searchParams.get("collection");
 
     const { sendTransaction } = useWallet();
     const {
@@ -77,8 +79,10 @@ export default function NftDetailPage() {
     // Share to chat state
     const [showShareModal, setShowShareModal] = useState(false);
 
-    // Back button goes to wallet page
-    useTelegramBackButton("/wallet");
+    const collectionBackHref = sourceCollectionAddress || nft?.collectionAddress;
+
+    // Back button returns to the collection when the NFT was opened from one.
+    useTelegramBackButton(collectionBackHref ? `/wallet/marketplace/collection/${encodeURIComponent(collectionBackHref)}` : "/wallet/marketplace");
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
@@ -350,12 +354,6 @@ export default function NftDetailPage() {
                                 <Icon icon="lucide:image" className="w-16 h-16 text-muted-foreground" />
                             </div>
                         )}
-                        {nft.sale && (
-                            <span className="absolute top-3 right-3 inline-flex items-center text-xs font-medium text-green-500">
-                                <Icon icon="lucide:tag" className="w-3 h-3 mr-1" />
-                                For sale
-                            </span>
-                        )}
                         {categorizeNft(nft) === "gift" && (
                             <span className="absolute top-3 left-3 inline-flex items-center text-xs font-medium text-purple-400">
                                 <Icon icon="solar:gift-bold" className="w-3 h-3 mr-1" />
@@ -376,7 +374,7 @@ export default function NftDetailPage() {
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-xs text-muted-foreground uppercase">Price</p>
+                                    <p className="text-xs text-muted-foreground">Price</p>
                                     <p className="text-2xl font-bold text-foreground">
                                         {priceInfo.basePriceFormatted} TON
                                     </p>
@@ -397,13 +395,13 @@ export default function NftDetailPage() {
                                         ) : (
                                             <>
                                                 <Icon icon="lucide:shopping-cart" className="w-4 h-4 mr-2" />
-                                                Buy Now
+                                                Buy now
                                             </>
                                         )}
                                     </Button>
                                 )}
                             </div>
-                            <div className="mt-3 pt-3 border-t border-green-500/20 text-xs text-muted-foreground">
+                            <div className="mt-3 pt-3 text-xs text-muted-foreground">
                                 <div className="flex justify-between">
                                     <span>Platform fee ({QC_MARKETPLACE_FEE_PERCENT}%)</span>
                                     <span>{priceInfo.platformFeeFormatted} TON</span>
@@ -436,7 +434,7 @@ export default function NftDetailPage() {
                     {nft.description && (
                         <Card className="bg-card border-border">
                             <CardContent className="p-4">
-                                <h3 className="text-xs text-muted-foreground uppercase mb-2">Description</h3>
+                                <h3 className="text-xs text-muted-foreground mb-2">Description</h3>
                                 <p className="text-sm text-foreground/80 leading-relaxed">{nft.description}</p>
                             </CardContent>
                         </Card>
@@ -446,7 +444,7 @@ export default function NftDetailPage() {
                     {nft.attributes && nft.attributes.length > 0 && (
                         <Card className="bg-card border-border">
                             <CardContent className="p-4">
-                                <h3 className="text-xs text-muted-foreground uppercase mb-3">Attributes</h3>
+                                <h3 className="text-xs text-muted-foreground mb-3">Attributes</h3>
                                 <div className="grid grid-cols-2 gap-2">
                                     {nft.attributes.map((attr, i) => (
                                         <div key={i} className="bg-muted rounded-lg p-2 text-center">
@@ -463,7 +461,7 @@ export default function NftDetailPage() {
                     <Card className="bg-card border-border">
                         <CardContent className="p-4 space-y-5">
                             <div>
-                                <h3 className="text-xs text-muted-foreground uppercase mb-2">NFT Address</h3>
+                                <h3 className="text-xs text-muted-foreground mb-2">NFT address</h3>
                                 <div
                                     onClick={copyAddress}
                                     className="flex items-center justify-between gap-3 bg-muted border border-border rounded-xl p-3 cursor-pointer hover:bg-muted/80 transition-colors"
@@ -479,7 +477,7 @@ export default function NftDetailPage() {
 
                             {nft.ownerAddress && (
                                 <div>
-                                    <h3 className="text-xs text-muted-foreground uppercase mb-2">
+                                    <h3 className="text-xs text-muted-foreground mb-2">
                                         Owner {isOwner && <span className="ml-2 text-xs text-green-500">You</span>}
                                     </h3>
                                     <Button

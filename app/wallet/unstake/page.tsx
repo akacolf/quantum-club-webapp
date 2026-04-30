@@ -188,14 +188,14 @@ export default function UnstakePage() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-xl font-bold text-white">Unstake tsTON</h1>
-                        <p className="text-sm text-gray-500">Convert back to TON</p>
+                        <p className="text-sm text-neutral-500">Convert back to TON</p>
                     </div>
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => refetch()}
                         disabled={isLoading}
-                        className="text-gray-400"
+                        className="text-neutral-400"
                     >
                         <Icon icon="lucide:refresh-cw" className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}/>
                     </Button>
@@ -211,13 +211,13 @@ export default function UnstakePage() {
                                 <CardContent className="p-4">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <Icon icon="lucide:wallet" className="w-4 h-4 text-gray-400"/>
-                                            <span className="text-sm text-gray-400">Your tsTON</span>
+                                            <Icon icon="lucide:wallet" className="w-4 h-4 text-neutral-400"/>
+                                            <span className="text-sm text-neutral-400">Your tsTON</span>
                                         </div>
                                         <div className="text-right">
                                             <p className="font-bold text-white">{tsTonBalance.toFixed(4)} tsTON</p>
                                             {stakingInfo && (
-                                                <p className="text-xs text-gray-500">
+                                                <p className="text-xs text-neutral-500">
                                                     ≈ {(tsTonBalance * exchangeRate).toFixed(4)} TON
                                                 </p>
                                             )}
@@ -238,7 +238,7 @@ export default function UnstakePage() {
                                         </div>
                                         {withdrawals.map((w, i) => (
                                             <div key={i} className="flex justify-between text-sm py-1">
-                                                <span className="text-gray-400">{(w.amount / 1e9).toFixed(4)} tsTON</span>
+                                                <span className="text-neutral-400">{(w.amount / 1e9).toFixed(4)} tsTON</span>
                                                 <span className="text-yellow-400">{formatTimeRemaining(w.estimatedTime)}</span>
                                             </div>
                                         ))}
@@ -248,39 +248,39 @@ export default function UnstakePage() {
 
                             {/* Unstake Mode Selection */}
                             <div className="space-y-3">
-                                <Label className="text-gray-400">Unstake method</Label>
+                                <Label className="text-neutral-400">Unstake method</Label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => setUnstakeMode("best-rate")}
-                                        className={`p-4 rounded-xl border-0 transition-colors ${
+                                        className={`flex flex-col items-center p-4 rounded-xl border-0 text-center transition-colors ${
                                             unstakeMode === "best-rate"
                                                 ? "bg-primary/10"
                                                 : "bg-[#111]"
                                         }`}
                                     >
                                         <Icon icon="lucide:clock" className={`w-5 h-5 mb-2 ${
-                                            unstakeMode === "best-rate" ? "text-primary" : "text-gray-500"
+                                            unstakeMode === "best-rate" ? "text-primary" : "text-neutral-500"
                                         }`}/>
                                         <p className={`font-medium text-sm ${
-                                            unstakeMode === "best-rate" ? "text-white" : "text-gray-400"
+                                            unstakeMode === "best-rate" ? "text-white" : "text-neutral-400"
                                         }`}>Best rate</p>
-                                        <p className="text-xs text-gray-500 mt-1">18-36 hours</p>
+                                        <p className="text-xs text-neutral-500 mt-1">18-36 hours</p>
                                     </button>
                                     <button
                                         onClick={() => setUnstakeMode("instant")}
-                                        className={`p-4 rounded-xl border-0 transition-colors ${
+                                        className={`flex flex-col items-center p-4 rounded-xl border-0 text-center transition-colors ${
                                             unstakeMode === "instant"
                                                 ? "bg-primary/10"
                                                 : "bg-[#111]"
                                         }`}
                                     >
                                         <Icon icon="lucide:zap" className={`w-5 h-5 mb-2 ${
-                                            unstakeMode === "instant" ? "text-primary" : "text-gray-500"
+                                            unstakeMode === "instant" ? "text-primary" : "text-neutral-500"
                                         }`}/>
                                         <p className={`font-medium text-sm ${
-                                            unstakeMode === "instant" ? "text-white" : "text-gray-400"
+                                            unstakeMode === "instant" ? "text-white" : "text-neutral-400"
                                         }`}>Instant</p>
-                                        <p className="text-xs text-gray-500 mt-1">~1% fee</p>
+                                        <p className="text-xs text-neutral-500 mt-1">~1% fee</p>
                                     </button>
                                 </div>
                             </div>
@@ -289,7 +289,7 @@ export default function UnstakePage() {
                             <Card className="bg-[#111] border-0">
                                 <CardContent className="p-4">
                                     <div className="flex items-center justify-between mb-3">
-                                        <Label className="text-gray-400">Amount to unstake</Label>
+                                        <Label className="text-neutral-400">Amount to unstake</Label>
                                         <button onClick={handleMax} className="text-xs text-primary">
                                             Max
                                         </button>
@@ -331,7 +331,7 @@ export default function UnstakePage() {
                                 <Card className="bg-[#111] border-0">
                                     <CardContent className="p-4">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-400">You will receive</span>
+                                            <span className="text-sm text-neutral-400">You will receive</span>
                                             <div className="text-right">
                                                 <p className="font-bold text-white">
                                                     ~{(unstakeMode === "instant" ? receivedTonInstant : receivedTon).toFixed(4)} TON
@@ -345,7 +345,7 @@ export default function UnstakePage() {
                                         </div>
                                         {unstakeMode === "best-rate" && (
                                             <div className="mt-3 pt-3">
-                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                <div className="flex items-center gap-2 text-xs text-neutral-500">
                                                     <Icon icon="lucide:clock" className="w-3 h-3"/>
                                                     <span>Available in approximately 18-36 hours</span>
                                                 </div>
@@ -358,7 +358,7 @@ export default function UnstakePage() {
                             {/* Warning for low balance */}
                             {tsTonBalance < 0.1 && (
                                 <div className="py-2">
-                                    <div className="flex items-start gap-2 text-left">
+                                    <div className="flex flex-col items-start gap-2 text-left">
                                         <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-yellow-500 shrink-0"/>
                                         <p className="text-xs text-yellow-400">
                                             You don&apos;t have any tsTON to unstake. Stake TON first to receive tsTON.
@@ -368,11 +368,11 @@ export default function UnstakePage() {
                             )}
 
                             {/* Info */}
-                            <Card className="bg-primary/5 border-0">
+                            <Card className="bg-[#111] border-0">
                                 <CardContent className="p-4">
                                     <div className="flex gap-3">
                                         <Icon icon="lucide:info" className="w-4 h-4 text-primary shrink-0 mt-0.5"/>
-                                        <p className="text-xs text-gray-400">
+                                        <p className="text-xs text-neutral-400">
                                             <strong className="text-white">Best rate</strong> gives you full value but takes 18-36 hours. 
                                             <strong className="text-white"> Instant</strong> is immediate but has a small fee.
                                         </p>
@@ -410,7 +410,7 @@ export default function UnstakePage() {
                             <p className="text-white font-medium">
                                 {unstakeMode === "instant" ? "Unstaking instantly..." : "Initiating unstake..."}
                             </p>
-                            <p className="text-sm text-gray-500">This may take a few seconds</p>
+                            <p className="text-sm text-neutral-500">This may take a few seconds</p>
                         </div>
                     )}
 
@@ -425,7 +425,7 @@ export default function UnstakePage() {
                                 <h3 className="text-xl font-bold text-white">
                                     {unstakeMode === "instant" ? "Unstaked!" : "Unstake initiated!"}
                                 </h3>
-                                <p className="text-sm text-gray-400 mt-1">
+                                <p className="text-sm text-neutral-400 mt-1">
                                     {unstakeMode === "instant" 
                                         ? "Your TON is now in your wallet"
                                         : "Your TON will be available in 18-36 hours"}
@@ -435,7 +435,7 @@ export default function UnstakePage() {
                                 <p className="text-2xl font-bold text-white">
                                     ~{(unstakeMode === "instant" ? receivedTonInstant : receivedTon).toFixed(4)} TON
                                 </p>
-                                <p className="text-sm text-gray-500">from {unstakeAmountNum.toFixed(4)} tsTON</p>
+                                <p className="text-sm text-neutral-500">from {unstakeAmountNum.toFixed(4)} tsTON</p>
                             </div>
                             <Button
                                 variant="outline"

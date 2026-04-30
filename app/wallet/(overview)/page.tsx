@@ -795,7 +795,7 @@ export default function WalletPage() {
               <CarouselItem className="pl-0">
                 <Link
                   href="/wallet/staking"
-                  className="mx-auto flex h-32 w-[90%] items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
+                  className="flex h-32 w-full items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
                 >
                   <div className="flex flex-col items-start justify-between h-full z-10">
                     <div className="text-left">
@@ -815,7 +815,7 @@ export default function WalletPage() {
               <CarouselItem className="pl-0">
                 <Link
                   href="/wallet/marketplace"
-                  className="mx-auto flex h-32 w-[90%] items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
+                  className="flex h-32 w-full items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
                 >
                   <div className="flex flex-col items-start justify-between h-full z-10">
                     <div className="text-left">
@@ -835,7 +835,7 @@ export default function WalletPage() {
               <CarouselItem className="pl-0">
                 <Link
                   href="/wallet/lending"
-                  className="mx-auto flex h-32 w-[90%] items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
+                  className="flex h-32 w-full items-center justify-between rounded-2xl border-0 bg-secondary p-5 transition-all active:scale-[0.99]"
                 >
                   <div className="flex flex-col items-start justify-between h-full z-10">
                     <div className="text-left">
@@ -1457,7 +1457,8 @@ function WalletOnboardingReveal({
   createWallet: () => Promise<void>;
 }) {
   return (
-    <div className="flex min-h-[calc(100svh-7rem)] w-full max-w-md flex-col text-center">
+    <div className="fixed inset-0 flex items-center justify-center overflow-hidden px-4 text-center">
+      <div className="flex h-full w-full max-w-md flex-col justify-center">
       <div className="relative flex flex-1 items-center">
         <WalletWelcomeCinematic />
       </div>
@@ -1499,6 +1500,7 @@ function WalletOnboardingReveal({
             </Link>
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );

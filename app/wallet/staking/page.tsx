@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { fromNano } from "@ton/core";
@@ -18,12 +18,12 @@ import { FieldError } from "@/components/ui/field";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { getTonStakersInfo, stakeTon } from "@/lib/tonstakers-integration";
-import { formatTruncatedAmount } from "@/lib/format";
+import { formatCompactAmount, formatTruncatedAmount } from "@/lib/format";
 import { stakeAmountSchema } from "@/lib/validations";
 import { haptics } from "@/lib/haptics";
 import { toast } from "sonner";
 
-const FALLBACK_GAS_RESERVE = 0.1;
+const TON_GAS_RESERVE = 0.5;
 
 export default function StakingPage() {
   useTelegramBackButton("/wallet/more");
@@ -33,6 +33,7 @@ export default function StakingPage() {
   const [isStaking, setIsStaking] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [lastStakeAmount, setLastStakeAmount] = useState("");
+  const [isCalculating, setIsCalculating] = useState(false);
 
   const {
     isOpen: isAuthOpen,
@@ -71,7 +72,7 @@ export default function StakingPage() {
   const sdkAvailableTon = stakingInfo ? Number(fromNano(stakingInfo.availableBalance)) : null;
   const maxStakeAmount = Math.max(
     0,
-    sdkAvailableTon ?? tonBalanceNum - FALLBACK_GAS_RESERVE,
+    (sdkAvailableTon ?? tonBalanceNum) - TON_GAS_RESERVE,
   );
   const currentApy = stakingInfo?.apy ?? 0;
   const yearlyRewards = stakeAmountNum * (currentApy / 100);
@@ -85,8 +86,19 @@ export default function StakingPage() {
     return { valid: true, error: "" };
   })();
 
+  useEffect(() => {
+    if (!isCalculating) return;
+
+    const timeout = window.setTimeout(() => setIsCalculating(false), 450);
+    return () => window.clearTimeout(timeout);
+  }, [isCalculating, stakeAmount, stakingInfo]);
+
+  const isButtonCalculating =
+    stakeAmountNum > 0 && (isCalculating || tonstakersQuery.isLoading || tonstakersQuery.isFetching);
+
   const handleMax = () => {
-    form.setFieldValue("amount", formatTruncatedAmount(maxStakeAmount, 4));
+    form.setFieldValue("amount", formatTruncatedAmount(maxStakeAmount, 2));
+    setIsCalculating(maxStakeAmount > 0);
   };
 
   const handleStake = async () => {
@@ -120,7 +132,7 @@ export default function StakingPage() {
       setIsSuccess(true);
       haptics.success();
       toast.success(`Staked ${stakeAmount} TON`, {
-        description: `Estimated ${formatTruncatedAmount(estimatedTsTon, 4)} tsTON`,
+        description: `Estimated ${formatTruncatedAmount(estimatedTsTon, 2)} tsTON`,
       });
 
       window.setTimeout(() => {
@@ -143,47 +155,32 @@ export default function StakingPage() {
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">TON staking</h1>
-            <p className="text-sm text-neutral-500">Stake TON with Tonstakers and receive tsTON.</p>
+            <p className="text-sm text-neutral-500">Powered by Tonstakers</p>
           </div>
           <button
             type="button"
             onClick={() => tonstakersQuery.refetch()}
             disabled={tonstakersQuery.isFetching}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 active:bg-white/10"
+            className="flex h-10 w-10 items-center justify-center active:bg-white/10"
             aria-label="Refresh staking stats"
           >
             <Icon icon="lucide:refresh-cw" className={`h-5 w-5 text-neutral-400 ${tonstakersQuery.isFetching ? "animate-spin" : ""}`} />
           </button>
         </div>
 
-        <section className="rounded-2xl bg-secondary p-4">
-          <div className="flex items-center gap-3">
-            <Image src="/png/tonstakers-logo.jpg" alt="Tonstakers" width={44} height={44} className="h-11 w-11 rounded-xl object-cover" />
-            <div className="flex-1">
-              <p className="font-semibold">Tonstakers</p>
-              <p className="text-xs text-neutral-500">Liquid staking with auto-compounding rewards</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xl font-bold text-green-500">
-                {currentApy ? `${currentApy.toFixed(2)}%` : "--"}
-              </p>
-              <p className="text-xs text-neutral-500">APY</p>
-            </div>
-          </div>
-        </section>
-
         <section className="grid grid-cols-2 gap-3">
-          <Stat label="TVL" value={stakingInfo ? `${formatTruncatedAmount(Number(fromNano(stakingInfo.tvl)), 2)} TON` : "--"} />
-          <Stat label="Stakers" value={stakingInfo ? stakingInfo.stakersCount.toLocaleString() : "--"} />
-          <Stat label="Instant liquidity" value={stakingInfo ? `${formatTruncatedAmount(Number(fromNano(stakingInfo.instantLiquidity)), 2)} TON` : "--"} />
-          <Stat label="tsTON rate" value={stakingInfo?.rates?.tsTONTON ? `1 tsTON = ${formatTruncatedAmount(stakingInfo.rates.tsTONTON, 4)} TON` : "--"} />
+          <Stat label="APY" value={currentApy ? `${formatTruncatedAmount(currentApy, 2)}%` : "--"} />
+          <Stat label="TVL" value={stakingInfo ? `${formatCompactAmount(Number(fromNano(stakingInfo.tvl)), 2)} TON` : "--"} />
+          <Stat label="Stakers" value={stakingInfo ? formatCompactAmount(stakingInfo.stakersCount, 2) : "--"} />
+          <Stat label="Instant liquidity" value={stakingInfo ? `${formatCompactAmount(Number(fromNano(stakingInfo.instantLiquidity)), 2)} TON` : "--"} />
+          <Stat label="tsTON rate" value={stakingInfo?.rates?.tsTONTON ? `1 tsTON = ${formatTruncatedAmount(stakingInfo.rates.tsTONTON, 2)} TON` : "--"} />
         </section>
 
         <section className="rounded-2xl bg-secondary p-4 space-y-4">
           <div className="flex items-center justify-between">
             <Label className="text-sm text-neutral-400">Amount to stake</Label>
             <button type="button" onClick={handleMax} className="text-xs text-primary">
-              Max: {formatTruncatedAmount(maxStakeAmount, 4)} TON
+              Max: {formatTruncatedAmount(maxStakeAmount, 2)} TON
             </button>
           </div>
 
@@ -203,6 +200,7 @@ export default function StakingPage() {
                       if (value === "" || /^\d*\.?\d*$/.test(value)) {
                         field.handleChange(value);
                         setIsSuccess(false);
+                        setIsCalculating(value !== "");
                       }
                     }}
                     className="h-12 flex-1 border-0 bg-transparent text-right text-2xl font-bold text-white focus-visible:ring-0"
@@ -218,15 +216,15 @@ export default function StakingPage() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-neutral-500">Wallet balance</span>
-              <span>{formatTruncatedAmount(tonBalanceNum, 4)} TON</span>
+              <span>{formatTruncatedAmount(tonBalanceNum, 2)} TON</span>
             </div>
             <div className="flex justify-between">
               <span className="text-neutral-500">Estimated receive</span>
-              <span>{formatTruncatedAmount(estimatedTsTon, 4)} tsTON</span>
+              <span>{formatTruncatedAmount(estimatedTsTon, 2)} tsTON</span>
             </div>
             <div className="flex justify-between">
               <span className="text-neutral-500">Yearly rewards</span>
-              <span className="text-green-500">+{formatTruncatedAmount(yearlyRewards, 4)} TON</span>
+              <span className="text-green-500">+{formatTruncatedAmount(yearlyRewards, 2)} TON</span>
             </div>
             <div className="flex justify-between">
               <span className="text-neutral-500">Value</span>
@@ -236,10 +234,10 @@ export default function StakingPage() {
 
           <Button
             onClick={handleStake}
-            disabled={!validation.valid || isStaking || tonstakersQuery.isLoading}
+            disabled={!validation.valid || isStaking || tonstakersQuery.isLoading || isButtonCalculating}
             className="h-12 w-full rounded-xl bg-primary font-semibold text-primary-foreground"
           >
-            {isStaking ? <ButtonLoader /> : validation.valid ? `Stake ${formatTruncatedAmount(stakeAmountNum, 2)} TON` : validation.error}
+            {isStaking ? <ButtonLoader /> : isButtonCalculating ? "Calculating..." : validation.valid ? `Stake ${formatTruncatedAmount(stakeAmountNum, 2)} TON` : validation.error}
           </Button>
 
           {isSuccess && (

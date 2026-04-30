@@ -382,17 +382,17 @@ export default function BuyNftPage() {
                 <Card className="bg-card border-border">
                     <CardContent className="p-4 space-y-3">
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">NFT Price</span>
+                            <span className="text-muted-foreground">NFT price</span>
                             <span className="font-semibold">{priceInfo.basePriceFormatted} TON</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-1">
-                                Platform Fee ({QC_MARKETPLACE_FEE_PERCENT}%)
+                                Platform fee ({QC_MARKETPLACE_FEE_PERCENT}%)
                                 <Icon icon="lucide:info" className="w-3 h-3" />
                             </span>
                             <span className="text-muted-foreground">{priceInfo.platformFeeFormatted} TON</span>
                         </div>
-                        <div className="border-t border-border pt-3">
+                        <div className="pt-3">
                             <div className="flex justify-between items-center">
                                 <span className="font-semibold">Total</span>
                                 <span className="text-xl font-bold text-primary">{priceInfo.totalPriceFormatted} TON</span>

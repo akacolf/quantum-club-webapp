@@ -20,6 +20,7 @@ import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { useLendingDataQuery } from "@/app/(hooks)/queries/use-lending";
+import { formatCompactAmount, formatTruncatedAmount } from "@/lib/format";
 import {
     buildSupplyParams,
     buildWithdrawParams,
@@ -228,9 +229,9 @@ export default function LendingPage() {
             if (mode === "supply") {
                 const params = buildSupplyParams(selectedAsset.name, amountBigInt, walletAddress);
                 messageBody = master.createSupplyMessage(params);
-                // For TON supply: value = amount + gas; for jettons: just gas
+                // For TON supply: value = amount + protocol gas; for jettons: just gas.
                 sendValue = selectedAsset.name === "TON"
-                    ? amountBigInt + 300000000n // amount + 0.3 TON gas
+                    ? amountBigInt + 300000000n
                     : 300000000n;
             } else {
                 const params = buildWithdrawParams(selectedAsset.name, amountBigInt, walletAddress);
@@ -294,7 +295,7 @@ export default function LendingPage() {
         if (viewMode === "supply") {
             const balance = parseFloat(getWalletBalance(selectedAsset.name));
             if (parseFloat(amount) > balance) return false;
-            if (selectedAsset.name === "TON" && balance - parseFloat(amount) < 0.3) return false;
+            if (selectedAsset.name === "TON" && balance - parseFloat(amount) < TON_GAS_RESERVE) return false;
         }
         if (viewMode === "withdraw") {
             const supplied = parseFloat(getUserSupplied(selectedAsset.name));
@@ -330,7 +331,7 @@ export default function LendingPage() {
                 <div className="mb-6 text-center">
                     <h1 className="text-2xl font-bold text-foreground">Lending</h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Supply & borrow on{" "}
+                        Powered by{" "}
                         <a
                             href="https://evaa.finance"
                             target="_blank"
@@ -350,13 +351,13 @@ export default function LendingPage() {
                                 <div>
                                     <p className="text-xs text-muted-foreground">Supplied</p>
                                     <p className="text-sm font-bold text-green-500">
-                                        ${parseFloat(userPositions.totalSuppliedUsd).toFixed(2)}
+                                        ${formatCompactAmount(userPositions.totalSuppliedUsd, 2)}
                                     </p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-muted-foreground">Borrowed</p>
                                     <p className="text-sm font-bold text-orange-500">
-                                        ${parseFloat(userPositions.totalBorrowedUsd).toFixed(2)}
+                                        ${formatCompactAmount(userPositions.totalBorrowedUsd, 2)}
                                     </p>
                                 </div>
                                 <div>
@@ -404,11 +405,11 @@ export default function LendingPage() {
                                                     <div className="grid grid-cols-2 gap-2 text-sm">
                                                         <div>
                                                             <p className="text-xs text-muted-foreground">Supplied</p>
-                                                            <p className="font-medium text-green-500">{parseFloat(pos.supplied).toFixed(4)}</p>
+                                                            <p className="font-medium text-green-500">{formatCompactAmount(pos.supplied, 2)}</p>
                                                         </div>
                                                         <div>
                                                             <p className="text-xs text-muted-foreground">Borrowed</p>
-                                                            <p className="font-medium text-orange-500">{parseFloat(pos.borrowed).toFixed(4)}</p>
+                                                            <p className="font-medium text-orange-500">{formatCompactAmount(pos.borrowed, 2)}</p>
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-2 mt-3">
@@ -456,7 +457,7 @@ export default function LendingPage() {
                                                 <div>
                                                     <p className="font-bold">{asset.symbol}</p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Balance: {getWalletBalance(asset.name)}
+                                                        Balance: {formatTruncatedAmount(getWalletBalance(asset.name), 2)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -478,9 +479,7 @@ export default function LendingPage() {
                                             <div className="text-right">
                                                 <span>Liquidity: </span>
                                                 <span className="text-foreground font-medium">
-                                                    {parseFloat(asset.availableLiquidity) > 1000
-                                                        ? `${(parseFloat(asset.availableLiquidity) / 1000).toFixed(1)}K`
-                                                        : parseFloat(asset.availableLiquidity).toFixed(2)}
+                                                    {formatCompactAmount(asset.availableLiquidity, 2)}
                                                 </span>
                                             </div>
                                         </div>
@@ -546,21 +545,21 @@ export default function LendingPage() {
                                                             const bal = parseFloat(getWalletBalance(selectedAsset.name));
                                                             if (selectedAsset.name === "TON") {
                                                                 const max = Math.max(0, bal - TON_GAS_RESERVE);
-                                                                setAmount(max > 0 ? max.toFixed(4) : "0");
+                                                                setAmount(max > 0 ? formatTruncatedAmount(max, 2) : "0");
                                                             } else {
-                                                                setAmount(bal > 0 ? bal.toFixed(4) : "0");
+                                                                setAmount(bal > 0 ? formatTruncatedAmount(bal, 2) : "0");
                                                             }
                                                         } else {
                                                             const supplied = parseFloat(getUserSupplied(selectedAsset.name));
-                                                            setAmount(supplied > 0 ? supplied.toFixed(4) : "0");
+                                                            setAmount(supplied > 0 ? formatTruncatedAmount(supplied, 2) : "0");
                                                         }
                                                     }}
                                                 >
                                                     Max: {viewMode === "supply"
                                                         ? (selectedAsset.name === "TON"
-                                                            ? Math.max(0, parseFloat(getWalletBalance(selectedAsset.name)) - TON_GAS_RESERVE).toFixed(4)
-                                                            : getWalletBalance(selectedAsset.name))
-                                                        : getUserSupplied(selectedAsset.name)}
+                                                            ? formatTruncatedAmount(Math.max(0, parseFloat(getWalletBalance(selectedAsset.name)) - TON_GAS_RESERVE), 2)
+                                                            : formatTruncatedAmount(getWalletBalance(selectedAsset.name), 2))
+                                                        : formatTruncatedAmount(getUserSupplied(selectedAsset.name), 2)}
                                                 </Button>
                                             </div>
                                             <Input
@@ -580,7 +579,7 @@ export default function LendingPage() {
 
                                         {viewMode === "supply" && selectedAsset.name === "TON" && (
                                             <p className="text-xs text-muted-foreground">
-                                                {TON_GAS_RESERVE} TON will be reserved for gas fees.
+                                                {formatTruncatedAmount(TON_GAS_RESERVE, 2)} TON will be reserved for gas fees.
                                             </p>
                                         )}
 
@@ -600,7 +599,7 @@ export default function LendingPage() {
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Available liquidity</span>
                                                 <span className="font-medium">
-                                                    {parseFloat(selectedAsset.availableLiquidity).toFixed(2)} {selectedAsset.symbol}
+                                                    {formatCompactAmount(selectedAsset.availableLiquidity, 2)} {selectedAsset.symbol}
                                                 </span>
                                             </div>
                                         </div>
