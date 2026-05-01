@@ -290,7 +290,7 @@ export default function TransferDrawer({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
-        <div className="mx-auto w-full max-w-md px-4 pb-6">
+        <div className="mx-auto w-full max-w-md px-4 pb-[calc(2rem+var(--tg-safe-area-inset-bottom,0px)+var(--tg-content-safe-area-inset-bottom,0px))]">
           <DrawerHeader className="px-0">
             <DrawerTitle className="text-base flex items-center gap-2">
               {assetImage ? (

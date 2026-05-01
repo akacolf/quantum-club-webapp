@@ -668,7 +668,7 @@ export default function TokenDetailClient() {
             {/* Trading Sheet — matches Spot Trading's bottom drawer */}
             {!selectedToken.isGraduated && (
                 <Sheet open={tradingOpen} onOpenChange={setTradingOpen}>
-                    <SheetContent side="bottom" className="bg-[#111] border-t border-white/10 rounded-t-2xl max-h-[85vh] overflow-y-auto px-0 pb-24">
+                    <SheetContent side="bottom" className="bg-[#111] border-t border-white/10 rounded-t-2xl max-h-[85vh] overflow-y-auto px-0 pb-12">
                         <SheetHeader className="px-5 pb-2">
                             <div className="flex items-center justify-between">
                                 <SheetTitle className="text-white font-bold">

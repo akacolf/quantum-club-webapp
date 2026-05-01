@@ -1,15 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import type { Route } from "next";
+import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useDecryptedMedia } from "@/app/(hooks)/queries/use-decrypted-media";
-import { Document, Page, pdfjs } from "react-pdf";
-import { usePinch, useDrag } from "@use-gesture/react";
-import "react-pdf/dist/Page/TextLayer.css";
-import "react-pdf/dist/Page/AnnotationLayer.css";
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface FileMessageProps {
   file: {
@@ -44,96 +40,6 @@ function getFileIcon(mimeType: string): string {
   return "solar:file-bold";
 }
 
-/** Pinch-to-zoom + pan image lightbox */
-function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
-  const [scale, setScale] = useState(1);
-  const [translate, setTranslate] = useState({ x: 0, y: 0 });
-  const [isGesturing, setIsGesturing] = useState(false);
-
-  const bindPinch = usePinch(({ offset: [s], first, last }) => {
-    if (first) setIsGesturing(true);
-    const newScale = Math.min(5, Math.max(1, s));
-    setScale(newScale);
-    if (last) {
-      setIsGesturing(false);
-      if (newScale < 1.1) {
-        setScale(1);
-        setTranslate({ x: 0, y: 0 });
-      }
-    }
-  }, { scaleBounds: { min: 1, max: 5 }, from: () => [scale, 0] });
-
-  const bindDrag = useDrag(({ movement: [mx, my], first, last, memo }) => {
-    if (scale <= 1) return;
-    if (first) {
-      setIsGesturing(true);
-      return translate; // memo = starting translate
-    }
-    const startTranslate = memo ?? translate;
-    setTranslate({ x: startTranslate.x + mx, y: startTranslate.y + my });
-    if (last) setIsGesturing(false);
-    return memo;
-  }, { from: () => [0, 0] });
-
-  function handleDoubleTap() {
-    if (scale > 1) {
-      setScale(1);
-      setTranslate({ x: 0, y: 0 });
-    } else {
-      setScale(2.5);
-    }
-  }
-
-  const doubleTapRef = useRef<{ time: number }>({ time: 0 });
-
-  function handleClick(e: React.MouseEvent) {
-    e.stopPropagation();
-    const now = Date.now();
-    if (now - doubleTapRef.current.time < 300) {
-      handleDoubleTap();
-      doubleTapRef.current.time = 0;
-    } else {
-      doubleTapRef.current.time = now;
-    }
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
-      onClick={() => { if (scale <= 1) onClose(); }}
-      onContextMenu={(e) => e.preventDefault()}
-    >
-      <div className="absolute top-20 right-4 z-10">
-        <button
-          onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center"
-        >
-          <Icon icon="lucide:x" className="w-5 h-5 text-white" />
-        </button>
-      </div>
-      <div
-        className="flex h-full w-full items-center justify-center overflow-hidden touch-none"
-        {...bindPinch()}
-        {...bindDrag()}
-        onContextMenu={(e) => e.preventDefault()}
-      >
-        <img
-          src={src}
-          alt={alt}
-          className="max-h-[88vh] max-w-full rounded-lg object-contain select-none"
-          style={{
-            transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
-            transition: isGesturing ? "none" : "transform 0.2s ease-out",
-          }}
-          draggable={false}
-          onClick={handleClick}
-          onContextMenu={(e) => e.preventDefault()}
-        />
-      </div>
-    </div>
-  );
-}
-
 export default function FileMessage({
   file,
   isMine,
@@ -144,25 +50,12 @@ export default function FileMessage({
   epochNonce,
   epochCounter,
 }: FileMessageProps) {
+  const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
-  const [showLightbox, setShowLightbox] = useState(false);
-  const [showPdfViewer, setShowPdfViewer] = useState(false);
-  const [numPages, setNumPages] = useState(0);
-  const [pdfScale, setPdfScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isImage = file.mimeType.startsWith("image/");
   const isPdf = file.mimeType === "application/pdf";
-
-  // Pinch-to-zoom for PDF viewer
-  const bindPdfPinch = usePinch(({ offset: [s], event }) => {
-    event?.preventDefault();
-    setPdfScale(Math.min(3, Math.max(0.5, s)));
-  }, {
-    scaleBounds: { min: 0.5, max: 3 },
-    from: () => [pdfScale, 0],
-    eventOptions: { passive: false },
-  });
 
   // Lazy load images via IntersectionObserver
   useEffect(() => {
@@ -194,27 +87,25 @@ export default function FileMessage({
     enabled: isImage && isVisible,
   });
 
-  // Decrypt PDF on demand (enabled when user opens viewer)
-  const pdfQuery = useDecryptedMedia({
-    url: file.url,
-    mimeType: file.mimeType,
-    encrypted: file.encrypted,
-    participantIds,
-    chatId,
-    senderId,
-    isGroup,
-    epochNonce,
-    epochCounter,
-    enabled: isPdf && showPdfViewer,
-  });
-
   const decryptedUrl = imageQuery.data ?? null;
-  const isLoading = imageQuery.isLoading || pdfQuery.isLoading;
+  const isLoading = imageQuery.isLoading;
   const loadError = imageQuery.isError;
 
-  function handleOpenPdf() {
-    if (!isPdf) return;
-    setShowPdfViewer(true);
+  function openMediaViewer() {
+    if (!chatId || typeof window === "undefined") return;
+    const viewerId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    sessionStorage.setItem(
+      `qc-media-viewer:${viewerId}`,
+      JSON.stringify({
+        file,
+        participantIds,
+        senderId,
+        isGroup,
+        epochNonce,
+        epochCounter,
+      }),
+    );
+    router.push(`/ecosystem/chat/${chatId}/media?viewerId=${encodeURIComponent(viewerId)}` as Route);
   }
 
   if (loadError) {
@@ -228,48 +119,38 @@ export default function FileMessage({
 
   if (isImage) {
     return (
-      <>
-        <div ref={containerRef} className="max-w-[220px] rounded-lg overflow-hidden">
-          {!decryptedUrl ? (
-            <div className="w-[220px] h-[160px] bg-muted/20 flex items-center justify-center rounded-lg text-muted-foreground/50">
-              <ButtonLoader size="lg" />
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowLightbox(true)}
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
-              onTouchEnd={(e) => e.stopPropagation()}
-              onContextMenu={(e) => e.preventDefault()}
-              className="block w-full"
-            >
-              <img
-                src={decryptedUrl}
-                alt={file.name}
-                className="w-full rounded-lg object-cover max-h-[300px]"
-                style={file.width && file.height ? { aspectRatio: `${file.width} / ${file.height}` } : undefined}
-                draggable={false}
-              />
-            </button>
-          )}
-          <p className="text-[10px] text-muted-foreground/60 mt-1 truncate">{file.name}</p>
-        </div>
-
-        {showLightbox && decryptedUrl && (
-          <ImageLightbox
-            src={decryptedUrl}
-            alt={file.name}
-            onClose={() => setShowLightbox(false)}
-          />
+      <div ref={containerRef} className="max-w-[220px] rounded-lg overflow-hidden">
+        {!decryptedUrl ? (
+          <div className="w-[220px] h-[160px] bg-muted/20 flex items-center justify-center rounded-lg text-muted-foreground/50">
+            <ButtonLoader size="lg" />
+          </div>
+        ) : (
+          <button
+            onClick={openMediaViewer}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            onContextMenu={(e) => e.preventDefault()}
+            className="block w-full"
+          >
+            <img
+              src={decryptedUrl}
+              alt={file.name}
+              className="w-full rounded-lg object-cover max-h-[300px]"
+              style={file.width && file.height ? { aspectRatio: `${file.width} / ${file.height}` } : undefined}
+              draggable={false}
+            />
+          </button>
         )}
-      </>
+        <p className="text-[10px] text-muted-foreground/60 mt-1 truncate">{file.name}</p>
+      </div>
     );
   }
 
   return (
     <>
       <div
-        onClick={isPdf ? handleOpenPdf : undefined}
+        onClick={isPdf ? openMediaViewer : undefined}
         className={`flex items-center gap-3 p-2.5 rounded-xl min-w-[200px] max-w-[260px] transition-colors ${
           isPdf ? "cursor-pointer" : ""
         } ${
@@ -289,81 +170,6 @@ export default function FileMessage({
           <span className="text-muted-foreground/50 shrink-0"><ButtonLoader size="sm" /></span>
         )}
       </div>
-
-      {showPdfViewer && pdfQuery.data && (
-        <div
-          className="fixed inset-0 z-[9999] flex flex-col bg-black/95"
-          onTouchStart={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
-          onTouchEnd={(e) => e.stopPropagation()}
-        >
-          <div
-            className="flex items-center justify-between gap-3 bg-card/90 px-4 pb-3 pt-3 backdrop-blur-sm"
-            style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
-          >
-            <p className="min-w-0 flex-1 truncate text-sm font-medium text-white">{file.name}</p>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setPdfScale((s) => Math.max(0.5, s - 0.25))}
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
-              >
-                <Icon icon="lucide:minus" className="w-3.5 h-3.5 text-white" />
-              </button>
-              <span className="text-[10px] text-white/60 tabular-nums w-8 text-center">
-                {Math.round(pdfScale * 100)}%
-              </span>
-              <button
-                onClick={() => setPdfScale((s) => Math.min(3, s + 0.25))}
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
-              >
-                <Icon icon="lucide:plus" className="w-3.5 h-3.5 text-white" />
-              </button>
-              <button
-                onClick={() => { setShowPdfViewer(false); setPdfScale(1); }}
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"
-              >
-                <Icon icon="lucide:x" className="w-3.5 h-3.5 text-white" />
-              </button>
-            </div>
-          </div>
-          {/* PDF pages rendered by react-pdf — pinch to zoom */}
-          <div
-            className="flex-1 overflow-auto bg-neutral-200 px-3 py-4"
-            style={{ touchAction: "pan-x pan-y" }}
-            onContextMenu={(e) => e.preventDefault()}
-            {...bindPdfPinch()}
-          >
-            <div className="mx-auto flex w-full max-w-[448px] flex-col items-center">
-              <Document
-                file={pdfQuery.data}
-                onLoadSuccess={({ numPages: n }) => setNumPages(n)}
-                loading={
-                  <div className="flex items-center justify-center py-20 text-neutral-400">
-                    <ButtonLoader size="lg" />
-                  </div>
-                }
-                error={
-                  <div className="flex flex-col items-center justify-center gap-2 py-20">
-                    <Icon icon="solar:document-bold" className="w-8 h-8 text-neutral-400" />
-                    <p className="text-sm text-neutral-500">Could not load PDF</p>
-                  </div>
-                }
-              >
-                {Array.from({ length: numPages }, (_, i) => (
-                  <Page
-                    key={i}
-                    pageNumber={i + 1}
-                    width={Math.min(window.innerWidth - 24, 448) * pdfScale}
-                    className="mb-3 overflow-hidden rounded-md shadow-lg"
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                  />
-                ))}
-              </Document>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

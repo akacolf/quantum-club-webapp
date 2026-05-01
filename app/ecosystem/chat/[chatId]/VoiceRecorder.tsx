@@ -174,7 +174,7 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, x: cancelled ? -80 : 40, scale: cancelled ? 0.9 : 1 }}
             transition={{ duration: 0.1 }}
-            className="absolute inset-0 flex items-center gap-2 bg-card/95 py-1 pl-4 pr-1 backdrop-blur-sm z-10 rounded-full touch-none"
+            className="absolute inset-0 flex items-center gap-2 bg-card/95 py-1 pl-4 pr-1.5 backdrop-blur-sm z-10 rounded-full touch-none"
             {...(() => { const { onDrag, onDragStart, onDragEnd, ...rest } = bindDrag() as Record<string, unknown>; return rest; })()}
           >
             {/* Recording indicator + timer */}
@@ -213,7 +213,7 @@ export default function VoiceRecorder({ onSend, disabled }: VoiceRecorderProps) 
             {/* Send button */}
             <Button
               size="icon"
-              className="ml-auto h-12 w-12 rounded-full shrink-0 bg-white text-black shadow-lg shadow-white/20 hover:bg-white/90"
+              className="ml-auto h-[calc(100%-0.125rem)] aspect-square rounded-full shrink-0 bg-white text-black shadow-none hover:bg-white/90"
               onClick={handleSendVoice}
               onTouchStart={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}

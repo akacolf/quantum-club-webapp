@@ -59,7 +59,6 @@ import {
   onSnapshot,
   serverTimestamp,
   updateDoc,
-  deleteDoc,
   deleteField,
   increment,
   Timestamp,
@@ -115,7 +114,7 @@ interface ChatMessage {
     originalChatId: string;
   };
   expiresAt?: Timestamp | number;
-  type?: "text" | "poll" | "voice" | "transfer" | "file" | "nft_share" | "call";
+  type?: "text" | "poll" | "voice" | "transfer" | "file" | "nft_share" | "call" | "deleted";
   poll?: {
     question: string;
     options: string[];
@@ -1919,50 +1918,38 @@ export default function ChatConversationClient() {
   async function handleDeleteForEveryone(msgId: string) {
     if (!chatId) return;
     try {
+      const targetMessage = messages.find((m) => m.id === msgId);
       const wasLastMessage = messages[messages.length - 1]?.id === msgId;
-      const remainingMessages = messages.filter((m) => m.id !== msgId);
-      const latestVisibleMessage = remainingMessages[remainingMessages.length - 1] ?? null;
-      await deleteDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId));
+      const deletedPreview = "You deleted this message";
 
-      // If deleting the last message, query Firestore for the actual last remaining message
+      await updateDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId), {
+        text: deletedPreview,
+        type: "deleted",
+        deletedForEveryone: true,
+        deletedAt: serverTimestamp(),
+        encrypted: false,
+        encEpoch: deleteField(),
+        editedAt: deleteField(),
+        expiresAt: deleteField(),
+        reactions: deleteField(),
+        replyTo: deleteField(),
+        forwarded: deleteField(),
+        poll: deleteField(),
+        voice: deleteField(),
+        file: deleteField(),
+        transfer: deleteField(),
+        nftShare: deleteField(),
+        call: deleteField(),
+      });
+
       if (wasLastMessage) {
-        const lastMsgQuery = query(
-          collection(dbfs, "qc-chats", chatId, "messages"),
-          orderBy("createdAt", "desc"),
-          limit(1),
-        );
-        const lastMsgSnap = await getDocs(lastMsgQuery);
-        if (!lastMsgSnap.empty) {
-          const lastMsgData = lastMsgSnap.docs[0].data();
-          const updates: Record<string, unknown> = {
-            lastMessage: lastMsgData.text || "",
-            lastMessageBy: lastMsgData.senderId || "",
-            lastMessageAt: lastMsgData.createdAt || serverTimestamp(),
-          };
-
-          if (lastMsgData.encEpoch !== undefined) {
-            updates.lastMessageEpoch = lastMsgData.encEpoch;
-          } else {
-            updates.lastMessageEpoch = deleteField();
-          }
-
-          await updateDoc(doc(dbfs, "qc-chats", chatId), updates);
-
-          if (latestVisibleMessage) {
-            const preview = latestVisibleMessage.text.length > 50
-              ? latestVisibleMessage.text.slice(0, 50) + "…"
-              : latestVisibleMessage.text;
-            try { localStorage.setItem(`qc-preview-${chatId}`, preview); } catch {}
-          }
-        } else {
-          await updateDoc(doc(dbfs, "qc-chats", chatId), {
-            lastMessage: "",
-            lastMessageBy: "",
-            lastMessageAt: serverTimestamp(),
-            lastMessageEpoch: deleteField(),
-          });
-          try { localStorage.removeItem(`qc-preview-${chatId}`); } catch {}
-        }
+        await updateDoc(doc(dbfs, "qc-chats", chatId), {
+          lastMessage: deletedPreview,
+          lastMessageBy: "system",
+          lastMessageAt: targetMessage?.createdAt || serverTimestamp(),
+          lastMessageEpoch: deleteField(),
+        });
+        try { localStorage.setItem(`qc-preview-${chatId}`, deletedPreview); } catch {}
       }
       toast.success("Message deleted");
     } catch (err) {
@@ -3029,7 +3016,12 @@ export default function ChatConversationClient() {
                       </div>
                     )}
 
-                    {msg.type === "voice" && msg.voice ? (
+                    {msg.type === "deleted" ? (
+                      <span className="inline-flex items-center gap-1.5 text-[13px] leading-[1.4] text-muted-foreground">
+                        <Icon icon="proicons:delete" className="h-4 w-4 shrink-0" />
+                        You deleted this message
+                      </span>
+                    ) : msg.type === "voice" && msg.voice ? (
                       <VoiceMessage
                         audioUrl={msg.voice.url}
                         durationSec={msg.voice.durationSec}

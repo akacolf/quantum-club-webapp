@@ -179,6 +179,7 @@ function ChatListItem({
   }, [chat.lastMessage, chat.lastMessageBy, chat.id, chat.participants, isLastMsgByMe, chat.epochCounter, chat.epochNonce, chat.epochNonces, chat.isGlobal, chat.isGroup, chat.lastMessageEpoch, chat.participantNames]);
 
   const previewText = decryptedPreview ?? "New message";
+  const isDeletedPreview = previewText === "You deleted this message";
 
   return (
     <button
@@ -241,10 +242,15 @@ function ChatListItem({
             </span>
           )}
           <p className={`text-xs truncate leading-relaxed ${unread > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-            {isLastMsgByMe && chat.lastMessageBy !== "system" && (
+            {isLastMsgByMe && chat.lastMessageBy !== "system" && !isDeletedPreview && (
               <span className="text-foreground/50">You: </span>
             )}
-            {previewText.startsWith("📊") ? (
+            {isDeletedPreview ? (
+              <>
+                <Icon icon="proicons:delete" className="w-3.5 h-3.5 shrink-0 inline-block align-text-bottom" />
+                <span>{" "}{previewText}</span>
+              </>
+            ) : previewText.startsWith("📊") ? (
               <>
                 <Icon icon="mdi:poll" className="w-3.5 h-3.5 shrink-0 inline-block align-text-bottom" />
                 <span>{" "}{previewText.slice(2)}</span>
