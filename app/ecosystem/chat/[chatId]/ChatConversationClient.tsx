@@ -2465,7 +2465,7 @@ export default function ChatConversationClient() {
             </DrawerHeader>
             <div className="space-y-4 px-4 pb-6">
               <div className="text-center">
-                <Icon icon="solar:users-group-rounded-bold" className="mx-auto mb-2 h-8 w-8 text-primary" />
+                <Icon icon="material-symbols:groups" className="mx-auto mb-2 h-8 w-8 text-primary" />
                 <p className="text-sm font-semibold">{headerName}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {chatMeta.participants.length} members
@@ -2856,7 +2856,7 @@ export default function ChatConversationClient() {
           <div className="flex justify-center py-3 pb-1">
             <div className="bg-muted/50 rounded-2xl px-4 py-2.5 flex flex-col items-center gap-1 max-w-[260px]">
               <Icon
-                icon={isGroupChat ? "solar:users-group-rounded-bold" : "solar:lock-keyhole-bold"}
+                icon={isGroupChat ? "material-symbols:groups" : "solar:lock-keyhole-bold"}
                 className="w-4 h-4 text-muted-foreground"
               />
               <span className="text-[10px] text-muted-foreground leading-tight text-center">

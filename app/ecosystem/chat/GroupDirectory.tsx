@@ -171,9 +171,7 @@ export default function GroupDirectory({ telegramId, qcUsername }: GroupDirector
           </div>
         ) : filteredGroups.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-muted/40 flex items-center justify-center">
-              <Icon icon="solar:users-group-rounded-bold" className="w-7 h-7 text-muted-foreground/60" />
-            </div>
+            <Icon icon="material-symbols:groups" className="h-10 w-10 text-muted-foreground/60" />
             <div>
               <p className="text-sm font-semibold text-foreground">No public groups</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">
@@ -222,7 +220,7 @@ export default function GroupDirectory({ telegramId, qcUsername }: GroupDirector
                     )}
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                        <Icon icon="solar:users-group-two-rounded-bold" className="w-3 h-3" />
+                        <Icon icon="material-symbols:groups" className="w-3 h-3" />
                         {group.memberCount}
                       </span>
                       <span className="text-[10px] text-muted-foreground">·</span>
