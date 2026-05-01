@@ -14,6 +14,7 @@ export interface Referral {
     username: string;
     quantamount: number;
     photoUrl?: string;
+    referralCount?: number;
 }
 
 export interface EarnTask {
