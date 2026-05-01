@@ -913,65 +913,119 @@ export default function WalletPage() {
               </div>
             )}
 
-            {/* TON Jettons (virtualized) */}
+            {/* TON Jettons */}
             {filteredJettons.length > 0 && (
-              <div ref={jettonsContainerRef} className="relative w-full" style={{ height: `${jettonsVirtualizer.getTotalSize()}px` }}>
-                {jettonsVirtualizer.getVirtualItems().map((virtualItem) => {
-                  const index = virtualItem.index;
-                  const jetton = filteredJettons[index];
-                  const formattedBalance = formatAmount(parseFloat(jetton.balance) / Math.pow(10, jetton.decimals), 4);
-                  const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
-                  return (
-                    <div
-                      key={jetton.jettonAddress ?? `jetton-${index}`}
-                      className="absolute top-0 left-0 w-full"
-                      style={{ transform: `translateY(${virtualItem.start - (jettonsVirtualizer.options.scrollMargin ?? 0)}px)` }}
-                      ref={jettonsVirtualizer.measureElement}
-                      data-index={virtualItem.index}
-                    >
-                      <Card
-                        className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
-                        onClick={() => {
-                          setSelectedAsset({
-                            name: jetton.name,
-                            symbol: jetton.symbol,
-                            balance: formattedBalance,
-                            value: jetton.usdValue || 0,
-                            priceUsd: jetton.priceUsd || 0,
-                            image: jetton.image,
-                            color: CHART_COLORS[(index + 1) % CHART_COLORS.length],
-                            jettonAddress: jetton.jettonAddress,
-                          }); setChartPeriod('1D');
-                        }}
+              normalizedWalletSearch ? (
+                // Non-virtualized when search active — virtualizer skips off-screen containers
+                <div ref={jettonsContainerRef} className="w-full">
+                  {filteredJettons.map((jetton, index) => {
+                    const formattedBalance = formatAmount(parseFloat(jetton.balance) / Math.pow(10, jetton.decimals), 4);
+                    const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
+                    return (
+                      <div key={jetton.jettonAddress ?? `jetton-${index}`}>
+                        <Card
+                          className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
+                          onClick={() => {
+                            setSelectedAsset({
+                              name: jetton.name,
+                              symbol: jetton.symbol,
+                              balance: formattedBalance,
+                              value: jetton.usdValue || 0,
+                              priceUsd: jetton.priceUsd || 0,
+                              image: jetton.image,
+                              color: CHART_COLORS[(index + 1) % CHART_COLORS.length],
+                              jettonAddress: jetton.jettonAddress,
+                            }); setChartPeriod('1D');
+                          }}
+                        >
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center overflow-hidden border-0">
+                                {jetton.image ? (
+                                  <Image src={jetton.image} alt={jetton.symbol} width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                                ) : (
+                                  <span className="text-white text-xs font-bold">{jetton.symbol.slice(0, 2)}</span>
+                                )}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-white">{jetton.symbol}</h4>
+                                <p className="text-xs text-neutral-500 truncate max-w-[120px]">{jetton.name}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-right min-w-[80px]">
+                                <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</h4>
+                                <p className="text-xs text-neutral-500">{hideBalance ? "••••" : usdDisplay}</p>
+                              </div>
+                              <Icon icon="lucide:chevron-right" className="w-4 h-4 text-neutral-500"/>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        {index < filteredJettons.length - 1 ? <Separator /> : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                // Virtualized for full list
+                <div ref={jettonsContainerRef} className="relative w-full" style={{ height: `${jettonsVirtualizer.getTotalSize()}px` }}>
+                  {jettonsVirtualizer.getVirtualItems().map((virtualItem) => {
+                    const index = virtualItem.index;
+                    const jetton = filteredJettons[index];
+                    const formattedBalance = formatAmount(parseFloat(jetton.balance) / Math.pow(10, jetton.decimals), 4);
+                    const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
+                    return (
+                      <div
+                        key={jetton.jettonAddress ?? `jetton-${index}`}
+                        className="absolute top-0 left-0 w-full"
+                        style={{ transform: `translateY(${virtualItem.start - (jettonsVirtualizer.options.scrollMargin ?? 0)}px)` }}
+                        ref={jettonsVirtualizer.measureElement}
+                        data-index={virtualItem.index}
                       >
-                        <CardContent className="p-4 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center overflow-hidden border-0">
-                              {jetton.image ? (
-                                <Image src={jetton.image} alt={jetton.symbol} width={40} height={40} className="w-full h-full object-cover" unoptimized />
-                              ) : (
-                                <span className="text-white text-xs font-bold">{jetton.symbol.slice(0, 2)}</span>
-                              )}
+                        <Card
+                          className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
+                          onClick={() => {
+                            setSelectedAsset({
+                              name: jetton.name,
+                              symbol: jetton.symbol,
+                              balance: formattedBalance,
+                              value: jetton.usdValue || 0,
+                              priceUsd: jetton.priceUsd || 0,
+                              image: jetton.image,
+                              color: CHART_COLORS[(index + 1) % CHART_COLORS.length],
+                              jettonAddress: jetton.jettonAddress,
+                            }); setChartPeriod('1D');
+                          }}
+                        >
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center overflow-hidden border-0">
+                                {jetton.image ? (
+                                  <Image src={jetton.image} alt={jetton.symbol} width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                                ) : (
+                                  <span className="text-white text-xs font-bold">{jetton.symbol.slice(0, 2)}</span>
+                                )}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-white">{jetton.symbol}</h4>
+                                <p className="text-xs text-neutral-500 truncate max-w-[120px]">{jetton.name}</p>
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="font-bold text-white">{jetton.symbol}</h4>
-                              <p className="text-xs text-neutral-500 truncate max-w-[120px]">{jetton.name}</p>
+                            <div className="flex items-center gap-2">
+                              <div className="text-right min-w-[80px]">
+                                <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</h4>
+                                <p className="text-xs text-neutral-500">{hideBalance ? "••••" : usdDisplay}</p>
+                              </div>
+                              <Icon icon="lucide:chevron-right" className="w-4 h-4 text-neutral-500"/>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-right min-w-[80px]">
-                              <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</h4>
-                              <p className="text-xs text-neutral-500">{hideBalance ? "••••" : usdDisplay}</p>
-                            </div>
-                            <Icon icon="lucide:chevron-right" className="w-4 h-4 text-neutral-500"/>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      {index < filteredJettons.length - 1 ? <Separator /> : null}
-                    </div>
-                  );
-                })}
-              </div>
+                          </CardContent>
+                        </Card>
+                        {index < filteredJettons.length - 1 ? <Separator /> : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              )
             )}
               </div>
             ) : null}
