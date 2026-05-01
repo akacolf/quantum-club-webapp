@@ -1,7 +1,7 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { gsap } from "@/lib/gsap";
 
 function HomeIcon() {
@@ -151,7 +151,7 @@ const NavigationBar = () => {
   }, [activeTab]);
 
   // Initial position (no animation) + animate on tab change
-  useEffect(() => {
+  useLayoutEffect(() => {
     const pill = pillRef.current;
     const nav = navRef.current;
     if (!pill || !nav) return;
@@ -173,7 +173,7 @@ const NavigationBar = () => {
     } else {
       animatePill();
     }
-  }, [activeTab, animatePill]);
+  }, [activeTab, animatePill, pathname]);
 
   return (
     <div className="fixed z-50 bottom-12 left-1/2 -translate-x-1/2 w-[92%] max-w-[420px] h-[70px] bg-white/10 backdrop-blur-2xl rounded-full overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/10 before:to-transparent before:pointer-events-none">

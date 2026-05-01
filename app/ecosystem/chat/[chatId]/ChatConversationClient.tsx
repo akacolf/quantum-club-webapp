@@ -2669,53 +2669,58 @@ export default function ChatConversationClient() {
 
             {/* Action items */}
             <div className="bg-card rounded-2xl shadow-xl overflow-hidden py-1">
-              <button
-                onClick={() => {
-                  const msg = messages.find((m) => m.id === reactionPickerMsgId);
-                  if (msg) { setReplyTo(msg); inputRef.current?.focus(); }
-                  setReactionPickerMsgId(null);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
-              >
-                <Icon icon="lucide:reply" className="w-[18px] h-[18px] text-muted-foreground" />
-                <span className="text-[13px] font-medium">Reply</span>
-              </button>
-
-              <button
-                onClick={() => handleCopyText(reactionPickerMsgId)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
-              >
-                <Icon icon="lucide:copy" className="w-[18px] h-[18px] text-muted-foreground" />
-                <span className="text-[13px] font-medium">Copy Text</span>
-              </button>
-
-              {isGroupChat && (
-                <button
-                  onClick={() => {
-                    const msg = messages.find((m) => m.id === reactionPickerMsgId);
-                    if (msg) handlePinMessage(msg);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
-                >
-                  <Icon icon="lucide:pin" className="w-[18px] h-[18px] text-muted-foreground" />
-                  <span className="text-[13px] font-medium">Pin</span>
-                </button>
-              )}
-
-              <button
-                onClick={() => handleForwardStart(reactionPickerMsgId)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
-              >
-                <Icon icon="lucide:forward" className="w-[18px] h-[18px] text-muted-foreground" />
-                <span className="text-[13px] font-medium">Forward</span>
-              </button>
-
               {(() => {
                 const activeMsg = messages.find((m) => m.id === reactionPickerMsgId);
+                const isTextMessage = !activeMsg?.type || activeMsg.type === "text";
+                const canCopy = !!activeMsg && isTextMessage && !!activeMsg.text.trim();
                 const canDeleteForEveryone = activeMsg?.senderId === telegramId || chatMeta?.createdBy === telegramId;
                 const canEdit = !!activeMsg && canEditMessage(activeMsg);
+
                 return (
                   <>
+                    <button
+                      onClick={() => {
+                        if (activeMsg) { setReplyTo(activeMsg); inputRef.current?.focus(); }
+                        setReactionPickerMsgId(null);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+                    >
+                      <Icon icon="lucide:reply" className="w-[18px] h-[18px] text-muted-foreground" />
+                      <span className="text-[13px] font-medium">Reply</span>
+                    </button>
+
+                    {canCopy && (
+                      <button
+                        onClick={() => handleCopyText(reactionPickerMsgId)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+                      >
+                        <Icon icon="lucide:copy" className="w-[18px] h-[18px] text-muted-foreground" />
+                        <span className="text-[13px] font-medium">Copy text</span>
+                      </button>
+                    )}
+
+                    {isGroupChat && (
+                      <button
+                        onClick={() => {
+                          if (activeMsg) handlePinMessage(activeMsg);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+                      >
+                        <Icon icon="lucide:pin" className="w-[18px] h-[18px] text-muted-foreground" />
+                        <span className="text-[13px] font-medium">Pin</span>
+                      </button>
+                    )}
+
+                    {canCopy && (
+                      <button
+                        onClick={() => handleForwardStart(reactionPickerMsgId)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+                      >
+                        <Icon icon="lucide:forward" className="w-[18px] h-[18px] text-muted-foreground" />
+                        <span className="text-[13px] font-medium">Forward</span>
+                      </button>
+                    )}
+
                     {canEdit && (
                       <button
                         onClick={() => activeMsg && handleStartEdit(activeMsg)}
@@ -2731,7 +2736,7 @@ export default function ChatConversationClient() {
                       className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors"
                     >
                       <Icon icon="lucide:eye-off" className="w-[18px] h-[18px] text-red-500" />
-                      <span className="text-[13px] font-medium text-red-500">Delete for Me</span>
+                      <span className="text-[13px] font-medium text-red-500">Delete for me</span>
                     </button>
                     {canDeleteForEveryone && (
                       <button
@@ -2739,7 +2744,7 @@ export default function ChatConversationClient() {
                         className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors"
                       >
                         <Icon icon="lucide:trash-2" className="w-[18px] h-[18px] text-red-500" />
-                        <span className="text-[13px] font-medium text-red-500">Delete for Everyone</span>
+                        <span className="text-[13px] font-medium text-red-500">Delete for everyone</span>
                       </button>
                     )}
                   </>

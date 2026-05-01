@@ -147,7 +147,7 @@ export function TokenAnalysisCard({
                         </div>
                         <div className="flex items-center gap-2">
                             {isLoading ? (
-                                <span className="flex h-6 w-16 items-center justify-center text-primary">
+                                <span className="flex h-6 w-16 items-center justify-end text-primary">
                                     <ButtonLoader size="sm" />
                                 </span>
                             ) : analysis ? (

@@ -3,7 +3,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { useWalletStore } from "@/stores/wallet-store";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { gsap } from "@/lib/gsap";
 const navTabs = [
   {
@@ -100,7 +100,7 @@ const WalletNavigation = () => {
     prevActiveTab.current = activeTab;
   }, [activeTab]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const pill = pillRef.current;
     const nav = navRef.current;
     if (!pill || !nav) return;
@@ -120,10 +120,11 @@ const WalletNavigation = () => {
     } else {
       animatePill();
     }
-  }, [activeTab, animatePill]);
+  }, [activeTab, animatePill, pathname]);
 
   // Hide navbar during wallet creation/import flow or when no wallet exists
   if (!walletAddress || HIDDEN_ROUTES.some((route) => pathname.startsWith(route))) {
+    prevActiveTab.current = "";
     return null;
   }
 

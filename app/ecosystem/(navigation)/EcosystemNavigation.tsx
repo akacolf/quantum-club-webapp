@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -112,7 +112,7 @@ const EcosystemNavigation = () => {
     prevActiveTab.current = activeTab;
   }, [activeTab]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const pill = pillRef.current;
     const nav = navRef.current;
     if (!pill || !nav) return;
@@ -132,10 +132,11 @@ const EcosystemNavigation = () => {
     } else {
       animatePill();
     }
-  }, [activeTab, animatePill]);
+  }, [activeTab, animatePill, pathname]);
 
   // Hide navbar when inside an individual chat conversation
   if (pathname.match(/^\/ecosystem\/chat\/.+/)) {
+    prevActiveTab.current = "";
     return null;
   }
 
