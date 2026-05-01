@@ -531,12 +531,12 @@ export default function WalletPage() {
 
       {/* Search results dropdown */}
       {normalizedWalletSearch ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 max-h-[65vh] overflow-y-auto overflow-x-hidden rounded-2xl border border-white/[0.08] bg-[#0d0d0d] shadow-2xl">
+        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 max-h-[65vh] overflow-y-auto overflow-x-hidden rounded-2xl bg-[#0d0d0d] shadow-2xl">
 
           {/* Pages */}
           {matchedNavItems.length > 0 && (
             <div>
-              <p className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Pages</p>
+              <p className="px-4 pb-1 pt-3 text-[10px] font-semibold text-neutral-500">Pages</p>
               {matchedNavItems.map((item) => (
                 <button
                   key={item.label}
@@ -551,9 +551,7 @@ export default function WalletPage() {
                     setWalletSearch("");
                   }}
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary">
-                    <Icon icon={item.icon} className="h-4 w-4 text-white" />
-                  </div>
+                  <Icon icon={item.icon} className="h-5 w-5 shrink-0 text-neutral-400" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-white">{item.label}</p>
                     <p className="truncate text-xs text-neutral-500">{item.description}</p>
@@ -568,7 +566,7 @@ export default function WalletPage() {
           {(showTonAsset || filteredJettons.length > 0) && (
             <div>
               {matchedNavItems.length > 0 && <Separator className="bg-white/[0.06]" />}
-              <p className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Tokens</p>
+              <p className="px-4 pb-1 pt-3 text-[10px] font-semibold text-neutral-500">Tokens</p>
 
               {showTonAsset && (
                 <button
@@ -626,7 +624,7 @@ export default function WalletPage() {
           {filteredNfts.length > 0 && (
             <div>
               {(matchedNavItems.length > 0 || showTonAsset || filteredJettons.length > 0) && <Separator className="bg-white/[0.06]" />}
-              <p className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">Collectibles</p>
+              <p className="px-4 pb-1 pt-3 text-[10px] font-semibold text-neutral-500">Collectibles</p>
               {filteredNfts.slice(0, 3).map((nft) => (
                 <button
                   key={nft.address}
