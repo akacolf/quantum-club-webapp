@@ -494,7 +494,7 @@ export default function WalletPage() {
         value={walletSearch}
         onChange={(event) => setWalletSearch(event.target.value)}
         placeholder="Search wallet..."
-        className="h-11 w-full rounded-full border-0 bg-secondary pl-10 pr-10 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
+        className="h-11 w-full rounded-full border-0 bg-secondary pl-10 pr-10 text-sm text-white outline-none placeholder:text-neutral-500"
       />
       {walletSearch ? (
         <button
@@ -577,12 +577,14 @@ export default function WalletPage() {
   return (
     <div className="min-h-screen">
       <div className="flex w-full flex-col items-center space-y-8">
+        <div className="w-full px-5 pt-7">
+          {walletSearchBar}
+        </div>
         <div
-          className="w-[90%]"
+          className="w-[90%] -mt-2"
         >
           <div className="relative overflow-hidden">
-            <div className="relative z-10 space-y-8 py-7">
-              {walletSearchBar}
+            <div className="relative z-10 space-y-8 pb-7">
 
               <div className="flex w-full items-center justify-center">
                 <div className="inline-flex h-9 min-w-0 items-center gap-1">
