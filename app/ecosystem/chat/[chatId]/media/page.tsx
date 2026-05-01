@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Route } from "next";
 import Image from "next/image";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { usePinch } from "@use-gesture/react";
@@ -34,7 +33,6 @@ interface MediaViewerPayload {
 
 export default function ChatMediaViewerPage() {
   const params = useParams<{ chatId: string }>();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const chatId = params.chatId;
   useTelegramBackButton(`/ecosystem/chat/${chatId}`);
@@ -101,23 +99,12 @@ export default function ChatMediaViewerPage() {
   const isImage = !!file?.mimeType.startsWith("image/");
   const isPdf = file?.mimeType === "application/pdf";
 
-  function goBack() {
-    router.replace(`/ecosystem/chat/${chatId}` as Route);
-  }
-
   return (
     <div className="fixed inset-0 z-[80] flex flex-col bg-background text-foreground">
       <div
         className="flex items-center gap-3 border-b border-border/50 bg-card/80 px-4 pb-3 pt-3 backdrop-blur-sm"
         style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
       >
-        <button
-          onClick={goBack}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground"
-          aria-label="Back"
-        >
-          <Icon icon="lucide:arrow-left" className="h-5 w-5" />
-        </button>
         <p className="min-w-0 flex-1 truncate text-sm font-medium">{file?.name ?? "File"}</p>
         {isPdf && (
           <div className="flex items-center gap-1.5">
@@ -142,7 +129,7 @@ export default function ChatMediaViewerPage() {
         )}
       </div>
 
-      <main className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-3 py-4">
+      <main className={isPdf ? "min-h-0 flex-1 overflow-hidden" : "flex min-h-0 flex-1 items-center justify-center overflow-auto px-3 py-4"}>
         {missing ? (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Icon icon="solar:file-corrupted-bold" className="h-8 w-8" />
@@ -169,7 +156,7 @@ export default function ChatMediaViewerPage() {
           />
         ) : isPdf ? (
           <div
-            className="min-h-full w-full overflow-auto rounded-lg bg-neutral-200 px-2 py-4"
+            className="h-full w-full overflow-auto bg-neutral-200 px-3 py-4"
             style={{ touchAction: "pan-x pan-y" }}
             onContextMenu={(event) => event.preventDefault()}
             {...bindPdfPinch()}

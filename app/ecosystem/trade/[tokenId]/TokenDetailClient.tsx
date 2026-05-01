@@ -38,8 +38,7 @@ const PriceChart = dynamic(
 import GraduatedTrading from "@/app/ecosystem/trade/(components)/GraduatedTrading";
 import GraduationProgress from "@/app/ecosystem/trade/(components)/GraduationProgress";
 import SupplyInfo from "@/app/ecosystem/trade/(components)/SupplyInfo";
-import SlippageSettings from "@/app/ecosystem/trade/(components)/SlippageSettings";
-import { DEFAULT_SLIPPAGE } from "@/types/trading";
+import { DEFAULT_SLIPPAGE, SLIPPAGE_OPTIONS } from "@/types/trading";
 import ImageViewer from "@/components/ui/image-viewer";
 import { FEE_CONFIG } from "@/lib/platform-config";
 import { useOnChainStats, EMPTY_ON_CHAIN_STATS } from "@/app/(hooks)/queries/use-trades";
@@ -52,6 +51,20 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { TokenAnalysisCard } from "@/components/ai";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
+
+function normalizeAmountInput(value: string): string {
+    const sanitized = value.replace(/,/g, "").replace(/[^\d.]/g, "");
+    const [integer = "", ...decimalParts] = sanitized.split(".");
+    const decimal = decimalParts.join("");
+    return decimalParts.length > 0 ? `${integer}.${decimal}` : integer;
+}
+
+function formatAmountInput(value: string): string {
+    if (!value) return "";
+    const [integer = "", decimal] = value.split(".");
+    const formattedInteger = integer ? Number(integer).toLocaleString("en-US") : "";
+    return decimal !== undefined ? `${formattedInteger}.${decimal}` : formattedInteger;
+}
 
 export default function TokenDetailClient() {
     const params = useParams();
@@ -267,6 +280,53 @@ export default function TokenDetailClient() {
             setAmount(tokenAmountHuman.toString());
         }
     };
+
+    const handleAmountChange = (value: string) => {
+        setAmount(normalizeAmountInput(value));
+    };
+
+    const handleSlippageChange = (value: string) => {
+        const normalized = normalizeAmountInput(value);
+        const next = parseFloat(normalized);
+        if (!Number.isNaN(next) && next > 0 && next <= 50) {
+            setSlippage(next);
+        }
+    };
+
+    const renderSlippageControls = () => (
+        <div className="space-y-3">
+            <div className="flex justify-between items-end">
+                <label className="text-xs font-semibold text-muted-foreground">Slippage tolerance</label>
+                <span className="text-xs text-white">{slippage}%</span>
+            </div>
+            <div className="relative">
+                <Input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="1"
+                    value={formatAmountInput(slippage.toString())}
+                    onChange={(e) => handleSlippageChange(e.target.value)}
+                    className="bg-white/5 border-0 text-white text-lg font-bold h-12 pl-4 pr-10 rounded-xl focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-white/10"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">%</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+                {SLIPPAGE_OPTIONS.map((option) => (
+                    <Button
+                        key={option}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSlippage(option)}
+                        className={`bg-white/5 border-0 text-xs hover:text-white hover:bg-white/10 h-9 rounded-lg ${
+                            slippage === option ? "text-white bg-white/10" : "text-muted-foreground"
+                        }`}
+                    >
+                        {option}%
+                    </Button>
+                ))}
+            </div>
+        </div>
+    );
 
     const openTrade = (tab: "buy" | "sell") => {
         setActiveTab(tab);
@@ -674,7 +734,6 @@ export default function TokenDetailClient() {
                                 <SheetTitle className="text-white font-bold">
                                     Trade {selectedToken.symbol}
                                 </SheetTitle>
-                                <SlippageSettings value={slippage} onChange={setSlippage} />
                             </div>
                         </SheetHeader>
 
@@ -707,10 +766,11 @@ export default function TokenDetailClient() {
 
                                         <div className="relative">
                                             <Input
-                                                type="number"
+                                                type="text"
+                                                inputMode="decimal"
                                                 placeholder="0.00"
-                                                value={amount}
-                                                onChange={(e) => setAmount(e.target.value)}
+                                                value={formatAmountInput(amount)}
+                                                onChange={(e) => handleAmountChange(e.target.value)}
                                                 className="bg-white/5 border-0 text-white text-lg font-bold h-12 pl-4 pr-14 rounded-xl focus:ring-1 focus:ring-green-500/30 transition-all placeholder:text-white/10"
                                             />
                                             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
@@ -734,6 +794,8 @@ export default function TokenDetailClient() {
                                             ))}
                                         </div>
                                     </div>
+
+                                    {renderSlippageControls()}
 
                                     {preview && (
                                         <div className="p-3.5 rounded-xl bg-white/[0.03] border-0 space-y-2">
@@ -803,10 +865,11 @@ export default function TokenDetailClient() {
 
                                         <div className="relative">
                                             <Input
-                                                type="number"
+                                                type="text"
+                                                inputMode="decimal"
                                                 placeholder="0"
-                                                value={amount}
-                                                onChange={(e) => setAmount(e.target.value)}
+                                                value={formatAmountInput(amount)}
+                                                onChange={(e) => handleAmountChange(e.target.value)}
                                                 className="bg-white/5 border-0 text-white text-lg font-bold h-12 pl-4 pr-14 rounded-xl focus:ring-1 focus:ring-red-500/30 transition-all placeholder:text-white/10"
                                             />
                                             {selectedToken.image && (
@@ -830,6 +893,8 @@ export default function TokenDetailClient() {
                                             ))}
                                         </div>
                                     </div>
+
+                                    {renderSlippageControls()}
 
                                     {preview && (
                                         <div className="p-3.5 rounded-xl bg-white/[0.03] border-0 space-y-2">

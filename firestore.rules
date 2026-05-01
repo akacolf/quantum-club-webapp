@@ -165,7 +165,11 @@ service cloud.firestore {
         // and sender check — rules enforce the key allow-list.
         allow update: if request.auth != null
           && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['reactions', 'poll', 'hiddenBy', 'text', 'encEpoch', 'editedAt']);
+              .hasOnly([
+                'reactions', 'poll', 'hiddenBy', 'text', 'encEpoch', 'editedAt',
+                'type', 'deletedForEveryone', 'deletedAt', 'encrypted', 'expiresAt',
+                'replyTo', 'forwarded', 'voice', 'file', 'transfer', 'nftShare', 'call'
+              ]);
         allow delete: if request.auth != null;
       }
     }

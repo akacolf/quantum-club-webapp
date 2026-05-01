@@ -57,6 +57,11 @@ export default function FileMessage({
   const isImage = file.mimeType.startsWith("image/");
   const isPdf = file.mimeType === "application/pdf";
 
+  useEffect(() => {
+    if (!chatId || (!isImage && !isPdf)) return;
+    router.prefetch(`/ecosystem/chat/${chatId}/media` as Route);
+  }, [chatId, isImage, isPdf, router]);
+
   // Lazy load images via IntersectionObserver
   useEffect(() => {
     if (!isImage || !containerRef.current) return;

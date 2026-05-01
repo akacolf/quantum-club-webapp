@@ -1835,13 +1835,6 @@ export default function ChatConversationClient() {
     if (!forwardMsgId || !telegramId) return;
     const msg = messages.find((m) => m.id === forwardMsgId);
     if (!msg) return;
-    // Only text messages can be forwarded — non-text types (voice, file, poll, transfer, nftShare) would lose their type
-    if (msg.type && msg.type !== "text") {
-      toast.error("Only text messages can be forwarded");
-      setShowForwardDialog(false);
-      setForwardMsgId(null);
-      return;
-    }
     setIsForwarding(true);
     try {
         // Fetch fresh destination chat data to get current epoch & participants
@@ -1864,6 +1857,14 @@ export default function ChatConversationClient() {
           encEpoch: destEpochCounter ?? 0,
           forwarded: { from: msg.senderName, originalChatId: chatId },
         };
+
+        if (msg.type && msg.type !== "text") fwdDoc.type = msg.type;
+        if (msg.poll) fwdDoc.poll = msg.poll;
+        if (msg.voice) fwdDoc.voice = msg.voice;
+        if (msg.file) fwdDoc.file = msg.file;
+        if (msg.transfer) fwdDoc.transfer = msg.transfer;
+        if (msg.nftShare) fwdDoc.nftShare = msg.nftShare;
+        if (msg.call) fwdDoc.call = msg.call;
 
         // If destination has disappearing messages, add expiresAt
         const destDisappear = freshDest.disappearAfter ?? destChat.disappearAfter;
@@ -2677,6 +2678,7 @@ export default function ChatConversationClient() {
                 const activeMsg = messages.find((m) => m.id === reactionPickerMsgId);
                 const isTextMessage = !activeMsg?.type || activeMsg.type === "text";
                 const canCopy = !!activeMsg && isTextMessage && !!activeMsg.text.trim();
+                const canForward = !!activeMsg && activeMsg.type !== "deleted" && activeMsg.text !== "You deleted this message";
                 const canDeleteForEveryone = activeMsg?.senderId === telegramId || chatMeta?.createdBy === telegramId;
                 const canEdit = !!activeMsg && canEditMessage(activeMsg);
 
@@ -2715,7 +2717,7 @@ export default function ChatConversationClient() {
                       </button>
                     )}
 
-                    {canCopy && (
+                    {canForward && (
                       <button
                         onClick={() => handleForwardStart(reactionPickerMsgId)}
                         className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
@@ -3016,7 +3018,7 @@ export default function ChatConversationClient() {
                       </div>
                     )}
 
-                    {msg.type === "deleted" ? (
+                    {msg.type === "deleted" || msg.text === "You deleted this message" ? (
                       <span className="inline-flex items-center gap-1.5 text-[13px] leading-[1.4] text-muted-foreground">
                         <Icon icon="proicons:delete" className="h-4 w-4 shrink-0" />
                         You deleted this message

@@ -84,7 +84,7 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
             </div>
 
             {/* Floating Buy/Sell Buttons */}
-            <div className="fixed bottom-24 left-0 right-0 px-4 pb-1 z-40">
+            <div className="fixed bottom-36 left-0 right-0 px-4 z-40">
                 <div className="flex gap-3 max-w-md mx-auto">
                     <Button
                         onClick={() => openTrade("buy")}

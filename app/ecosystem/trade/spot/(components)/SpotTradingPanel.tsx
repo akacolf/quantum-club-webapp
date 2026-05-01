@@ -23,6 +23,20 @@ import { dbfs } from "@/app/(firebase)/client";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import type { SpotToken } from "@/types/spot-trading";
 
+function normalizeAmountInput(value: string): string {
+    const sanitized = value.replace(/,/g, "").replace(/[^\d.]/g, "");
+    const [integer = "", ...decimalParts] = sanitized.split(".");
+    const decimal = decimalParts.join("");
+    return decimalParts.length > 0 ? `${integer}.${decimal}` : integer;
+}
+
+function formatAmountInput(value: string): string {
+    if (!value) return "";
+    const [integer = "", decimal] = value.split(".");
+    const formattedInteger = integer ? Number(integer).toLocaleString("en-US") : "";
+    return decimal !== undefined ? `${formattedInteger}.${decimal}` : formattedInteger;
+}
+
 interface SpotTradingPanelProps {
     token: SpotToken;
     open: boolean;
@@ -222,36 +236,19 @@ export default function SpotTradingPanel({ token, open, onOpenChange, initialTab
         }
     };
 
-    const buyPresets = ["1", "5", "10", "MAX"];
-    const sellPresets = ["25%", "50%", "75%", "MAX"];
+    const buyPresets = ["1", "5", "7", "10"];
+    const sellPresets = ["1", "5", "7", "10"];
     const quickAmounts = activeTab === "buy" ? buyPresets : sellPresets;
 
     const handlePreset = (value: string) => {
-        if (activeTab === "buy") {
-            if (value === "MAX") {
-                // Leave ~0.5 TON for gas
-                const max = Math.max(0, parseFloat(tonBalance || "0") - 0.5);
-                setAmount(max > 0 ? max.toString() : "");
-            } else {
-                setAmount(value);
-            }
-        } else {
-            const balance = parseFloat(userTokenBalance || "0");
-            if (value === "MAX") {
-                setAmount(balance > 0 ? balance.toString() : "");
-            } else {
-                const pct = parseInt(value) / 100;
-                const val = balance * pct;
-                setAmount(val > 0 ? val.toString() : "");
-            }
-        }
+        setAmount(value);
     };
 
     const isBusy = isExecuting || isBuilding;
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent side="bottom" className="bg-[#111] border-white/10 rounded-t-2xl px-4 pb-8 max-h-[85vh]">
+            <SheetContent side="bottom" className="bg-[#111] border-white/10 rounded-t-2xl px-4 pb-[calc(2rem+var(--tg-safe-area-inset-bottom,0px)+var(--tg-content-safe-area-inset-bottom,0px))] max-h-[85vh]">
                 <SheetHeader className="mb-4">
                     <SheetTitle className="text-white flex items-center gap-2">
                         Trade {token.symbol}
@@ -283,10 +280,11 @@ export default function SpotTradingPanel({ token, open, onOpenChange, initialTab
                                 </span>
                             </div>
                             <Input
-                                type="number"
+                                type="text"
+                                inputMode="decimal"
                                 placeholder="0.0"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
+                                value={formatAmountInput(amount)}
+                                onChange={(e) => setAmount(normalizeAmountInput(e.target.value))}
                                 className="bg-white/5 border-white/10 text-white text-lg h-12"
                             />
                             <div className="flex gap-2 mt-2">
@@ -298,7 +296,7 @@ export default function SpotTradingPanel({ token, open, onOpenChange, initialTab
                                         onClick={() => handlePreset(value)}
                                         className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
                                     >
-                                        {value === "MAX" ? "MAX" : `${value} TON`}
+                                        {activeTab === "buy" ? `${value} TON` : value}
                                     </Button>
                                 ))}
                             </div>
@@ -337,10 +335,11 @@ export default function SpotTradingPanel({ token, open, onOpenChange, initialTab
                                 </span>
                             </div>
                             <Input
-                                type="number"
+                                type="text"
+                                inputMode="decimal"
                                 placeholder="0.0"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
+                                value={formatAmountInput(amount)}
+                                onChange={(e) => setAmount(normalizeAmountInput(e.target.value))}
                                 className="bg-white/5 border-white/10 text-white text-lg h-12"
                             />
                             <div className="flex gap-2 mt-2">
@@ -409,7 +408,7 @@ function QuotePreview({
         <div className="p-3 rounded-xl bg-white/5 space-y-2">
             {displayReceive && (
                 <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">You Receive</span>
+                    <span className="text-muted-foreground">You receive</span>
                     <span className={`${isBuy ? "text-green-400" : "text-green-400"} font-semibold`}>
                         ~{parseFloat(displayReceive).toLocaleString()} {receiveSymbol}
                     </span>
