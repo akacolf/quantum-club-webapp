@@ -237,11 +237,19 @@ export default function SpotTradingPanel({ token, open, onOpenChange, initialTab
     };
 
     const buyPresets = ["1", "5", "7", "10"];
-    const sellPresets = ["1", "5", "7", "10"];
+    const sellPresets = ["25%", "50%", "75%", "100%"];
     const quickAmounts = activeTab === "buy" ? buyPresets : sellPresets;
 
     const handlePreset = (value: string) => {
-        setAmount(value);
+        if (activeTab === "buy") {
+            setAmount(value);
+            return;
+        }
+
+        const balance = parseFloat(userTokenBalance || "0");
+        const pct = parseInt(value, 10) / 100;
+        const val = balance * pct;
+        setAmount(val > 0 ? val.toString() : "");
     };
 
     const isBusy = isExecuting || isBuilding;

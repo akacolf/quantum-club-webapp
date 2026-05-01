@@ -261,7 +261,7 @@ export default function TokenDetailClient() {
     // Quick amount buttons - minimum buy is 0.15 TON, so start at 1 TON
     const quickAmounts = activeTab === "buy"
         ? ["1", "5", "7", "10"]
-        : ["25%", "50%", "75%", "MAX"];
+        : ["25%", "50%", "75%", "100%"];
 
     const handleQuickAmount = (value: string) => {
         if (activeTab === "buy") {
@@ -297,7 +297,6 @@ export default function TokenDetailClient() {
         <div className="space-y-3">
             <div className="flex justify-between items-end">
                 <label className="text-xs font-semibold text-muted-foreground">Slippage tolerance</label>
-                <span className="text-xs text-white">{slippage}%</span>
             </div>
             <div className="relative">
                 <Input

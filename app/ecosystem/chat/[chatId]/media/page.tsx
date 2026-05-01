@@ -42,6 +42,7 @@ export default function ChatMediaViewerPage() {
   const [numPages, setNumPages] = useState(0);
   const [pdfScale, setPdfScale] = useState(1);
   const [pageWidth, setPageWidth] = useState(360);
+  const [devicePixelRatio, setDevicePixelRatio] = useState(1);
 
   useEffect(() => {
     const viewerId = searchParams.get("viewerId");
@@ -66,7 +67,10 @@ export default function ChatMediaViewerPage() {
   }, [searchParams]);
 
   useEffect(() => {
-    const update = () => setPageWidth(Math.min(window.innerWidth - 24, 448));
+    const update = () => {
+      setPageWidth(Math.min(window.innerWidth - 24, 448));
+      setDevicePixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    };
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
@@ -136,7 +140,9 @@ export default function ChatMediaViewerPage() {
             <p className="text-sm">File unavailable</p>
           </div>
         ) : mediaQuery.isLoading || !mediaUrl ? (
-          <ButtonLoader size="lg" />
+          <div className="flex h-full min-h-[240px] w-full items-center justify-center">
+            <ButtonLoader size="lg" />
+          </div>
         ) : mediaQuery.isError ? (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Icon icon="solar:file-corrupted-bold" className="h-8 w-8" />
@@ -161,7 +167,7 @@ export default function ChatMediaViewerPage() {
             onContextMenu={(event) => event.preventDefault()}
             {...bindPdfPinch()}
           >
-            <div className="mx-auto flex w-full max-w-[448px] flex-col items-center">
+            <div className="mx-auto flex w-max min-w-full flex-col items-center">
               <Document
                 file={mediaUrl}
                 onLoadSuccess={({ numPages: pageCount }) => setNumPages(pageCount)}
@@ -177,7 +183,9 @@ export default function ChatMediaViewerPage() {
                   <Page
                     key={index}
                     pageNumber={index + 1}
-                    width={pageWidth * pdfScale}
+                    width={pageWidth}
+                    scale={pdfScale}
+                    devicePixelRatio={devicePixelRatio}
                     className="mb-3 overflow-hidden rounded-md shadow-lg"
                     renderTextLayer={false}
                     renderAnnotationLayer={false}
