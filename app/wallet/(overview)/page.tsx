@@ -87,6 +87,19 @@ const WALLET_SYMBOLS = [
   "solar:planet-bold",
 ];
 
+const WALLET_NAV_ITEMS: Array<{ label: string; description: string; icon: string; href: string | null; keywords: string[] }> = [
+  { label: "Stake", description: "Earn rewards on your TON", icon: "solar:layers-minimalistic-bold", href: "/wallet/staking", keywords: ["stake", "staking", "earn", "yield", "rewards"] },
+  { label: "Send", description: "Send tokens to any address", icon: "solar:arrow-up-bold", href: "/wallet/send", keywords: ["send", "transfer", "payment", "pay"] },
+  { label: "Receive", description: "Receive tokens", icon: "solar:arrow-down-bold", href: "/wallet/receive", keywords: ["receive", "deposit", "address", "qr"] },
+  { label: "Swap", description: "Exchange one token for another", icon: "solar:transfer-horizontal-bold", href: "/wallet/swap", keywords: ["swap", "exchange", "convert", "trade", "dex"] },
+  { label: "History", description: "View your transactions", icon: "solar:history-bold", href: "/wallet/history", keywords: ["history", "transactions", "activity", "past", "recent"] },
+  { label: "NFTs", description: "View your collectibles", icon: "solar:gallery-bold", href: null, keywords: ["nft", "collectibles", "collectible", "gallery"] },
+  { label: "Marketplace", description: "Buy and sell NFTs", icon: "solar:shop-2-bold", href: "/wallet/marketplace", keywords: ["marketplace", "buy", "sell", "market", "shop"] },
+  { label: "Analytics", description: "Portfolio performance", icon: "solar:chart-2-bold", href: "/wallet/analytics", keywords: ["analytics", "portfolio", "stats", "chart", "performance"] },
+  { label: "Settings", description: "Wallet preferences", icon: "solar:settings-bold", href: "/wallet/settings", keywords: ["settings", "preferences", "config", "security"] },
+  { label: "Backup", description: "Recovery phrase and wallet backup", icon: "solar:shield-keyhole-bold", href: "/wallet/backup", keywords: ["backup", "recovery", "phrase", "seed", "mnemonic"] },
+];
+
 // Format spendable amounts without overstating the displayed balance.
 const formatAmount = (value: number | string, decimals: number = 2): string => {
   return formatTruncatedAmount(value, decimals);
@@ -366,6 +379,14 @@ export default function WalletPage() {
     : nfts;
   const showTonAsset = !normalizedWalletSearch || ["ton", "toncoin"].some((value) => value.includes(normalizedWalletSearch));
   const tonAssetCount = (showTonAsset ? 1 : 0) + filteredJettons.length;
+  const matchedNavItems = normalizedWalletSearch
+    ? WALLET_NAV_ITEMS.filter(
+        (item) =>
+          item.label.toLowerCase().includes(normalizedWalletSearch) ||
+          item.description.toLowerCase().includes(normalizedWalletSearch) ||
+          item.keywords.some((k) => k.includes(normalizedWalletSearch)),
+      )
+    : [];
   const multiChainAssetCount = [btcAddress, ethAddress, solAddress, trxAddress].filter(Boolean).length;
   const btcAssetIndex = btcAddress ? 0 : -1;
   const ethAssetIndex = ethAddress ? [btcAddress].filter(Boolean).length : -1;
@@ -493,8 +514,9 @@ export default function WalletPage() {
       <input
         value={walletSearch}
         onChange={(event) => setWalletSearch(event.target.value)}
+        onKeyDown={(e) => { if (e.key === "Escape") setWalletSearch(""); }}
         placeholder="Search wallet..."
-        className="h-11 w-full rounded-full border-0 bg-secondary pl-10 pr-10 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
+        className="h-11 w-full rounded-full border-0 bg-secondary pl-10 pr-10 text-sm text-white outline-none placeholder:text-neutral-500"
       />
       {walletSearch ? (
         <button
@@ -505,6 +527,142 @@ export default function WalletPage() {
         >
           <Icon icon="lucide:x" className="h-4 w-4" />
         </button>
+      ) : null}
+
+      {/* Search results dropdown */}
+      {normalizedWalletSearch ? (
+        <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 max-h-[65vh] overflow-y-auto overflow-x-hidden rounded-2xl bg-[#0d0d0d] shadow-2xl">
+
+          {/* Pages */}
+          {matchedNavItems.length > 0 && (
+            <div>
+              <p className="px-4 pb-1 pt-3 text-[10px] font-semibold text-neutral-500">Pages</p>
+              {matchedNavItems.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5 active:bg-white/[0.08]"
+                  onClick={() => {
+                    if (item.href) {
+                      router.push(item.href as Parameters<typeof router.push>[0]);
+                    } else {
+                      setWalletTab("nfts");
+                    }
+                    setWalletSearch("");
+                  }}
+                >
+                  <Icon icon={item.icon} className="h-5 w-5 shrink-0 text-neutral-400" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white">{item.label}</p>
+                    <p className="truncate text-xs text-neutral-500">{item.description}</p>
+                  </div>
+                  <Icon icon="lucide:arrow-right" className="h-4 w-4 shrink-0 text-neutral-600" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Tokens */}
+          {(showTonAsset || filteredJettons.length > 0) && (
+            <div>
+              {matchedNavItems.length > 0 && <Separator className="bg-white/[0.06]" />}
+              <p className="px-4 pb-1 pt-3 text-[10px] font-semibold text-neutral-500">Tokens</p>
+
+              {showTonAsset && (
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5"
+                  onClick={() => {
+                    setSelectedAsset({ name: "Toncoin", symbol: "TON", balance: tonBalance, value: parseFloat(tonUsdValue) || 0, priceUsd: tonPrice, image: TON_ICON, color: CHART_COLORS[0] });
+                    setChartPeriod("1D");
+                    setWalletSearch("");
+                  }}
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0098ea]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" className="text-white"><path fill="currentColor" d="m20.661 7.22l-7.846 12.494a1.06 1.06 0 0 1-1.794-.006L3.328 7.214A2.2 2.2 0 0 1 3 6.05a2.29 2.29 0 0 1 2.324-2.255h13.362C19.963 3.794 21 4.8 21 6.044c0 .413-.116.82-.339 1.175M5.218 6.8l5.723 8.826V5.912H5.816c-.592 0-.857.392-.598.89m7.84 8.826L18.783 6.8c.265-.497-.006-.89-.599-.89H13.06z" /></svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white">TON</p>
+                    <p className="text-xs text-neutral-500">Toncoin</p>
+                  </div>
+                  <p className="shrink-0 text-sm font-semibold text-white">{hideBalance ? "••••" : formatAmount(tonBalance)}</p>
+                </button>
+              )}
+
+              {filteredJettons.slice(0, 5).map((jetton, index) => {
+                const formattedBalance = formatAmount(parseFloat(jetton.balance) / Math.pow(10, jetton.decimals), 4);
+                return (
+                  <button
+                    key={jetton.jettonAddress ?? `jetton-${index}`}
+                    type="button"
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5"
+                    onClick={() => {
+                      setSelectedAsset({ name: jetton.name, symbol: jetton.symbol, balance: formattedBalance, value: jetton.usdValue || 0, priceUsd: jetton.priceUsd || 0, image: jetton.image, color: CHART_COLORS[(index + 1) % CHART_COLORS.length], jettonAddress: jetton.jettonAddress });
+                      setChartPeriod("1D");
+                      setWalletSearch("");
+                    }}
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary">
+                      {jetton.image ? (
+                        <Image src={jetton.image} alt={jetton.symbol} width={36} height={36} className="h-full w-full object-cover" unoptimized />
+                      ) : (
+                        <span className="text-xs font-bold text-white">{jetton.symbol.slice(0, 2)}</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white">{jetton.symbol}</p>
+                      <p className="truncate text-xs text-neutral-500">{jetton.name}</p>
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Collectibles */}
+          {filteredNfts.length > 0 && (
+            <div>
+              {(matchedNavItems.length > 0 || showTonAsset || filteredJettons.length > 0) && <Separator className="bg-white/[0.06]" />}
+              <p className="px-4 pb-1 pt-3 text-[10px] font-semibold text-neutral-500">Collectibles</p>
+              {filteredNfts.slice(0, 3).map((nft) => (
+                <button
+                  key={nft.address}
+                  type="button"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5"
+                  onClick={() => {
+                    router.push(`/wallet/nft/${nft.address}`);
+                    setWalletSearch("");
+                  }}
+                >
+                  <div className="h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-secondary">
+                    {nft.image ? (
+                      <Image src={nft.image} alt={nft.name ?? ""} width={36} height={36} className="h-full w-full object-cover" unoptimized />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Icon icon="solar:gallery-bold" className="h-4 w-4 text-neutral-500" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-white">{nft.name ?? "Unknown NFT"}</p>
+                    <p className="truncate text-xs text-neutral-500">{nft.collectionName ?? "No collection"}</p>
+                  </div>
+                  <Icon icon="lucide:arrow-right" className="h-4 w-4 shrink-0 text-neutral-600" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* No results */}
+          {matchedNavItems.length === 0 && !showTonAsset && filteredJettons.length === 0 && filteredNfts.length === 0 && (
+            <div className="px-4 py-6 text-center">
+              <p className="text-sm text-neutral-500">No results for &ldquo;{walletSearch}&rdquo;</p>
+            </div>
+          )}
+
+          <div className="h-2" />
+        </div>
       ) : null}
     </div>
   );
@@ -577,12 +735,14 @@ export default function WalletPage() {
   return (
     <div className="min-h-screen">
       <div className="flex w-full flex-col items-center space-y-8">
+        <div className="w-full px-5 pt-7">
+          {walletSearchBar}
+        </div>
         <div
-          className="w-[90%]"
+          className="w-[90%] -mt-2"
         >
           <div className="relative overflow-hidden">
-            <div className="relative z-10 space-y-8 py-7">
-              {walletSearchBar}
+            <div className="relative z-10 space-y-8 pb-7">
 
               <div className="flex w-full items-center justify-center">
                 <div className="inline-flex h-9 min-w-0 items-center gap-1">
@@ -911,65 +1071,119 @@ export default function WalletPage() {
               </div>
             )}
 
-            {/* TON Jettons (virtualized) */}
+            {/* TON Jettons */}
             {filteredJettons.length > 0 && (
-              <div ref={jettonsContainerRef} className="relative w-full" style={{ height: `${jettonsVirtualizer.getTotalSize()}px` }}>
-                {jettonsVirtualizer.getVirtualItems().map((virtualItem) => {
-                  const index = virtualItem.index;
-                  const jetton = filteredJettons[index];
-                  const formattedBalance = formatAmount(parseFloat(jetton.balance) / Math.pow(10, jetton.decimals), 4);
-                  const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
-                  return (
-                    <div
-                      key={jetton.jettonAddress ?? `jetton-${index}`}
-                      className="absolute top-0 left-0 w-full"
-                      style={{ transform: `translateY(${virtualItem.start - (jettonsVirtualizer.options.scrollMargin ?? 0)}px)` }}
-                      ref={jettonsVirtualizer.measureElement}
-                      data-index={virtualItem.index}
-                    >
-                      <Card
-                        className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
-                        onClick={() => {
-                          setSelectedAsset({
-                            name: jetton.name,
-                            symbol: jetton.symbol,
-                            balance: formattedBalance,
-                            value: jetton.usdValue || 0,
-                            priceUsd: jetton.priceUsd || 0,
-                            image: jetton.image,
-                            color: CHART_COLORS[(index + 1) % CHART_COLORS.length],
-                            jettonAddress: jetton.jettonAddress,
-                          }); setChartPeriod('1D');
-                        }}
+              normalizedWalletSearch ? (
+                // Non-virtualized when search active — virtualizer skips off-screen containers
+                <div ref={jettonsContainerRef} className="w-full">
+                  {filteredJettons.map((jetton, index) => {
+                    const formattedBalance = formatAmount(parseFloat(jetton.balance) / Math.pow(10, jetton.decimals), 4);
+                    const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
+                    return (
+                      <div key={jetton.jettonAddress ?? `jetton-${index}`}>
+                        <Card
+                          className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
+                          onClick={() => {
+                            setSelectedAsset({
+                              name: jetton.name,
+                              symbol: jetton.symbol,
+                              balance: formattedBalance,
+                              value: jetton.usdValue || 0,
+                              priceUsd: jetton.priceUsd || 0,
+                              image: jetton.image,
+                              color: CHART_COLORS[(index + 1) % CHART_COLORS.length],
+                              jettonAddress: jetton.jettonAddress,
+                            }); setChartPeriod('1D');
+                          }}
+                        >
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center overflow-hidden border-0">
+                                {jetton.image ? (
+                                  <Image src={jetton.image} alt={jetton.symbol} width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                                ) : (
+                                  <span className="text-white text-xs font-bold">{jetton.symbol.slice(0, 2)}</span>
+                                )}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-white">{jetton.symbol}</h4>
+                                <p className="text-xs text-neutral-500 truncate max-w-[120px]">{jetton.name}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-right min-w-[80px]">
+                                <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</h4>
+                                <p className="text-xs text-neutral-500">{hideBalance ? "••••" : usdDisplay}</p>
+                              </div>
+                              <Icon icon="lucide:chevron-right" className="w-4 h-4 text-neutral-500"/>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        {index < filteredJettons.length - 1 ? <Separator /> : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                // Virtualized for full list
+                <div ref={jettonsContainerRef} className="relative w-full" style={{ height: `${jettonsVirtualizer.getTotalSize()}px` }}>
+                  {jettonsVirtualizer.getVirtualItems().map((virtualItem) => {
+                    const index = virtualItem.index;
+                    const jetton = filteredJettons[index];
+                    const formattedBalance = formatAmount(parseFloat(jetton.balance) / Math.pow(10, jetton.decimals), 4);
+                    const usdDisplay = jetton.usdValue && jetton.usdValue > 0 ? `$${jetton.usdValue.toFixed(2)}` : "~";
+                    return (
+                      <div
+                        key={jetton.jettonAddress ?? `jetton-${index}`}
+                        className="absolute top-0 left-0 w-full"
+                        style={{ transform: `translateY(${virtualItem.start - (jettonsVirtualizer.options.scrollMargin ?? 0)}px)` }}
+                        ref={jettonsVirtualizer.measureElement}
+                        data-index={virtualItem.index}
                       >
-                        <CardContent className="p-4 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center overflow-hidden border-0">
-                              {jetton.image ? (
-                                <Image src={jetton.image} alt={jetton.symbol} width={40} height={40} className="w-full h-full object-cover" unoptimized />
-                              ) : (
-                                <span className="text-white text-xs font-bold">{jetton.symbol.slice(0, 2)}</span>
-                              )}
+                        <Card
+                          className="w-full bg-transparent border-0 rounded-none shadow-none hover:bg-secondary/60 transition-colors cursor-pointer active:scale-[0.99]"
+                          onClick={() => {
+                            setSelectedAsset({
+                              name: jetton.name,
+                              symbol: jetton.symbol,
+                              balance: formattedBalance,
+                              value: jetton.usdValue || 0,
+                              priceUsd: jetton.priceUsd || 0,
+                              image: jetton.image,
+                              color: CHART_COLORS[(index + 1) % CHART_COLORS.length],
+                              jettonAddress: jetton.jettonAddress,
+                            }); setChartPeriod('1D');
+                          }}
+                        >
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center overflow-hidden border-0">
+                                {jetton.image ? (
+                                  <Image src={jetton.image} alt={jetton.symbol} width={40} height={40} className="w-full h-full object-cover" unoptimized />
+                                ) : (
+                                  <span className="text-white text-xs font-bold">{jetton.symbol.slice(0, 2)}</span>
+                                )}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-white">{jetton.symbol}</h4>
+                                <p className="text-xs text-neutral-500 truncate max-w-[120px]">{jetton.name}</p>
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="font-bold text-white">{jetton.symbol}</h4>
-                              <p className="text-xs text-neutral-500 truncate max-w-[120px]">{jetton.name}</p>
+                            <div className="flex items-center gap-2">
+                              <div className="text-right min-w-[80px]">
+                                <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</h4>
+                                <p className="text-xs text-neutral-500">{hideBalance ? "••••" : usdDisplay}</p>
+                              </div>
+                              <Icon icon="lucide:chevron-right" className="w-4 h-4 text-neutral-500"/>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-right min-w-[80px]">
-                              <h4 className="font-bold text-white">{hideBalance ? "••••" : formatAmount(parseFloat(formattedBalance))}</h4>
-                              <p className="text-xs text-neutral-500">{hideBalance ? "••••" : usdDisplay}</p>
-                            </div>
-                            <Icon icon="lucide:chevron-right" className="w-4 h-4 text-neutral-500"/>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      {index < filteredJettons.length - 1 ? <Separator /> : null}
-                    </div>
-                  );
-                })}
-              </div>
+                          </CardContent>
+                        </Card>
+                        {index < filteredJettons.length - 1 ? <Separator /> : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              )
             )}
               </div>
             ) : null}
