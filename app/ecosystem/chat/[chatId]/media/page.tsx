@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useParams, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { Document, Page, pdfjs } from "react-pdf";
-import { usePinch } from "@use-gesture/react";
+import { useDrag, usePinch } from "@use-gesture/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useDecryptedMedia } from "@/app/(hooks)/queries/use-decrypted-media";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -41,8 +41,10 @@ export default function ChatMediaViewerPage() {
   const [missing, setMissing] = useState(false);
   const [numPages, setNumPages] = useState(0);
   const [pdfScale, setPdfScale] = useState(1);
+  const [imageScale, setImageScale] = useState(1);
   const [pageWidth, setPageWidth] = useState(360);
   const [devicePixelRatio, setDevicePixelRatio] = useState(1);
+  const imageScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const viewerId = searchParams.get("viewerId");
@@ -98,10 +100,37 @@ export default function ChatMediaViewerPage() {
     eventOptions: { passive: false },
   });
 
+  const bindImagePinch = usePinch(({ offset: [scale], event }) => {
+    event?.preventDefault();
+    setImageScale(Math.min(4, Math.max(1, scale)));
+  }, {
+    scaleBounds: { min: 1, max: 4 },
+    from: () => [imageScale, 0],
+    eventOptions: { passive: false },
+  });
+
+  const bindImageDrag = useDrag(({ first, movement: [mx, my], memo }) => {
+    const container = imageScrollRef.current;
+    if (!container || imageScale <= 1) return memo;
+    if (first) {
+      return { left: container.scrollLeft, top: container.scrollTop };
+    }
+    const start = memo ?? { left: container.scrollLeft, top: container.scrollTop };
+    container.scrollLeft = start.left - mx;
+    container.scrollTop = start.top - my;
+    return start;
+  }, { pointer: { touch: true } });
+
   const file = payload?.file;
   const mediaUrl = mediaQuery.data;
   const isImage = !!file?.mimeType.startsWith("image/");
   const isPdf = file?.mimeType === "application/pdf";
+  const imageNaturalWidth = file?.width ?? 1200;
+  const imageNaturalHeight = file?.height ?? 1200;
+  const imageBaseWidth = Math.min(pageWidth, imageNaturalWidth);
+  const imageDisplayWidth = Math.round(imageBaseWidth * imageScale);
+  const imageDisplayHeight = Math.round(imageDisplayWidth * (imageNaturalHeight / imageNaturalWidth));
+  const canZoom = isPdf || isImage;
 
   return (
     <div className="fixed inset-0 z-[80] flex flex-col bg-background text-foreground">
@@ -110,20 +139,24 @@ export default function ChatMediaViewerPage() {
         style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
       >
         <p className="min-w-0 flex-1 truncate text-sm font-medium">{file?.name ?? "File"}</p>
-        {isPdf && (
+        {canZoom && (
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => setPdfScale((scale) => Math.max(0.5, scale - 0.25))}
+              onClick={() => isPdf
+                ? setPdfScale((scale) => Math.max(0.5, scale - 0.25))
+                : setImageScale((scale) => Math.max(1, scale - 0.25))}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary"
               aria-label="Zoom out"
             >
               <Icon icon="lucide:minus" className="h-3.5 w-3.5" />
             </button>
             <span className="w-8 text-center text-[10px] text-muted-foreground tabular-nums">
-              {Math.round(pdfScale * 100)}%
+              {Math.round((isPdf ? pdfScale : imageScale) * 100)}%
             </span>
             <button
-              onClick={() => setPdfScale((scale) => Math.min(3, scale + 0.25))}
+              onClick={() => isPdf
+                ? setPdfScale((scale) => Math.min(3, scale + 0.25))
+                : setImageScale((scale) => Math.min(4, scale + 0.25))}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary"
               aria-label="Zoom in"
             >
@@ -133,7 +166,7 @@ export default function ChatMediaViewerPage() {
         )}
       </div>
 
-      <main className={isPdf ? "min-h-0 flex-1 overflow-hidden" : "flex min-h-0 flex-1 items-center justify-center overflow-auto px-3 py-4"}>
+      <main className={isPdf || isImage ? "min-h-0 flex-1 overflow-hidden" : "flex min-h-0 flex-1 items-center justify-center overflow-auto px-3 py-4"}>
         {missing ? (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Icon icon="solar:file-corrupted-bold" className="h-8 w-8" />
@@ -149,17 +182,28 @@ export default function ChatMediaViewerPage() {
             <p className="text-sm">Could not load file</p>
           </div>
         ) : isImage && file ? (
-          <Image
-            src={mediaUrl}
-            alt={file.name}
-            width={file.width ?? 1200}
-            height={file.height ?? 1200}
-            unoptimized
-            className="max-h-full max-w-full select-none rounded-lg object-contain"
-            style={file.width && file.height ? { aspectRatio: `${file.width} / ${file.height}` } : undefined}
-            draggable={false}
+          <div
+            ref={imageScrollRef}
+            className="h-full w-full overflow-auto bg-black px-3 py-4"
+            style={{ touchAction: imageScale > 1 ? "none" : "pan-x pan-y" }}
             onContextMenu={(event) => event.preventDefault()}
-          />
+            {...bindImagePinch()}
+            {...bindImageDrag()}
+          >
+            <div className="mx-auto flex min-h-full w-max min-w-full items-center justify-center">
+              <Image
+                src={mediaUrl}
+                alt={file.name}
+                width={imageDisplayWidth}
+                height={imageDisplayHeight}
+                unoptimized
+                className="select-none rounded-lg object-contain"
+                style={{ width: imageDisplayWidth, height: "auto" }}
+                draggable={false}
+                onContextMenu={(event) => event.preventDefault()}
+              />
+            </div>
+          </div>
         ) : isPdf ? (
           <div
             className="h-full w-full overflow-auto bg-neutral-200 px-3 py-4"
