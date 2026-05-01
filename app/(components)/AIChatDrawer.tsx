@@ -390,7 +390,7 @@ export default function AIChatDrawer() {
 
     // Create a new chat session
     function handleNewChat() {
-        const newSession = createChatSession("New Chat");
+        const newSession = createChatSession("New chat");
         setSessions((prev) => [newSession, ...prev]);
         setCurrentSessionId(newSession.id);
         setMessages([]);
@@ -432,7 +432,7 @@ export default function AIChatDrawer() {
         setSessions((prev) => {
             const updated = prev.map((session) =>
                 session.id === currentSessionId
-                    ? { ...session, messages: [], title: "New Chat", updatedAt: new Date().toISOString() }
+                    ? { ...session, messages: [], title: "New chat", updatedAt: new Date().toISOString() }
                     : session
             );
             localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(updated));
@@ -470,10 +470,10 @@ export default function AIChatDrawer() {
             sessionId = newSession.id;
         }
 
-        // Update title if still "New Chat"
+        // Update title if still "New chat"
         setSessions((prev) =>
             prev.map((s) =>
-                s.id === sessionId && s.title === "New Chat"
+                (s.id === sessionId && (s.title === "New Chat" || s.title === "New chat"))
                     ? { ...s, title: messageText.slice(0, 30) + (messageText.length > 30 ? "..." : "") }
                     : s
             )
@@ -564,7 +564,7 @@ export default function AIChatDrawer() {
                                     )}
                                     <div>
                                         <h2 className="font-bold text-foreground text-base">
-                                            {viewMode === "history" ? "Chat History" : "Quantum Club AI"}
+                                            {viewMode === "history" ? "Chat history" : "Quantum Club AI"}
                                         </h2>
                                         <p className="text-xs text-muted-foreground">
                                             {viewMode === "history"
@@ -641,7 +641,7 @@ export default function AIChatDrawer() {
                                                 <h3 className="text-lg font-semibold text-foreground mb-2">No conversations yet</h3>
                                                 <p className="text-sm text-muted-foreground mb-4">Start a new chat to begin</p>
                                                 <Button onClick={handleNewChat}>
-                                                    <Icon icon="lucide:plus" className="w-4 h-4 mr-2" /> New Chat
+                                                    <Icon icon="lucide:plus" className="w-4 h-4 mr-2" /> New chat
                                                 </Button>
                                             </div>
                                         ) : (

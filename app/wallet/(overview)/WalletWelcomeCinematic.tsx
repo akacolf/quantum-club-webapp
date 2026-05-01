@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Image from "next/image";
 
 const CHAINS = [
@@ -11,17 +12,26 @@ const CHAINS = [
 ];
 
 export default function WalletWelcomeCinematic() {
-  const marqueeChains = [...CHAINS, ...CHAINS, ...CHAINS];
+  const marqueeChains = [...CHAINS, ...CHAINS, ...CHAINS, ...CHAINS];
 
   return (
-    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden pb-4 pt-2">
-      <div className="flex w-max items-center qc-chain-marquee">
+    <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden py-2">
+      <motion.div
+        className="flex w-max items-center will-change-transform"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{
+          duration: 46,
+          ease: "linear",
+          repeat: Infinity,
+          repeatType: "loop",
+        }}
+      >
         {[0, 1].map((group) => (
-          <div key={group} className="flex shrink-0 items-center gap-12 pr-12">
+          <div key={group} className="flex shrink-0 items-center gap-14 px-[5vw]">
             {marqueeChains.map((chain, index) => (
               <div
                 key={`${chain.name}-${group}-${index}`}
-                className="flex h-12 shrink-0 items-center gap-3"
+                className="flex h-12 shrink-0 items-center gap-3.5"
               >
                 <Image
                   src={chain.icon}
@@ -38,7 +48,7 @@ export default function WalletWelcomeCinematic() {
             ))}
           </div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }

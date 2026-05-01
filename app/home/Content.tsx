@@ -178,6 +178,9 @@ const PROMPT_SUGGESTIONS = [
   "What is Quantum Club?",
   "Tell me about QC's ecosystem",
 ];
+const SESSION_GREETING_INDEX_KEY = "qc_session_greeting_idx";
+const SESSION_TIME_GREETING_KEY = "qc_session_time_greeting";
+const LAST_GREETING_INDEX_KEY = "qc_last_greeting_idx";
 
 function getTimeGreeting() {
   const hour = new Date().getHours();
@@ -186,10 +189,10 @@ function getTimeGreeting() {
   return "Evening";
 }
 
-function getGreetingPairs() {
+function getGreetingPairs(timeGreeting = getTimeGreeting()) {
   return [
     ...BASE_GREETING_PAIRS,
-    { greeting: getTimeGreeting(), subtext: "What would you like to do today?" },
+    { greeting: timeGreeting, subtext: "What would you like to do today?" },
   ];
 }
 
@@ -294,13 +297,21 @@ const HomeContent = () => {
   const { walletAddress, totalUsdBalance, isLoadingAssets, hideBalance, toggleHideBalance } = useWallet();
   const [greetingIndex] = useState(() => {
     if (typeof window === "undefined") return 0;
-    const pairs = getGreetingPairs();
-    const lastIndex = parseInt(sessionStorage.getItem("qc_last_greeting_idx") ?? "-1", 10);
+    const storedTimeGreeting = sessionStorage.getItem(SESSION_TIME_GREETING_KEY) ?? getTimeGreeting();
+    const pairs = getGreetingPairs(storedTimeGreeting);
+    const sessionIndex = parseInt(sessionStorage.getItem(SESSION_GREETING_INDEX_KEY) ?? "", 10);
+    if (!Number.isNaN(sessionIndex) && sessionIndex >= 0 && sessionIndex < pairs.length) {
+      return sessionIndex;
+    }
+
+    const lastIndex = parseInt(localStorage.getItem(LAST_GREETING_INDEX_KEY) ?? "-1", 10);
     let idx: number;
     do {
       idx = Math.floor(Math.random() * pairs.length);
     } while (idx === lastIndex && pairs.length > 1);
-    sessionStorage.setItem("qc_last_greeting_idx", String(idx));
+    sessionStorage.setItem(SESSION_GREETING_INDEX_KEY, String(idx));
+    sessionStorage.setItem(SESSION_TIME_GREETING_KEY, pairs[idx]?.greeting ?? storedTimeGreeting);
+    localStorage.setItem(LAST_GREETING_INDEX_KEY, String(idx));
     return idx;
   });
 
@@ -312,7 +323,10 @@ const HomeContent = () => {
     return tgUser?.first_name || username || "Quantum User";
   })();
 
-  const greetingPairs = mounted ? getGreetingPairs() : BASE_GREETING_PAIRS;
+  const sessionTimeGreeting = mounted
+    ? sessionStorage.getItem(SESSION_TIME_GREETING_KEY) ?? getTimeGreeting()
+    : getTimeGreeting();
+  const greetingPairs = mounted ? getGreetingPairs(sessionTimeGreeting) : BASE_GREETING_PAIRS;
   const greeting = greetingPairs[greetingIndex] ?? greetingPairs[0];
   const greetingText = greeting.greeting;
   const subtext = greeting.subtext;

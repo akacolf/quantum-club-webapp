@@ -13,7 +13,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { FieldError } from "@/components/ui/field";
 import { usernameSchema, USERNAME_MAX_LENGTH, chatDmSchema, chatGroupSchema, chatJoinSchema, GROUP_CATEGORIES, type GroupCategory } from "@/lib/validations";
@@ -909,13 +908,13 @@ export default function QCChatListPage() {
       <div className="px-4 pt-4 pb-3 shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/30">
-              <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={24} height={24} />
+            <div className="w-9 h-9 rounded-full flex items-center justify-center">
+              <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={36} height={36} />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <h1 className="text-lg font-bold leading-tight">QC Chat</h1>
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-semibold rounded-md">
+                <Badge className="border-0 bg-transparent px-0 py-0 text-[9px] font-semibold text-yellow-400 shadow-none hover:bg-transparent">
                   Beta
                 </Badge>
               </div>
@@ -1042,7 +1041,7 @@ export default function QCChatListPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search conversations..."
-            className="pl-9 h-9 rounded-xl bg-muted/50 border-border/50 text-sm"
+            className="pl-9 h-9 rounded-xl bg-secondary border-0 text-sm"
           />
         </div>
 
@@ -1065,7 +1064,7 @@ export default function QCChatListPage() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {mode === "dm" ? "New Chat" : mode === "group" ? "Create Group" : "Join Group"}
+                  {mode === "dm" ? "New chat" : mode === "group" ? "Create group" : "Join group"}
                 </button>
               ))}
             </div>
@@ -1218,7 +1217,7 @@ export default function QCChatListPage() {
                   size="sm"
                   className="h-9 w-full rounded-lg"
                 >
-                  {isStartingChat ? <ButtonLoader size="sm" /> : "Create Group"}
+                  {isStartingChat ? <ButtonLoader size="sm" /> : "Create group"}
                 </Button>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   Discoverable groups appear in the Discover tab. Private groups can only be joined with the 6-character code.
@@ -1279,11 +1278,9 @@ export default function QCChatListPage() {
         )}
       </div>
 
-      <Separator className="opacity-50" />
-
       {/* Tab switcher */}
       <div className="px-4 pt-2 pb-1 shrink-0">
-        <div className="flex gap-1 p-0.5 rounded-lg bg-muted/40">
+        <div className="flex gap-1 p-0.5 rounded-lg bg-secondary">
           {(["chats", "discover"] as const).map((t) => {
             const active = tab === t;
             return (
@@ -1301,7 +1298,7 @@ export default function QCChatListPage() {
                   icon={t === "chats" ? "solar:chat-round-line-bold" : "solar:compass-bold"}
                   className="w-3.5 h-3.5"
                 />
-                {t === "chats" ? "My Chats" : "Discover"}
+                {t === "chats" ? "My chats" : "Discover"}
               </button>
             );
           })}
@@ -1315,7 +1312,7 @@ export default function QCChatListPage() {
             <>
               {/* Discover sub-tabs: Groups | Broadcasts */}
               <div className="px-4 pt-2 pb-1 shrink-0">
-                <div className="flex gap-1 p-0.5 rounded-lg bg-muted/30">
+                <div className="flex gap-1 p-0.5 rounded-lg bg-secondary">
                   {(["groups", "broadcasts"] as const).map((t) => {
                     const active = discoverTab === t;
                     return (

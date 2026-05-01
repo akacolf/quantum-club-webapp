@@ -182,7 +182,7 @@ const NavigationBar = () => {
         {/* Animated pill indicator */}
         <div
           ref={pillRef}
-          className="absolute left-0 top-2 h-[calc(100%-16px)] rounded-full bg-white/10 pointer-events-none will-change-transform"
+          className="absolute left-0 top-1 h-[calc(100%-8px)] rounded-full bg-white/10 pointer-events-none will-change-transform"
           aria-hidden
         />
 

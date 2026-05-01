@@ -2294,7 +2294,7 @@ export default function ChatConversationClient() {
       `}</style>
       {/* Chat Header */}
       <div
-        className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0"
+        className="flex items-center gap-3 px-4 pb-4 pt-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0"
         style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
       >
         <div className="relative shrink-0">
@@ -2355,15 +2355,24 @@ export default function ChatConversationClient() {
               <Icon icon="lucide:timer" className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 leading-4">
             {!chatMeta ? (
               <Skeleton className="h-3 w-16 rounded" />
+            ) : isGroupChat && subtitle.text.endsWith("Encrypted") ? (
+              <>
+                <span className={`text-[11px] ${subtitle.color} leading-4 truncate`}>
+                  {subtitle.text.replace(" · Encrypted", "")}
+                </span>
+                <span className="text-[11px] text-green-400 leading-4">·</span>
+                <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
+                <span className="text-[11px] text-green-400 leading-4">Encrypted</span>
+              </>
             ) : (
               <>
                 {subtitle.color === "text-green-400" && typingUsers.length === 0 && (
                   <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
                 )}
-                <span className={`text-[11px] ${subtitle.color} leading-none truncate`}>
+                <span className={`text-[11px] ${subtitle.color} leading-4 truncate`}>
                   {subtitle.text}
                 </span>
               </>
