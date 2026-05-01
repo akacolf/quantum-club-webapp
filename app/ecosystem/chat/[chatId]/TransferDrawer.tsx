@@ -12,7 +12,6 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerDescription,
 } from "@/components/ui/drawer";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { toNano, Address } from "@ton/core";
@@ -27,6 +26,7 @@ import {
 } from "@/lib/jetton-operations";
 import type { JettonBalance } from "@/stores/wallet-store";
 import { cn } from "@/lib/utils";
+import { formatTruncatedAmount } from "@/lib/format";
 
 type SelectedAsset =
   | { type: "ton" }
@@ -93,8 +93,11 @@ export default function TransferDrawer({
   // Reset form + asset when drawer opens
   useEffect(() => {
     if (open) {
-      form.reset();
-      setSelectedAsset({ type: "ton" });
+      const timer = window.setTimeout(() => {
+        form.reset();
+        setSelectedAsset({ type: "ton" });
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [open]);
 
@@ -110,8 +113,8 @@ export default function TransferDrawer({
   const assetBalance = isJetton
     ? humanBalance(selectedAsset.data)
     : parseFloat(tonBalance) || 0;
-  const FEE_RESERVE = isJetton ? 0 : 0.05;
-  const maxSendable = Math.max(0, assetBalance - FEE_RESERVE);
+  const TON_GAS_RESERVE = 0.05;
+  const maxSendable = Math.max(0, assetBalance);
   const numericAmount = parseFloat(amount) || 0;
   const pricePerUnit = isJetton ? (selectedAsset.data.priceUsd ?? 0) : tonPrice;
   const usdValue = numericAmount * pricePerUnit;
@@ -142,14 +145,27 @@ export default function TransferDrawer({
     try {
       if (!isJetton) {
         // --- TON path (original flow) ---
+        const requestedTon = parseFloat(amount);
+        const tonValueToSend = requestedTon >= assetBalance
+          ? Math.max(0, assetBalance - TON_GAS_RESERVE)
+          : requestedTon;
+
+        if (tonValueToSend <= 0) {
+          throw new Error("Insufficient TON for network fee");
+        }
+
         const result = await sendTransaction({
           to: resolvedAddress,
-          value: toNano(amount).toString(),
+          value: toNano(tonValueToSend.toFixed(9)).toString(),
         });
 
         if (result.success && result.txHash) {
           haptics.success();
-          onSend({ amount, txHash: result.txHash, recipientAddress: resolvedAddress });
+          onSend({
+            amount: formatTruncatedAmount(tonValueToSend, 9).replace(/\.?0+$/, ""),
+            txHash: result.txHash,
+            recipientAddress: resolvedAddress,
+          });
           form.reset();
           onOpenChange(false);
           return;
@@ -247,8 +263,8 @@ export default function TransferDrawer({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors shrink-0",
-        isSelected ? "border-primary bg-primary/10" : "border-border/60 hover:bg-muted/50",
+        "flex items-center gap-2 px-3 py-2 rounded-xl border-0 transition-colors shrink-0 focus:outline-none focus-visible:ring-0",
+        isSelected ? "bg-white/15" : "bg-secondary hover:bg-secondary/80",
       )}
     >
       {image ? (
@@ -274,7 +290,7 @@ export default function TransferDrawer({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
-        <div className="mx-auto w-full max-w-md px-4 pb-6">
+        <div className="mx-auto w-full max-w-md px-4 pb-[calc(2rem+var(--tg-safe-area-inset-bottom,0px)+var(--tg-content-safe-area-inset-bottom,0px))]">
           <DrawerHeader className="px-0">
             <DrawerTitle className="text-base flex items-center gap-2">
               {assetImage ? (
@@ -282,9 +298,6 @@ export default function TransferDrawer({
               ) : null}
               Send {assetSymbol}
             </DrawerTitle>
-            <DrawerDescription className="text-xs">
-              Send {assetSymbol} directly in chat
-            </DrawerDescription>
           </DrawerHeader>
 
           <div className="space-y-4">
@@ -294,7 +307,7 @@ export default function TransferDrawer({
                 {renderAssetChip(
                   "ton",
                   "TON",
-                  Number(tonBalance).toFixed(2),
+                  formatTruncatedAmount(tonBalance, 2),
                   "/svg/ton-logo.svg",
                   !isJetton,
                   () => handleSelectAsset({ type: "ton" }),
@@ -303,7 +316,7 @@ export default function TransferDrawer({
                   renderAssetChip(
                     j.jettonAddress || j.symbol,
                     j.symbol,
-                    humanBalance(j).toLocaleString("en-US", { maximumFractionDigits: 2 }),
+                    formatTruncatedAmount(humanBalance(j), 2),
                     j.image,
                     isJetton && selectedAsset.data.jettonAddress === j.jettonAddress,
                     () => handleSelectAsset({ type: "jetton", data: j }),
@@ -314,7 +327,7 @@ export default function TransferDrawer({
 
             {/* Recipient */}
             <div className="rounded-xl bg-muted/50 p-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">To</p>
+              <p className="text-[10px] text-muted-foreground mb-1">To</p>
               <p className="text-sm font-medium">@{recipientName}</p>
               {recipientAddress ? (
                 <p className="text-[11px] text-muted-foreground font-mono">{truncatedAddress}</p>
@@ -347,12 +360,12 @@ export default function TransferDrawer({
               {(field) => (
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Amount</p>
+                    <p className="text-[10px] text-muted-foreground">Amount</p>
                     <button
                       onClick={handleMax}
                       className="text-[10px] text-primary font-semibold hover:underline"
                     >
-                      MAX ({maxSendable.toLocaleString("en-US", { maximumFractionDigits: 4 })} {assetSymbol})
+                      Max ({formatTruncatedAmount(maxSendable, 4)} {assetSymbol})
                     </button>
                   </div>
                   <div className="relative">
@@ -379,6 +392,11 @@ export default function TransferDrawer({
                   {numericAmount > maxSendable && numericAmount > 0 && (
                     <p className="text-[11px] text-red-500 mt-1">
                       Insufficient balance
+                    </p>
+                  )}
+                  {!isJetton && numericAmount >= assetBalance && assetBalance > 0 && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Network fee is deducted when sending your full TON balance.
                     </p>
                   )}
                   {field.state.meta.errors.length > 0 && (

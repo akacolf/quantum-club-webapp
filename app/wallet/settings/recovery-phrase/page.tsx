@@ -1,11 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
@@ -23,23 +21,28 @@ export default function ViewRecoveryPhrasePage() {
   const [isRevealed, setIsRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const {telegramId}  = useUserContext();
+  const { telegramId, _hasHydrated } = useUserContext();
   // Biometric authentication hook
   const { isOpen: isAuthOpen, requestAuth, handleSuccess: handleAuthSuccess, handleCancel: handleAuthCancel } = useBiometricAuth();
 
   useEffect(() => {
-    // Only load mnemonic after authorization
-    if (isAuthorized) {
-      getSecureMnemonic(telegramId).then((storedMnemonic) => {
-        if (!storedMnemonic) {
-          toast.error("No wallet found");
-          router.push("/wallet/settings");
-          return;
-        }
-        setMnemonic(storedMnemonic.split(" "));
-      });
+    if (!isAuthorized || !_hasHydrated) return;
+
+    if (!telegramId) {
+      toast.error("No wallet found");
+      router.push("/wallet/settings");
+      return;
     }
-  }, [router, isAuthorized, telegramId]);
+
+    getSecureMnemonic(telegramId).then((storedMnemonic) => {
+      if (!storedMnemonic) {
+        toast.error("No wallet found");
+        router.push("/wallet/settings");
+        return;
+      }
+      setMnemonic(storedMnemonic.split(" "));
+    });
+  }, [router, isAuthorized, telegramId, _hasHydrated]);
 
   // Request auth on mount
   useEffect(() => {
@@ -98,41 +101,28 @@ export default function ViewRecoveryPhrasePage() {
       />
 
       <div className="max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="space-y-6"
         >
           {/* Header */}
           <div className="text-center space-y-3">
-            <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-              <Icon icon="lucide:shield-alert" className="w-7 h-7 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold">Recovery Phrase</h1>
+            <Icon icon="lucide:shield-alert" className="mx-auto w-8 h-8 text-primary" />
+            <h1 className="text-2xl font-bold">Recovery phrase</h1>
             <p className="text-muted-foreground text-sm max-w-xs mx-auto">
               This is the only way to recover your wallet. Keep it safe and never share it.
             </p>
           </div>
 
-          {/* Warning */}
-          <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4">
-            <p className="text-xs text-destructive leading-relaxed text-center">
-              <strong>Warning:</strong> Anyone with this phrase can access your wallet. Never share it with anyone, including Quantum Club support.
-            </p>
-          </div>
-
           {/* Mnemonic Grid */}
           <div className="relative">
-            <ScrollArea className="h-64 rounded-xl border border-border bg-card">
-              <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 transition-all duration-500 ${!isRevealed ? 'blur-md select-none opacity-50' : 'opacity-100'}`}>
-                {mnemonic.map((word, i) => (
-                  <div key={i} className="flex items-center space-x-2 bg-muted border border-border rounded-lg px-3 py-2.5">
-                    <span className="text-[10px] font-mono text-muted-foreground/50 w-4 select-none">{i + 1}.</span>
-                    <span className="text-sm font-medium text-foreground font-mono">{word}</span>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+            <div className={`mx-auto grid max-w-sm grid-cols-2 gap-3 sm:grid-cols-3 transition-all duration-500 ${!isRevealed ? 'blur-md select-none opacity-50' : 'opacity-100'}`}>
+              {mnemonic.map((word, i) => (
+                <div key={i} className="flex items-center space-x-2 bg-secondary rounded-lg px-3 py-2.5">
+                  <span className="text-[10px] font-mono text-muted-foreground/50 w-4 select-none">{i + 1}.</span>
+                  <span className="text-sm font-medium text-foreground font-mono">{word}</span>
+                </div>
+              ))}
+            </div>
 
             {!isRevealed && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -142,7 +132,7 @@ export default function ViewRecoveryPhrasePage() {
                   className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl"
                 >
                   <Icon icon="lucide:eye" className="w-4 h-4 mr-2" />
-                  Reveal Phrase
+                  Reveal phrase
                 </Button>
               </div>
             )}
@@ -152,11 +142,18 @@ export default function ViewRecoveryPhrasePage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsRevealed(false)}
-                className="absolute -top-3 -right-3 text-muted-foreground hover:text-foreground h-8 w-8 p-0 bg-card rounded-full border border-border shadow-sm"
+                className="absolute -top-3 -right-3 text-muted-foreground hover:text-foreground h-8 w-8 p-0 bg-transparent rounded-full"
               >
                 <Icon icon="lucide:eye-off" className="w-3 h-3" />
               </Button>
             )}
+          </div>
+
+          {/* Warning */}
+          <div>
+            <p className="text-xs text-destructive leading-relaxed text-left">
+              <strong>Warning:</strong> Anyone with this phrase can access your wallet. Never share it with anyone, including Quantum Club support.
+            </p>
           </div>
 
           {/* Actions */}
@@ -164,13 +161,13 @@ export default function ViewRecoveryPhrasePage() {
             <Button
               onClick={copyMnemonic}
               variant="outline"
-              className="w-full bg-card border-border text-foreground hover:bg-muted h-12 transition-colors"
+              className="w-full bg-card border-0 text-foreground hover:bg-muted h-12 transition-colors"
             >
               {copied ? <Icon icon="lucide:check" className="w-4 h-4 mr-2 text-green-500" /> : <Icon icon="lucide:copy" className="w-4 h-4 mr-2" />}
-              {copied ? "Copied to Clipboard" : "Copy to Clipboard"}
+              {copied ? "Copied to clipboard" : "Copy to clipboard"}
             </Button>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

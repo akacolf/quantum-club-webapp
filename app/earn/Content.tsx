@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, getDoc, getDocs, collection } from "firebase/firestore";
@@ -10,15 +10,19 @@ import { useRouter } from "next/navigation";
 import { useLeaderboardContext } from "../(contexts)/LeaderboardContext";
 import { EarnTask } from "@/lib/interfaces";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "../(contexts)/auth";
 import { toast } from "sonner";
-import { confirmTask, checkMembership } from "./actions";
+import { confirmTask, checkMembership, setEarnTaskCookie } from "./actions";
 import { useEarnTasksQuery } from "@/app/(hooks)/queries/use-earn-tasks";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { haptics } from "@/lib/haptics";
+import { Icon } from "@iconify/react";
+
+const emptySubscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 // -------------------------------------------------------------------
 // Mutation: confirm a task on the server and update local quant balance
@@ -83,6 +87,7 @@ const EarnContent = () => {
   const claimTEXT = "Claim";
   const {
     telegramId,
+    username,
     SetMainQuantAmount /*remainingSolveToEarn, setRemainingSolveToEarn*/,
   } = useUserContext();
   const { totalUsers } = useLeaderboardContext();
@@ -93,6 +98,10 @@ const EarnContent = () => {
   );
   const auth = useAuth();
   const router = useRouter();
+  const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
+  const tgFirstName = mounted
+    ? window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || username || "Quantum User"
+    : "Quantum User";
 
   // Fetch tasks and completed count via TanStack Query
   const { data: earnData, isLoading: loading } = useEarnTasksQuery(telegramId, totalUsers);
@@ -112,6 +121,8 @@ const EarnContent = () => {
     const override = taskOverrides[task.id];
     return override ? { ...task, ...override } : task;
   });
+  const getIncompleteCount = (category: string) =>
+    tasks.filter((task) => task.category === category && !task.completed).length;
   const completedTasks =
     queryCompletedCount +
     Object.values(taskOverrides).filter((o) => o.completed === true).length;
@@ -119,7 +130,7 @@ const EarnContent = () => {
   // Clear overrides when query data refreshes (server is now source of truth)
   useEffect(() => {
     if (earnData) {
-      setTaskOverrides({});
+      queueMicrotask(() => setTaskOverrides({}));
     }
   }, [earnData]);
 
@@ -162,17 +173,15 @@ const EarnContent = () => {
         tasks.map((task) => (
           <Card
             key={task.id}
-            className={`border-[#333] bg-[#1a1a1a]/60 backdrop-blur-sm transition-all duration-300 ${task.completed
+            className={`bg-[#1a1a1a]/60 backdrop-blur-sm transition-all duration-300 ${task.completed
               ? "opacity-60"
-              : "hover:bg-[#252525] hover:border-white/10"
+              : "hover:bg-[#252525]"
               }`}
           >
             <CardContent className="p-4 flex items-center gap-4">
               {/* Icon */}
-              <div className="w-12 h-12 rounded-xl bg-[#252525] flex items-center justify-center border border-[#333] shadow-inner shrink-0">
-                <div className="w-8 h-8 flex items-center justify-center [&_svg]:w-full [&_svg]:h-full text-2xl">
-                  {task.platform}
-                </div>
+              <div className="w-10 h-10 flex items-center justify-center shrink-0 text-2xl text-neutral-400 [&_svg]:w-7 [&_svg]:h-7 [&_svg]:text-neutral-400">
+                {task.platform}
               </div>
 
               {/* Content */}
@@ -180,13 +189,8 @@ const EarnContent = () => {
                 <div className="text-white font-medium text-sm mb-1 truncate">
                   {task.description}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Badge
-                    variant="outline"
-                    className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-wider"
-                  >
-                    +{task.quant} QNTM
-                  </Badge>
+                <div className="text-[11px] font-semibold text-green-400">
+                  +{task.quant} QNTM
                 </div>
               </div>
 
@@ -201,9 +205,9 @@ const EarnContent = () => {
                 }
                 variant={task.completed ? "secondary" : "default"}
                 className={`h-9 px-4 min-w-20 rounded-xl font-bold text-xs transition-all duration-300 active:scale-95 ${task.buttonText === "Claim"
-                  ? "bg-white text-black hover:bg-white/90 shadow-lg"
+                    ? "bg-white text-black hover:bg-white/90 shadow-lg"
                   : task.completed
-                    ? "bg-white/5 text-white/20 border border-white/5 hover:bg-white/5"
+                    ? "bg-white/5 text-neutral-500 hover:bg-white/5"
                     : "bg-white text-black hover:bg-white/90"
                   }`}
               >
@@ -231,16 +235,9 @@ const EarnContent = () => {
         ))
       ) : (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-4 text-gray-600">
-            <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 48 48">
-              <g fill="currentColor">
-                <path d="M14.807 23.233c-.683-.438-1.183-1.145-1.064-1.883a.5.5 0 0 1 .668-.389c1.818.675 3.846.256 5.642-1.448a.5.5 0 0 1 .818.203c.231.689.024 1.618-.48 2.382a3.8 3.8 0 0 1-2.654 1.665c-1.198.177-2.216-.073-2.93-.53m17.947 0c.683-.438 1.184-1.145 1.065-1.883a.5.5 0 0 0-.668-.389c-1.818.675-3.846.256-5.642-1.448a.5.5 0 0 0-.818.203c-.232.689-.024 1.618.48 2.382a3.8 3.8 0 0 0 2.653 1.665c1.199.177 2.216-.073 2.93-.53m-15.789 8.943c.097-.355.245-.72.431-1.005C18.664 29.225 21.151 28 23.892 28c2.646 0 5.048 1.139 6.354 2.962l.017.023a4 4 0 0 1 .278.403c.164.285.284.637.357.973a3.6 3.6 0 0 1 .076 1.123c-.038.356-.17.9-.64 1.268c-.523.41-1.15.372-1.656.195c-2.394-.782-3.53-1.12-4.648-1.126c-1.116-.006-2.277.317-4.714 1.128l-.008.003l-.008.002c-.56.176-1.222.216-1.772-.187c-.527-.386-.668-.976-.698-1.377a3.7 3.7 0 0 1 .135-1.214" />
-                <path fillRule="evenodd" d="M42 24c0 9.941-8.059 18-18 18S6 33.941 6 24S14.059 6 24 6s18 8.059 18 18m-2 0c0 8.837-7.163 16-16 16S8 32.837 8 24S15.163 8 24 8s16 7.163 16 16" clipRule="evenodd" />
-              </g>
-            </svg>
-          </div>
-          <p className="text-gray-400 font-medium">No tasks available</p>
-          <p className="text-gray-600 text-sm mt-1">
+          <Icon icon="healthicons:no" width="40" height="40" className="mb-4 text-neutral-600" />
+          <p className="text-neutral-400 font-medium">No tasks available</p>
+          <p className="text-neutral-600 text-sm mt-1">
             Check back later for new opportunities
           </p>
         </div>
@@ -404,7 +401,8 @@ const EarnContent = () => {
       if (task.whichPlatform === "chemist") {
         if (task.buttonText === "Check") {
           try {
-            document.cookie = `taskId=${task.id}; path=/earn/9CXx152NbBKOKE2; secure; SameSite=Strict`;
+            const cookieResult = await setEarnTaskCookie({ taskId: task.id });
+            if (cookieResult?.serverError) throw new Error(cookieResult.serverError);
             router.push("/earn/9CXx152NbBKOKE2");
           } catch (error) {
             if (error instanceof Error) {
@@ -473,7 +471,8 @@ const EarnContent = () => {
       if (task.whichPlatform === "onchain") {
         if (task.buttonText === "Check") {
           try {
-            document.cookie = `taskId=${task.id}; path=/earn/9CXx152NbBKOKE2; secure; SameSite=Strict`;
+            const cookieResult = await setEarnTaskCookie({ taskId: task.id });
+            if (cookieResult?.serverError) throw new Error(cookieResult.serverError);
             router.push("/earn/9CXx152NbBKOKE2");
           } catch (error) {
             if (error instanceof Error) {
@@ -579,22 +578,16 @@ const EarnContent = () => {
   };
   return (
     <div className="min-h-screen bg-black text-white pb-24">
-      {/* Background Effects */}
-      <div className="fixed inset-0 z-0">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_50%)] pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
-      </div>
-
       <div className="relative z-10">
         {!loading ? (
           <>
             {/* Header */}
             <div className="p-6 pt-8">
-              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-linear-to-r from-white to-gray-400">
-                Earn
+              <h1 className="text-3xl font-bold text-white tracking-tight">
+                Time to stash those QNTMs, {tgFirstName}.
               </h1>
-              <p className="text-gray-400 text-sm mt-1">
-                Complete tasks to earn QNTM
+              <p className="text-neutral-400 text-sm mt-1">
+                Simply complete tasks to earn your QNTM.
               </p>
             </div>
 
@@ -605,49 +598,21 @@ const EarnContent = () => {
                 onValueChange={(v) => setTab(v as typeof tab)}
                 className="w-full"
               >
-                <TabsList className="w-full bg-[#1a1a1a]/80 backdrop-blur-md border border-[#333] p-1 h-auto rounded-xl">
+                <TabsList className="w-full bg-[#1a1a1a]/80 backdrop-blur-md p-1 h-auto rounded-xl border-0">
                   {[limitedTXT, ingameTXT, ParnersTXT].map((tab) => (
                     <TabsTrigger
                       key={tab}
                       value={tab}
-                      className="flex-1 data-[state=active]:bg-white data-[state=active]:text-black text-gray-400 py-[0.31rem]"
+                      className="group flex-1 data-[state=active]:bg-white data-[state=active]:text-black text-neutral-400 py-[0.31rem]"
                     >
-                      <div className="flex items-center justify-center gap-2">
+                      <span className="flex items-center justify-center gap-1.5">
                         {tab}
-                        {tab === limitedTXT &&
-                          tasks.filter((task) => task.category === limitedTXT && !task.completed).length >=
-                          1 && (
-                            <Badge
-                              variant="secondary"
-                              className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
-                            >
-                              {tasks.filter((task) => task.category === limitedTXT && !task.completed)
-                                .length}
-                            </Badge>
-                          )}
-                        {tab === ingameTXT &&
-                          tasks.filter((task) => task.category === ingameTXT && !task.completed).length >=
-                          1 && (
-                            <Badge
-                              variant="secondary"
-                              className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
-                            >
-                              {tasks.filter((task) => task.category === ingameTXT && !task.completed)
-                                .length}
-                            </Badge>
-                          )}
-                        {tab === ParnersTXT &&
-                          tasks.filter((task) => task.category === ParnersTXT && !task.completed).length >=
-                          1 && (
-                            <Badge
-                              variant="secondary"
-                              className="bg-red-500 text-white border-0 px-1.5 h-5 min-w-5 flex items-center justify-center"
-                            >
-                              {tasks.filter((task) => task.category === ParnersTXT && !task.completed)
-                                .length}
-                            </Badge>
-                          )}
-                      </div>
+                        {getIncompleteCount(tab) > 0 ? (
+                          <span className="min-w-5 h-5 px-1.5 rounded-full bg-white text-black group-data-[state=active]:bg-neutral-700 group-data-[state=active]:text-white text-[10px] font-bold leading-5">
+                            {getIncompleteCount(tab)}
+                          </span>
+                        ) : null}
+                      </span>
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -669,20 +634,20 @@ const EarnContent = () => {
         ) : (
           <>
             <div className="p-6 pt-8">
-              <Skeleton className="h-9 w-24" />
-              <Skeleton className="h-4 w-48 mt-2" />
+              <Skeleton className="h-16 w-[88%]" />
+              <Skeleton className="h-4 w-64 mt-2" />
             </div>
             <div className="px-4 mb-6">
               <Skeleton className="h-10 w-full rounded-xl" />
             </div>
             <div className="px-4 space-y-3">
               {[...Array(5)].map((_, i) => (
-                <Card key={i} className="border-[#333] bg-[#1a1a1a]/60">
+                <Card key={i} className="bg-[#1a1a1a]/60">
                   <CardContent className="p-4 flex items-center gap-4">
-                    <Skeleton className="w-12 h-12 rounded-xl shrink-0" />
+                    <Skeleton className="w-10 h-10 rounded shrink-0" />
                     <div className="flex-1 min-w-0">
                       <Skeleton className="h-4 w-3/4 mb-2" />
-                      <Skeleton className="h-5 w-20 rounded-full" />
+                      <Skeleton className="h-3 w-20" />
                     </div>
                     <Skeleton className="h-9 w-16 rounded-lg shrink-0" />
                   </CardContent>

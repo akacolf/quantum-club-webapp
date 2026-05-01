@@ -13,40 +13,37 @@ const CHAT_THEMES = [
   {
     id: "dark-blue",
     label: "Ocean",
-    value: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)",
+    value: "#0f172a",
   },
   {
     id: "dark-purple",
     label: "Nebula",
-    value: "linear-gradient(135deg, #1a0533 0%, #2d1b69 50%, #1a0533 100%)",
+    value: "#1a0533",
   },
   {
     id: "dark-green",
     label: "Forest",
-    value: "linear-gradient(135deg, #0a1f0a 0%, #1a3a2a 50%, #0a1f0a 100%)",
+    value: "#0a1f0a",
   },
   {
     id: "dark-red",
     label: "Ember",
-    value: "linear-gradient(135deg, #1a0a0a 0%, #3a1a1a 50%, #1a0a0a 100%)",
+    value: "#1a0a0a",
   },
   {
     id: "stars",
     label: "Stars",
-    value:
-      "radial-gradient(ellipse at 20% 50%, #1b2735 0%, #090a0f 100%), radial-gradient(circle at 80% 20%, #1a1a2e 0%, transparent 50%)",
+    value: "#090a0f",
   },
   {
     id: "geometric",
     label: "Prism",
-    value:
-      "linear-gradient(135deg, #0c0c1d 25%, #1a1a3e 25%, #1a1a3e 50%, #0c0c1d 50%, #0c0c1d 75%, #1a1a3e 75%)",
+    value: "#0c0c1d",
   },
   {
     id: "aurora",
     label: "Aurora",
-    value:
-      "linear-gradient(135deg, #0f0c29 0%, #302b63 40%, #24243e 70%, #0f0c29 100%)",
+    value: "#0f0c29",
   },
 ];
 
@@ -67,7 +64,7 @@ export default function ChatThemePicker({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xs rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-sm">Chat Wallpaper</DialogTitle>
+          <DialogTitle className="text-sm">Chat wallpaper</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-4 gap-2">
           {CHAT_THEMES.map((theme) => (

@@ -1,39 +1,67 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useSyncExternalStore, useRef } from "react";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { Icon } from "@iconify/react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import dynamic from "next/dynamic";
 import {
   useMiningDataQuery,
   useSolveToEarnMutation,
   useClaimDailyMutation,
 } from "@/app/(hooks)/queries/use-mining-data";
+import { useSpotTokens, useSpotTokensByMarketCap } from "@/app/(hooks)/queries/use-spot-trading";
+import { useTrendingTokens, useNewTokens, useGraduatedTokens } from "@/app/(hooks)/queries/use-trading";
+import { useWallet } from "@/app/wallet/WalletContext";
+import { formatPrice } from "@/lib/jetton-operations";
+import { TokenImageFill } from "@/components/ui/token-image";
+import { DEFAULT_GRADUATION_THRESHOLD_TON } from "@/types/trading";
+import type { Token } from "@/types/trading";
+import type { SpotToken } from "@/types/spot-trading";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Critical above-fold components - load synchronously
 import PersonalizedGreeting from "./(components)/PersonalizedGreeting";
+import HomeSearch from "./(components)/HomeSearch";
 
 // Below-fold / interactive components - lazy load for better FCP/LCP
 const HomeCarousel = dynamic(() => import("@/app/home/(components)/homepagecarousel/Carousel"), {
   ssr: false,
-  loading: () => <div className="w-[90%] mx-auto h-44 bg-[#1a1a1a] rounded-xl animate-pulse mt-6" />
+  loading: () => <div className="w-[90%] mx-auto h-44 bg-secondary rounded-xl animate-pulse" />
 });
 
 const DailyCheckIn = dynamic(() => import("./(components)/DailyCheck"), {
   ssr: false,
-  loading: () => <div className="w-[90%] mx-auto h-16 sm:h-20 bg-[#1a1a1a] rounded-xl animate-pulse mt-6" />
+  loading: () => <div className="w-[90%] mx-auto h-16 sm:h-20 bg-secondary rounded-xl animate-pulse" />
 });
 
 const QntmBalance = dynamic(() => import('./(components)/QntmBalance'), {
   ssr: false,
-  loading: () => <div className="w-[90%] mx-auto h-32 bg-[#1a1a1a] rounded-xl animate-pulse" />
+  loading: () => <div className="w-[90%] mx-auto h-32 bg-secondary rounded-xl animate-pulse" />
 });
 
-const SolveToEarnCard = dynamic(() => import('./(components)/SolveToEarnCard'), {
+const MarketPulse = dynamic(() => import('./(components)/MarketPulse'), {
   ssr: false,
-  loading: () => <div className="w-[90%] mx-auto h-16 sm:h-20 bg-[#1a1a1a] rounded-xl animate-pulse mt-6" />
+  loading: () => (
+    <div className="w-full overflow-x-auto scrollbar-hide">
+      <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-2">
+        <div className="h-10 w-36 shrink-0 rounded-xl bg-secondary animate-pulse" />
+        <div className="h-10 w-40 shrink-0 rounded-xl bg-secondary animate-pulse" />
+        <div className="h-10 w-44 shrink-0 rounded-xl bg-secondary animate-pulse" />
+      </div>
+    </div>
+  )
 });
 
+
+const SpotTokenCard = dynamic(() => import("@/app/ecosystem/trade/spot/(components)/SpotTokenCard"), {
+  ssr: false,
+  loading: () => <div className="h-16 bg-secondary rounded-xl animate-pulse" />
+});
 const calculateRemainingTime = (timestamp: number) => {
   const now = new Date();
   const targetTime = new Date(timestamp);
@@ -73,7 +101,7 @@ const TaskTimerComponent: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  });
 
   return <div>{remainingTime}</div>;
 };
@@ -135,6 +163,39 @@ function getRankIcon(rank: string | null) {
   return null;
 }
 
+const emptySubscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+const BASE_GREETING_PAIRS = [
+  { greeting: "Welcome back to Quantum Club", subtext: "What would you like to do today?" },
+  { greeting: "Ready to make some moves", subtext: "What's on the agenda today?" },
+  { greeting: "It's about time", subtext: "Let's make it happen." },
+  { greeting: "Great to see you again", subtext: "Anything catches your eye?" },
+  { greeting: "Let's build the future together", subtext: "What's on your mind today?" },
+];
+const PROMPT_SUGGESTIONS = [
+  "How is the market doing today?",
+  "What is Quantum Club?",
+  "Tell me about QC's ecosystem",
+];
+const SESSION_GREETING_INDEX_KEY = "qc_session_greeting_idx";
+const SESSION_TIME_GREETING_KEY = "qc_session_time_greeting";
+const LAST_GREETING_INDEX_KEY = "qc_last_greeting_idx";
+
+function getTimeGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Gm";
+  if (hour < 18) return "Afternoon";
+  return "Evening";
+}
+
+function getGreetingPairs(timeGreeting = getTimeGreeting()) {
+  return [
+    ...BASE_GREETING_PAIRS,
+    { greeting: timeGreeting, subtext: "What would you like to do today?" },
+  ];
+}
+
 const HomeContent = () => {
   const router = useRouter();
 
@@ -151,6 +212,7 @@ const HomeContent = () => {
   }, [router]);
 
   const {
+    username,
     MainQuantAmount,
     SetMainQuantAmount,
     rank,
@@ -205,7 +267,7 @@ const HomeContent = () => {
       const newRemaining = await solveToEarnMutation.mutateAsync();
       setRemainingSolveToEarn(newRemaining);
       sessionStorage.setItem("remainingSolveToEarn", String(newRemaining));
-      router.push("/earn/solvetoearn");
+      router.push("/earn/solvetoearn?back=/home");
     } catch {
       // Re-enable button on failure
       if (taskElement) {
@@ -232,18 +294,134 @@ const HomeContent = () => {
   const loadingDay = claimDailyMutation.isPending;
 
   const TaskTimer = TaskTimerComponent;
+  const { walletAddress, totalUsdBalance, isLoadingAssets, hideBalance, toggleHideBalance } = useWallet();
+  const [greetingIndex] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    const storedTimeGreeting = sessionStorage.getItem(SESSION_TIME_GREETING_KEY) ?? getTimeGreeting();
+    const pairs = getGreetingPairs(storedTimeGreeting);
+    const sessionIndex = parseInt(sessionStorage.getItem(SESSION_GREETING_INDEX_KEY) ?? "", 10);
+    if (!Number.isNaN(sessionIndex) && sessionIndex >= 0 && sessionIndex < pairs.length) {
+      return sessionIndex;
+    }
+
+    const lastIndex = parseInt(localStorage.getItem(LAST_GREETING_INDEX_KEY) ?? "-1", 10);
+    let idx: number;
+    do {
+      idx = Math.floor(Math.random() * pairs.length);
+    } while (idx === lastIndex && pairs.length > 1);
+    sessionStorage.setItem(SESSION_GREETING_INDEX_KEY, String(idx));
+    sessionStorage.setItem(SESSION_TIME_GREETING_KEY, pairs[idx]?.greeting ?? storedTimeGreeting);
+    localStorage.setItem(LAST_GREETING_INDEX_KEY, String(idx));
+    return idx;
+  });
+
+  const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
+
+  const tgFirstName = (() => {
+    if (!mounted) return "Quantum User";
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+    return tgUser?.first_name || username || "Quantum User";
+  })();
+
+  const sessionTimeGreeting = mounted
+    ? sessionStorage.getItem(SESSION_TIME_GREETING_KEY) ?? getTimeGreeting()
+    : getTimeGreeting();
+  const greetingPairs = mounted ? getGreetingPairs(sessionTimeGreeting) : BASE_GREETING_PAIRS;
+  const greeting = greetingPairs[greetingIndex] ?? greetingPairs[0];
+  const greetingText = greeting.greeting;
+  const subtext = greeting.subtext;
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen pb-16 pt-6 gap-6">
       <PersonalizedGreeting />
-      <QntmBalance
-        MainQuantAmount={MainQuantAmount}
-        rank={rank}
-        getRankIcon={getRankIcon}
-        isLoading={!_hasHydrated}
-      />
-      {/*daily check-in*/}
-      <DailyCheckIn
+
+      <HomeSearch />
+      
+      <GreetingReveal greetingText={greetingText} tgFirstName={tgFirstName} subtext={subtext} />
+
+      {/* Live crypto ticker */}
+      <MarketPulse />
+
+      <div className="w-[90%] mx-auto">
+        <QntmBalance
+          MainQuantAmount={MainQuantAmount}
+          rank={rank}
+          getRankIcon={getRankIcon}
+          isLoading={!_hasHydrated}
+          walletUsdBalance={walletAddress ? totalUsdBalance : "0.00"}
+          isWalletLoading={!!walletAddress && isLoadingAssets}
+          hasWallet={!!walletAddress}
+          hideBalance={hideBalance}
+          toggleHideBalance={toggleHideBalance}
+        />
+        
+        <div className="mt-6 flex gap-3 w-full">
+          <Link href="/wallet/receive?back=/home" className="flex-1">
+            <Button className="w-full h-11 rounded-xl font-bold text-sm bg-white text-black hover:bg-white/90 shadow-lg border-0 flex items-center justify-center gap-2 transition-all">
+              <Icon icon="lucide:arrow-down" width="18" height="18" />
+              Deposit
+            </Button>
+          </Link>
+
+          <Link href="/ecosystem/trade?back=/home" className="flex-1">
+            <Button variant="secondary" className="w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all">
+              <Icon icon="lucide:arrow-left-right" width="18" height="18" />
+              Trade
+            </Button>
+          </Link>
+        </div>
+
+        <div className="flex items-start justify-between mt-6 w-full max-w-[380px] mx-auto px-1">
+          <button 
+            id="solvetoearnbutton"
+            onClick={() => goToSolveToEarn()} 
+            className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm relative">
+              <Icon icon="lucide:brain" width="20" height="20" />
+              {remainingSolveToEarn > 0 && (
+                <Badge className="absolute -top-2 -right-2 px-1.5 py-0 text-[10px] font-bold rounded-full bg-white text-black hover:bg-white border-[2px] border-black leading-none flex items-center justify-center min-w-[18px] min-h-[18px]">
+                  {remainingSolveToEarn}
+                </Badge>
+              )}
+            </div>
+            <span className="text-[11px] font-medium tracking-wide">Solve</span>
+          </button>
+
+          <Link href="/home/rewardshistory?back=/home" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
+            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm">
+              <Icon icon="lucide:history" width="20" height="20" />
+            </div>
+            <span className="text-[11px] font-medium tracking-wide">History</span>
+          </Link>
+
+          <Link href="/ecosystem/chat?back=/home" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
+            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm">
+              <Icon icon="lucide:message-circle" width="20" height="20" />
+            </div>
+            <span className="text-[11px] font-medium tracking-wide">Chat</span>
+          </Link>
+
+          <Link href="/ecosystem/chat/qc-ai?back=/home" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
+            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm relative">
+              <Icon icon="iconoir:spark" width="20" height="20" />
+            </div>
+            <span className="text-[11px] font-medium tracking-wide">AI</span>
+          </Link>
+
+          <button disabled className="flex flex-col items-center gap-1.5 text-neutral-500 transition-colors cursor-not-allowed w-fit opacity-60">
+            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm relative">
+              <Icon icon="lucide:pen-line" width="20" height="20" />
+              <Badge className="absolute -top-2 -right-3 px-1 py-0 text-[8px] font-bold rounded-full bg-secondary text-white hover:bg-secondary border-0 leading-none flex items-center justify-center min-h-[16px]">
+                SOON
+              </Badge>
+            </div>
+            <span className="text-[11px] font-medium tracking-wide">Post</span>
+          </button>
+        </div>
+      </div>
+
+      <DailyCheckInReveal
         loadingButtonDay={loadingButtonDay}
         daily={daily}
         isClaimDay={isClaimDay}
@@ -252,13 +430,400 @@ const HomeContent = () => {
         TaskTimer={TaskTimer}
       />
 
-      <HomeCarousel />
+      <CarouselReveal />
 
-      <SolveToEarnCard
-        remainingSolveToEarn={remainingSolveToEarn}
-        goToSolveToEarn={goToSolveToEarn}
-      />
+      <SpotTokensSection />
     </div>
   );
 };
+
+// ─── Favorites persistence ────────────────────────────────────────────
+const FAVORITES_KEY = "qc_favorite_spot_tokens";
+
+function getFavorites(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
+  } catch { return []; }
+}
+
+function setFavorites(ids: string[]) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids));
+}
+
+// ─── Compact card for RocketStart tokens ──────────────────────────────
+function RocketStartTokenCard({ token, index }: { token: Token; index: number }) {
+  const progress = (() => {
+    try {
+      const mcTon = Number(BigInt(token.tonReserve || token.marketCap || "0")) / 1e9;
+      const total = Number(token.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON);
+      if (total <= 0) return 0;
+      return Math.min((mcTon / total) * 100, 100);
+    } catch { return 0; }
+  })();
+
+  return (
+    <Link href={`/ecosystem/trade/${token.id}`} prefetch={true}>
+      <div className="flex gap-3 items-center py-3 cursor-pointer group">
+        <div className="relative w-11 h-11 rounded-full overflow-hidden bg-secondary shadow-inner ring-1 ring-white/5 flex-shrink-0">
+          {token.image ? (
+            <TokenImageFill src={token.image} alt={token.name} className="object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-primary font-bold text-sm">
+              {token.symbol.slice(0, 2)}
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <h3 className="font-bold text-white text-sm leading-tight truncate">{token.symbol}</h3>
+            {token.isGraduated && (
+              <Badge className="bg-green-500/20 text-green-400 text-[8px] px-1 py-0 h-3.5 border-0 shrink-0">DEX</Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5">
+            <div className="h-1 flex-1 bg-secondary rounded-full overflow-hidden max-w-[80px]">
+              <div
+                className={`h-full rounded-full ${progress >= 100 ? "bg-green-500" : "bg-white/70"}`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="text-[9px] text-neutral-500 font-medium">{progress.toFixed(0)}%</span>
+          </div>
+        </div>
+
+        <div className="text-right flex-shrink-0">
+          <div className="font-semibold text-white text-sm tracking-tight">
+            {formatPrice(BigInt(token.currentPrice || "0"))}
+          </div>
+          <div className="text-[10px] text-neutral-500 font-medium">
+            {token.trades || 0} trade{(token.trades || 0) !== 1 ? "s" : ""}
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ─── Tab configuration ────────────────────────────────────────────────
+type SpotTab = "spot" | "favorites" | "mc" | "hot" | "new" | "dex";
+
+const TAB_SUBTITLES: Record<SpotTab, string> = {
+  spot: "Trade tokens on the go",
+  favorites: "Your saved tokens",
+  mc: "Top tokens by Market Cap",
+  hot: "Most traded right now",
+  new: "Recently launched on RocketStart",
+  dex: "Graduated to DEX",
+};
+
+// ─── Section component ───────────────────────────────────────────────
+function SpotTokensSection() {
+  const [activeTab, setActiveTab] = useState<SpotTab>("spot");
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(getFavorites);
+
+  // Data sources
+  const { data: spotTokens, isLoading: spotLoading } = useSpotTokens();
+  const { data: marketCapTokens, isLoading: marketCapLoading } = useSpotTokensByMarketCap(activeTab === "mc");
+  const trendingQuery = useTrendingTokens();
+  const newQuery = useNewTokens();
+  const graduatedQuery = useGraduatedTokens();
+
+  const trendingTokens = trendingQuery.data?.pages.flatMap(p => p.tokens) ?? [];
+  const newTokens = newQuery.data?.pages.flatMap(p => p.tokens) ?? [];
+  const graduatedTokens = graduatedQuery.data?.pages.flatMap(p => p.tokens) ?? [];
+
+  // Favorites: filter spot tokens by saved IDs
+  const favoriteTokens = (spotTokens ?? []).filter(t => favoriteIds.includes(t.contractAddress));
+
+  const toggleFavorite = useCallback((contractAddress: string) => {
+    setFavoriteIds(prev => {
+      const next = prev.includes(contractAddress)
+        ? prev.filter(id => id !== contractAddress)
+        : [...prev, contractAddress];
+      setFavorites(next);
+      return next;
+    });
+  }, []);
+
+  // Determine loading state
+  const isLoading = activeTab === "spot" ? spotLoading
+    : activeTab === "favorites" ? spotLoading
+    : activeTab === "mc" ? marketCapLoading
+    : activeTab === "hot" ? trendingQuery.isLoading
+    : activeTab === "new" ? newQuery.isLoading
+    : graduatedQuery.isLoading;
+
+  // Render the appropriate token list
+  const renderTokenList = () => {
+    if (isLoading) {
+      return (
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center w-full">
+              <Skeleton className="w-8 h-8 flex-shrink-0 bg-transparent" />
+              <div className="flex-1 min-w-0 rounded-lg p-2">
+                <div className="flex gap-3 items-center">
+                  <Skeleton className="w-11 h-11 rounded-full bg-secondary" />
+                  <div className="flex-1 min-w-0">
+                    <Skeleton className="h-4 w-16 bg-secondary" />
+                    <Skeleton className="h-3 w-28 mt-2 bg-secondary" />
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <Skeleton className="h-4 w-16 bg-secondary" />
+                    <Skeleton className="h-3 w-12 mt-2 bg-secondary" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (activeTab === "spot") {
+      if ((spotTokens ?? []).length === 0) {
+        return (
+          <div className="text-center py-8">
+            <Icon icon="lucide:inbox" width="28" height="28" className="mx-auto text-neutral-600 mb-2" />
+            <p className="text-sm text-neutral-500">No tokens available</p>
+          </div>
+        );
+      }
+      return (
+        <div className="space-y-3">
+          {(spotTokens ?? []).slice(0, 10).map((token, index) => {
+            const isFav = favoriteIds.includes(token.contractAddress);
+            return (
+              <div key={token.contractAddress} className="flex items-center w-full">
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(token.contractAddress); }}
+                  className="w-8 h-8 flex items-center justify-center flex-shrink-0"
+                >
+                  <Icon icon="lucide:star" width="16" height="16" className={isFav ? "fill-yellow-400 text-yellow-400" : "text-neutral-600"} />
+                </button>
+                <div className="flex-1 min-w-0">
+                  <SpotTokenCard token={token} index={index} isTransparent={true} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    if (activeTab === "mc") {
+      const mcTokens = marketCapTokens ?? [];
+      if (mcTokens.length === 0) {
+        return (
+          <div className="text-center py-8">
+            <Icon icon="lucide:inbox" width="28" height="28" className="mx-auto text-neutral-600 mb-2" />
+            <p className="text-sm text-neutral-500">No tokens available</p>
+          </div>
+        );
+      }
+      return (
+        <div className="space-y-3">
+          {mcTokens.slice(0, 10).map((token, index) => {
+            const isFav = favoriteIds.includes(token.contractAddress);
+            return (
+              <div key={token.contractAddress} className="flex items-center w-full">
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(token.contractAddress); }}
+                  className="w-8 h-8 flex items-center justify-center flex-shrink-0"
+                >
+                  <Icon icon="lucide:star" width="16" height="16" className={isFav ? "fill-yellow-400 text-yellow-400" : "text-neutral-600"} />
+                </button>
+                <div className="flex-1 min-w-0">
+                  <SpotTokenCard token={token} index={index} isTransparent={true} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    if (activeTab === "favorites") {
+      if (favoriteTokens.length === 0) {
+        return (
+          <div className="text-center py-8">
+            <Icon icon="lucide:star" width="28" height="28" className="mx-auto text-neutral-600 mb-2" />
+            <p className="text-sm text-neutral-500">No favorites yet</p>
+            <p className="text-[11px] text-neutral-600 mt-1">Switch to Hot and tap the star to save tokens</p>
+          </div>
+        );
+      }
+      return (
+        <div className="space-y-3">
+          {favoriteTokens.slice(0, 10).map((token, index) => (
+            <div key={token.contractAddress} className="flex items-center w-full">
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(token.contractAddress); }}
+                className="w-8 h-8 flex items-center justify-center flex-shrink-0"
+              >
+                <Icon icon="lucide:star" width="16" height="16" className="fill-yellow-400 text-yellow-400" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <SpotTokenCard token={token} index={index} isTransparent={true} />
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // RocketStart tabs (Hot, New, DEX)
+    const tokens: Token[] = activeTab === "hot" ? trendingTokens
+      : activeTab === "new" ? newTokens
+      : graduatedTokens;
+
+    if (tokens.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <Icon icon="lucide:inbox" width="28" height="28" className="mx-auto text-neutral-600 mb-2" />
+          <p className="text-sm text-neutral-500">No tokens found</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {tokens.slice(0, 10).map((token, index) => (
+          <RocketStartTokenCard key={token.id} token={token} index={index} />
+        ))}
+      </div>
+    );
+  };
+
+  // View-all links for each tab
+  const viewAllHref = activeTab === "spot" ? "/ecosystem/trade/spot"
+    : activeTab === "favorites" ? "/ecosystem/trade/spot"
+    : activeTab === "mc" ? "/ecosystem/trade/spot"
+    : activeTab === "hot" ? "/ecosystem/trade"
+    : activeTab === "new" ? "/ecosystem/trade"
+    : "/ecosystem/trade";
+
+  return (
+    <div className="w-[90%] mx-auto">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h2 className="text-base font-bold text-white">Trading</h2>
+          <p className="text-[11px] text-neutral-400 mt-0.5">{TAB_SUBTITLES[activeTab]}</p>
+        </div>
+      </div>
+
+      <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto pb-3 [&::-webkit-scrollbar]:hidden">
+        <div className="flex w-max items-center gap-1 px-[5vw]">
+          {([
+            { id: "favorites" as SpotTab, label: "Favorites", icon: "lucide:star" },
+            { id: "spot" as SpotTab, label: "Spot" },
+            { id: "mc" as SpotTab, label: "MC" },
+            { id: "hot" as SpotTab, label: "Hot" },
+            { id: "new" as SpotTab, label: "New", dot: true },
+            { id: "dex" as SpotTab, label: "DEX" },
+          ]).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold transition-colors shrink-0 relative ${
+                activeTab === tab.id
+                  ? "bg-secondary text-white"
+                  : "text-neutral-400 hover:text-white bg-transparent"
+              }`}
+            >
+              {tab.icon && activeTab === tab.id && (
+                <Icon icon={tab.icon} width="13" height="13" className="fill-white" />
+              )}
+              {tab.label}
+              {tab.dot && (
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_4px_rgba(239,68,68,0.5)]" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {renderTokenList()}
+
+      <Button asChild variant="secondary" className="w-full mt-4 h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all">
+        <Link href={viewAllHref}>
+          View all
+          <Icon icon="lucide:arrow-right" width="16" height="16" />
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+// ─── Home wrapper components ─────────────────────────────────
+
+function GreetingReveal({ greetingText, tgFirstName, subtext }: { greetingText: string; tgFirstName: string; subtext: string }) {
+  const router = useRouter();
+  const [prompt, setPrompt] = useState("");
+
+  const submitPrompt = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    router.push(`/ecosystem/chat/qc-ai?prompt=${encodeURIComponent(trimmed)}&back=/home`);
+  };
+
+  return (
+    <div className="w-[90%] mx-auto space-y-3">
+      <p className="text-[20px] font-bold text-white leading-tight tracking-tight">
+        {greetingText}, {tgFirstName}.
+      </p>
+      <p className="text-[14px] text-neutral-400 mt-1">
+        {subtext}
+      </p>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          submitPrompt(prompt);
+        }}
+        className="relative"
+      >
+        <Icon icon="iconoir:spark" className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+        <input
+          value={prompt}
+          onChange={(event) => setPrompt(event.target.value)}
+          placeholder="Ask QC..."
+          className="h-11 w-full rounded-full border-0 bg-secondary pl-10 pr-4 text-sm text-white outline-none placeholder:text-neutral-500 focus:ring-1 focus:ring-white/15"
+        />
+      </form>
+      <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto scrollbar-hide">
+        <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-1">
+          {PROMPT_SUGGESTIONS.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => submitPrompt(suggestion)}
+              className="h-9 shrink-0 rounded-full bg-secondary px-4 text-xs font-semibold text-neutral-300 transition-colors hover:text-white"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DailyCheckInReveal(props: React.ComponentProps<typeof DailyCheckIn>) {
+  return (
+    <div>
+      <DailyCheckIn {...props} />
+    </div>
+  );
+}
+
+function CarouselReveal() {
+  return (
+    <div>
+      <HomeCarousel />
+    </div>
+  );
+}
+
 export default HomeContent;

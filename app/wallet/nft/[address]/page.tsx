@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useForm, useStore } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { FieldError } from "@/components/ui/field";
@@ -33,9 +31,11 @@ import { collection, addDoc, doc, updateDoc, getDoc, increment, serverTimestamp 
 export default function NftDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { isTestnet, walletAddress } = useWallet();
     const { telegramId, qcUsername } = useUserContext();
     const nftAddress = decodeURIComponent(params.address as string);
+    const sourceCollectionAddress = searchParams.get("collection");
 
     const { sendTransaction } = useWallet();
     const {
@@ -79,8 +79,10 @@ export default function NftDetailPage() {
     // Share to chat state
     const [showShareModal, setShowShareModal] = useState(false);
 
-    // Back button goes to wallet page
-    useTelegramBackButton("/wallet");
+    const collectionBackHref = sourceCollectionAddress || nft?.collectionAddress;
+
+    // Back button returns to the collection when the NFT was opened from one.
+    useTelegramBackButton(collectionBackHref ? `/wallet/marketplace/collection/${encodeURIComponent(collectionBackHref)}` : "/wallet/marketplace");
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
@@ -327,9 +329,7 @@ export default function NftDetailPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground p-4 pb-24">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+            <div
                 className="max-w-md mx-auto space-y-6"
             >
                 {/* NFT Image */}
@@ -354,33 +354,27 @@ export default function NftDetailPage() {
                                 <Icon icon="lucide:image" className="w-16 h-16 text-muted-foreground" />
                             </div>
                         )}
-                        {nft.sale && (
-                            <Badge className="absolute top-3 right-3 bg-green-600">
-                                <Icon icon="lucide:tag" className="w-3 h-3 mr-1" />
-                                For Sale
-                            </Badge>
-                        )}
                         {categorizeNft(nft) === "gift" && (
-                            <Badge className="absolute top-3 left-3 bg-purple-600">
+                            <span className="absolute top-3 left-3 inline-flex items-center text-xs font-medium text-purple-400">
                                 <Icon icon="solar:gift-bold" className="w-3 h-3 mr-1" />
                                 Gift
-                            </Badge>
+                            </span>
                         )}
                         {categorizeNft(nft) === "sticker" && (
-                            <Badge className="absolute top-3 left-3 bg-blue-600">
+                            <span className="absolute top-3 left-3 text-xs font-medium text-neutral-300">
                                 Sticker
-                            </Badge>
+                            </span>
                         )}
                     </div>
                 </Card>
 
                 {/* Sale Info - If Listed */}
                 {nft.sale && priceInfo && (
-                    <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/30">
-                        <CardContent className="p-4">
+                    <div className="w-full">
+                        <div className="py-2">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-xs text-muted-foreground uppercase">Price</p>
+                                    <p className="text-xs text-muted-foreground">Price</p>
                                     <p className="text-2xl font-bold text-foreground">
                                         {priceInfo.basePriceFormatted} TON
                                     </p>
@@ -401,13 +395,13 @@ export default function NftDetailPage() {
                                         ) : (
                                             <>
                                                 <Icon icon="lucide:shopping-cart" className="w-4 h-4 mr-2" />
-                                                Buy Now
+                                                Buy now
                                             </>
                                         )}
                                     </Button>
                                 )}
                             </div>
-                            <div className="mt-3 pt-3 border-t border-green-500/20 text-xs text-muted-foreground">
+                            <div className="mt-3 pt-3 text-xs text-muted-foreground">
                                 <div className="flex justify-between">
                                     <span>Platform fee ({QC_MARKETPLACE_FEE_PERCENT}%)</span>
                                     <span>{priceInfo.platformFeeFormatted} TON</span>
@@ -417,8 +411,8 @@ export default function NftDetailPage() {
                                     <span>{priceInfo.totalPriceFormatted} TON</span>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 )}
 
                 {/* NFT Info */}
@@ -440,7 +434,7 @@ export default function NftDetailPage() {
                     {nft.description && (
                         <Card className="bg-card border-border">
                             <CardContent className="p-4">
-                                <h3 className="text-xs text-muted-foreground uppercase mb-2">Description</h3>
+                                <h3 className="text-xs text-muted-foreground mb-2">Description</h3>
                                 <p className="text-sm text-foreground/80 leading-relaxed">{nft.description}</p>
                             </CardContent>
                         </Card>
@@ -450,7 +444,7 @@ export default function NftDetailPage() {
                     {nft.attributes && nft.attributes.length > 0 && (
                         <Card className="bg-card border-border">
                             <CardContent className="p-4">
-                                <h3 className="text-xs text-muted-foreground uppercase mb-3">Attributes</h3>
+                                <h3 className="text-xs text-muted-foreground mb-3">Attributes</h3>
                                 <div className="grid grid-cols-2 gap-2">
                                     {nft.attributes.map((attr, i) => (
                                         <div key={i} className="bg-muted rounded-lg p-2 text-center">
@@ -467,7 +461,7 @@ export default function NftDetailPage() {
                     <Card className="bg-card border-border">
                         <CardContent className="p-4 space-y-5">
                             <div>
-                                <h3 className="text-xs text-muted-foreground uppercase mb-2">NFT Address</h3>
+                                <h3 className="text-xs text-muted-foreground mb-2">NFT address</h3>
                                 <div
                                     onClick={copyAddress}
                                     className="flex items-center justify-between gap-3 bg-muted border border-border rounded-xl p-3 cursor-pointer hover:bg-muted/80 transition-colors"
@@ -483,8 +477,8 @@ export default function NftDetailPage() {
 
                             {nft.ownerAddress && (
                                 <div>
-                                    <h3 className="text-xs text-muted-foreground uppercase mb-2">
-                                        Owner {isOwner && <Badge variant="secondary" className="ml-2 text-xs">You</Badge>}
+                                    <h3 className="text-xs text-muted-foreground mb-2">
+                                        Owner {isOwner && <span className="ml-2 text-xs text-green-500">You</span>}
                                     </h3>
                                     <Button
                                         variant="ghost"
@@ -513,7 +507,7 @@ export default function NftDetailPage() {
                             className="w-full bg-green-600 hover:bg-green-700 text-white h-12 rounded-xl font-bold"
                         >
                             <Icon icon="lucide:dollar-sign" className="w-4 h-4 mr-2" />
-                            List for Sale
+                            List for sale
                         </Button>
                     )}
                     {isOwner && nft.sale && (
@@ -538,7 +532,7 @@ export default function NftDetailPage() {
                         className="w-full bg-card border-border text-foreground hover:bg-muted h-12 rounded-xl font-bold"
                     >
                         <Icon icon="solar:share-linear" className="w-4 h-4 mr-2" />
-                        Share to Chat
+                        Share to chat
                     </Button>
                     <Button
                         onClick={openExplorer}
@@ -549,7 +543,7 @@ export default function NftDetailPage() {
                         View on Explorer
                     </Button>
                 </div>
-            </motion.div>
+            </div>
 
             {/* Share to Chat Modal */}
             <ChatPickerModal
@@ -559,25 +553,19 @@ export default function NftDetailPage() {
             />
 
             {/* Listing Modal */}
-            <AnimatePresence>
+            
                 {showListingModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                    <div
                         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4"
                         onClick={() => !isListing && setShowListingModal(false)}
                     >
-                        <motion.div
-                            initial={{ y: 100, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: 100, opacity: 0 }}
+                        <div
                             onClick={(e) => e.stopPropagation()}
                             className="w-full max-w-md bg-card border border-border rounded-2xl overflow-hidden"
                         >
                             {/* Header */}
                             <div className="flex items-center justify-between p-4 border-b border-border">
-                                <h2 className="text-lg font-bold">List for Sale</h2>
+                                <h2 className="text-lg font-bold">List for sale</h2>
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -699,10 +687,10 @@ export default function NftDetailPage() {
                                     )}
                                 </Button>
                             </div>
-                        </motion.div>
-                    </motion.div>
+                        </div>
+                    </div>
                 )}
-            </AnimatePresence>
+            
 
             {/* Biometric Auth Modal */}
             <BiometricAuth

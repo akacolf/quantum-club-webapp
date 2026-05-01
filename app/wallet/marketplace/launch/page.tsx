@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useForm, useStore } from "@tanstack/react-form";
@@ -10,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -102,9 +100,7 @@ export default function LaunchNftPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground p-4 pb-24">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+            <div
                 className="max-w-md mx-auto space-y-6"
             >
                 {/* Header */}
@@ -135,18 +131,14 @@ export default function LaunchNftPage() {
                     ))}
                 </div>
 
-                <AnimatePresence mode="wait">
+                
                     {/* Step 1: Upload Image */}
                     {step === 1 && (
-                        <motion.div
-                            key="step1"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="step1"
                             className="space-y-4"
                         >
                             <Card
-                                className="bg-card border-border border-dashed rounded-2xl cursor-pointer hover:bg-accent/50 transition-colors"
+                                className="bg-card border-0 rounded-2xl cursor-pointer hover:bg-accent/50 transition-colors"
                                 onClick={() => fileInputRef.current?.click()}
                             >
                                 <CardContent className="p-0">
@@ -164,11 +156,9 @@ export default function LaunchNftPage() {
                                         </div>
                                     ) : (
                                         <div className="w-full aspect-square flex flex-col items-center justify-center gap-3">
-                                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                                                <Icon icon="solar:camera-add-bold" className="w-8 h-8 text-primary" />
-                                            </div>
+                                            <Icon icon="solar:camera-add-bold" className="w-8 h-8 text-primary" />
                                             <div className="text-center">
-                                                <p className="text-sm font-medium">Upload Image</p>
+                                                <p className="text-sm font-medium">Upload image</p>
                                                 <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
                                             </div>
                                         </div>
@@ -187,18 +177,14 @@ export default function LaunchNftPage() {
                                 disabled={!canProceedStep1}
                                 className="w-full h-12 rounded-xl font-bold"
                             >
-                                Next: Set Details
+                                Next: set details
                             </Button>
-                        </motion.div>
+                        </div>
                     )}
 
                     {/* Step 2: Name, Description, Attributes */}
                     {step === 2 && (
-                        <motion.div
-                            key="step2"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="step2"
                             className="space-y-4"
                         >
                             <form.Field name="name">
@@ -287,22 +273,18 @@ export default function LaunchNftPage() {
                                     disabled={!canProceedStep2}
                                     className="flex-1 h-12 rounded-xl font-bold"
                                 >
-                                    Next: Preview
+                                    Next: preview
                                 </Button>
                             </div>
-                        </motion.div>
+                        </div>
                     )}
 
                     {/* Step 3: Review */}
                     {step === 3 && (
-                        <motion.div
-                            key="step3"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="step3"
                             className="space-y-4"
                         >
-                            <Card className="bg-card border-border rounded-2xl overflow-hidden">
+                            <Card className="bg-card border-0 rounded-2xl overflow-hidden">
                                 {imagePreview && (
                                     <div className="relative w-full aspect-square">
                                         <Image
@@ -341,39 +323,32 @@ export default function LaunchNftPage() {
                                     Deploy
                                 </Button>
                             </div>
-                        </motion.div>
+                        </div>
                     )}
 
                     {/* Step 4: Deploy */}
                     {step === 4 && (
-                        <motion.div
-                            key="step4"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="step4"
                             className="space-y-4"
                         >
                             {deploySuccess ? (
-                                <Card className="bg-card border-border">
+                                <Card className="bg-card border-0">
                                     <CardContent className="p-8 text-center space-y-4">
-                                        <div className="w-16 h-16 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
-                                            <Icon icon="solar:check-circle-bold" className="w-8 h-8 text-green-500" />
-                                        </div>
-                                        <h2 className="text-lg font-bold">NFT Minted!</h2>
+                                        <Icon icon="solar:check-circle-bold" className="mx-auto w-8 h-8 text-green-500" />
+                                        <h2 className="text-lg font-bold">NFT minted!</h2>
                                         <p className="text-sm text-muted-foreground">
                                             Your NFT has been deployed to the TON blockchain
                                         </p>
-                                        <Badge className="bg-primary/10 text-primary">
+                                        <span className="text-sm font-medium text-primary">
                                             Check your wallet NFTs tab
-                                        </Badge>
+                                        </span>
                                     </CardContent>
                                 </Card>
                             ) : (
-                                <Card className="bg-card border-border">
+                                <Card className="bg-card border-0">
                                     <CardContent className="p-6 space-y-4">
                                         <div className="text-center space-y-2">
-                                            <Icon icon="solar:rocket-bold" className="w-10 h-10 text-primary mx-auto" />
-                                            <h2 className="text-lg font-bold">Ready to Deploy</h2>
+                                            <h2 className="text-lg font-bold">Ready to deploy</h2>
                                             <p className="text-sm text-muted-foreground">
                                                 This will mint your NFT on the TON blockchain
                                             </p>
@@ -388,7 +363,7 @@ export default function LaunchNftPage() {
                                                 <span className="font-medium">{validAttributes.length}</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Network Fee</span>
+                                                <span className="text-muted-foreground">Network fee</span>
                                                 <span className="font-medium">~0.05 TON</span>
                                             </div>
                                         </div>
@@ -412,16 +387,15 @@ export default function LaunchNftPage() {
                                         "Done"
                                     ) : (
                                         <>
-                                            <Icon icon="solar:rocket-bold" className="w-4 h-4 mr-2" />
                                             Mint NFT
                                         </>
                                     )}
                                 </Button>
                             </div>
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
-            </motion.div>
+                
+            </div>
         </div>
     );
 }

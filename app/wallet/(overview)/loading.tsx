@@ -38,7 +38,7 @@ export default function Loading() {
         {/* Token List */}
         <div className="w-full space-y-3">
           {[...Array(4)].map((_, i) => (
-            <Card key={i} className="bg-[#111] border-[#222]">
+            <Card key={i} className="bg-secondary border-0">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Skeleton className="size-10 rounded-full" />

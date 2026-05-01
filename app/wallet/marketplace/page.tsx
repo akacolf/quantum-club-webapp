@@ -3,14 +3,12 @@
 import { useRef } from "react";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../WalletContext";
@@ -71,31 +69,25 @@ export default function MarketplacePage() {
         <div className="min-h-screen bg-background text-foreground pb-28">
             <div className="px-4 pt-4 space-y-4">
                 {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                <div
                     className="space-y-1"
                 >
                     <div className="flex items-center justify-between">
-                        <h1 className="text-2xl font-bold">NFT Marketplace</h1>
+                        <h1 className="text-2xl font-bold">NFT marketplace</h1>
                         <Link
                             href="/wallet/marketplace/launch"
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
                         >
-                            <Icon icon="solar:rocket-bold" className="w-3.5 h-3.5" />
                             Mint
                         </Link>
                     </div>
                     <p className="text-sm text-muted-foreground">
                         Discover and collect unique NFTs on TON
                     </p>
-                </motion.div>
+                </div>
 
                 {/* Search Bar */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.05 }}
+                <div
                     className="relative"
                 >
                     <Icon
@@ -108,18 +100,15 @@ export default function MarketplacePage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 bg-card border-border"
                     />
-                </motion.div>
+                </div>
 
                 {/* Tabs */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
+                <div
                 >
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
                         <TabsList className="w-full">
                             <TabsTrigger value="trending" className="flex-1">Trending</TabsTrigger>
-                            <TabsTrigger value="qc-listed" className="flex-1">QC Listed</TabsTrigger>
+                            <TabsTrigger value="qc-listed" className="flex-1">QC listed</TabsTrigger>
                         </TabsList>
 
                         {/* Trending Collections Tab */}
@@ -139,7 +128,7 @@ export default function MarketplacePage() {
                             )}
 
                             {!collectionsQuery.isLoading && filteredCollections.length === 0 && (
-                                <div className="py-8 text-center bg-card rounded-2xl border border-border border-dashed">
+                                <div className="py-8 text-center rounded-2xl border border-border border-dashed">
                                     <Icon icon="solar:gallery-minimalistic-linear" className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                                     <p className="text-sm text-muted-foreground">
                                         {searchQuery ? "No collections match your search" : "No collections found"}
@@ -205,15 +194,15 @@ export default function MarketplacePage() {
                                                                                         {col.itemsCount > 0 ? `${col.itemsCount.toLocaleString()} items` : "Unlimited items"}
                                                                                     </span>
                                                                                     {col.floorPrice && (
-                                                                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                                                        <span className="text-[10px] text-muted-foreground">
                                                                                             Floor: {(col.floorPrice / 1e9).toFixed(2)} TON
-                                                                                        </Badge>
+                                                                                        </span>
                                                                                     )}
                                                                                 </div>
                                                                             </CardContent>
                                                                         </>
                                                                     ) : (
-                                                                        /* No cover — compact row layout with profile image */
+                                                                        /* No cover — compact row with profile image */
                                                                         <CardContent className="p-3 flex items-center gap-3">
                                                                             <div className="w-12 h-12 rounded-xl overflow-hidden bg-muted shrink-0">
                                                                                 {col.image ? (
@@ -273,7 +262,7 @@ export default function MarketplacePage() {
                             )}
 
                             {!listingsQuery.isLoading && filteredListings.length === 0 && (
-                                <div className="py-8 text-center bg-card rounded-2xl border border-border border-dashed">
+                                <div className="py-8 text-center rounded-2xl border border-border border-dashed">
                                     <Icon icon="solar:tag-price-linear" className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                                     <p className="text-sm text-muted-foreground">
                                         {searchQuery ? "No listings match your search" : "No active listings yet"}
@@ -318,9 +307,9 @@ export default function MarketplacePage() {
                                                                                 <Icon icon="solar:gallery-minimalistic-linear" className="w-8 h-8 text-muted-foreground" />
                                                                             </div>
                                                                         )}
-                                                                        <Badge className="absolute top-2 right-2 bg-green-600 text-[10px]">
+                                                                        <span className="absolute top-2 right-2 text-[10px] font-medium text-green-500">
                                                                             {listing.price} TON
-                                                                        </Badge>
+                                                                        </span>
                                                                     </div>
                                                                     <CardContent className="p-3">
                                                                         <h4 className="font-bold text-sm truncate">{listing.nftName}</h4>
@@ -340,7 +329,7 @@ export default function MarketplacePage() {
                             )}
                         </TabsContent>
                     </Tabs>
-                </motion.div>
+                </div>
             </div>
         </div>
     );

@@ -52,7 +52,7 @@ export default function PollCreator({ open, onOpenChange, onCreatePoll }: PollCr
         <DialogHeader>
           <DialogTitle className="text-sm flex items-center gap-2">
             <Icon icon="mdi:poll" className="w-5 h-5 text-primary" />
-            Create Poll
+            Create poll
           </DialogTitle>
         </DialogHeader>
 
@@ -141,7 +141,7 @@ export default function PollCreator({ open, onOpenChange, onCreatePoll }: PollCr
             className="w-full rounded-full"
             size="sm"
           >
-            Create Poll
+            Create poll
           </Button>
         </div>
       </DialogContent>

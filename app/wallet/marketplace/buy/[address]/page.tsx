@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Button } from "@/components/ui/button";
@@ -53,25 +52,18 @@ export default function BuyNftPage() {
     const { data: nft, isLoading, error: nftFetchError } = useNftDetailsQuery(nftAddress, isTestnet);
     const [viewMode, setViewMode] = useState<ViewMode>("preview");
     const [error, setError] = useState<string | null>(null);
-
-    // Sync fetch error into local error state
-    useEffect(() => {
-        if (nftFetchError) setError("Failed to load NFT");
-    }, [nftFetchError]);
+    const displayError = nftFetchError ? "Failed to load NFT" : error;
     const [paymentMethod, setPaymentMethod] = useState<"TON" | "STARS">("TON");
-    const [starsAmount, setStarsAmount] = useState<number | null>(null);
 
     // Calculate price with fee
     const priceInfo = nft?.sale ? calculateTotalPrice(nft.sale.price) : null;
 
     // Calculate Stars equivalent when price or TON price changes
-    useEffect(() => {
-        if (priceInfo) {
+    const starsAmount = useMemo(() => {
+        if (!priceInfo) return null;
             const tonPriceUsd = tonPrice > 0 ? tonPrice : 5.5; // Live price from wallet, fallback $5.50
             const tonAmount = Number(priceInfo.totalPrice) / 1e9;
-            const stars = convertTonToStars(tonAmount, tonPriceUsd);
-            setStarsAmount(stars);
-        }
+            return convertTonToStars(tonAmount, tonPriceUsd);
     }, [priceInfo, tonPrice]);
 
     // Check balance - tonBalance is a string in WalletContext
@@ -246,7 +238,7 @@ export default function BuyNftPage() {
                     <Icon icon="lucide:x-circle" className="w-16 h-16 text-destructive mx-auto mb-4" />
                     <p className="text-lg font-semibold">Not Available</p>
                     <p className="text-sm text-muted-foreground mt-2">
-                        {error || "This NFT is not for sale"}
+                        {displayError || "This NFT is not for sale"}
                     </p>
                     <Button
                         onClick={() => router.back()}
@@ -264,9 +256,7 @@ export default function BuyNftPage() {
     if (viewMode === "processing") {
         return (
             <div className="min-h-screen bg-background text-foreground p-4 flex items-center justify-center">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                <div
                     className="text-center space-y-6"
                 >
                     <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -278,7 +268,7 @@ export default function BuyNftPage() {
                             Please complete the transaction in the opened window
                         </p>
                     </div>
-                </motion.div>
+                </div>
             </div>
         );
     }
@@ -287,9 +277,7 @@ export default function BuyNftPage() {
     if (viewMode === "success") {
         return (
             <div className="min-h-screen bg-background text-foreground p-4 flex items-center justify-center">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                <div
                     className="text-center space-y-6 max-w-sm"
                 >
                     <div className="w-20 h-20 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
@@ -321,7 +309,7 @@ export default function BuyNftPage() {
                             <Link href="/wallet/marketplace">Back to Marketplace</Link>
                         </Button>
                     </div>
-                </motion.div>
+                </div>
             </div>
         );
     }
@@ -330,9 +318,7 @@ export default function BuyNftPage() {
     if (viewMode === "error") {
         return (
             <div className="fixed inset-0 bg-background text-foreground p-4 flex items-center justify-center">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                <div
                     className="text-center space-y-6 max-w-sm"
                 >
                     <div className="w-20 h-20 mx-auto rounded-full bg-destructive/10 flex items-center justify-center">
@@ -341,7 +327,7 @@ export default function BuyNftPage() {
                     <div>
                         <h2 className="text-xl font-bold">Purchase Failed</h2>
                         <p className="text-sm text-muted-foreground mt-2">
-                            {error || "Something went wrong"}
+                            {displayError || "Something went wrong"}
                         </p>
                     </div>
                     <Button
@@ -350,7 +336,7 @@ export default function BuyNftPage() {
                     >
                         Try Again
                     </Button>
-                </motion.div>
+                </div>
             </div>
         );
     }
@@ -358,9 +344,7 @@ export default function BuyNftPage() {
     // Preview View
     return (
         <div className="min-h-screen bg-background text-foreground p-4 pb-28">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+            <div
                 className="max-w-md mx-auto space-y-6"
             >
                 {/* Header */}
@@ -395,20 +379,20 @@ export default function BuyNftPage() {
                 </Card>
 
                 {/* Price Breakdown */}
-                <Card className="bg-card border-border">
+                <Card className="w-full bg-card border-border">
                     <CardContent className="p-4 space-y-3">
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">NFT Price</span>
+                            <span className="text-muted-foreground">NFT price</span>
                             <span className="font-semibold">{priceInfo.basePriceFormatted} TON</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-1">
-                                Platform Fee ({QC_MARKETPLACE_FEE_PERCENT}%)
+                                Platform fee ({QC_MARKETPLACE_FEE_PERCENT}%)
                                 <Icon icon="lucide:info" className="w-3 h-3" />
                             </span>
                             <span className="text-muted-foreground">{priceInfo.platformFeeFormatted} TON</span>
                         </div>
-                        <div className="border-t border-border pt-3">
+                        <div className="pt-3">
                             <div className="flex justify-between items-center">
                                 <span className="font-semibold">Total</span>
                                 <span className="text-xl font-bold text-primary">{priceInfo.totalPriceFormatted} TON</span>
@@ -436,7 +420,7 @@ export default function BuyNftPage() {
                 {nft.sale.market === "QC Marketplace" ? (
                     <Card className="bg-primary/5 border-primary/20">
                         <CardContent className="p-3 flex items-center gap-2 text-xs">
-                            <Icon icon="lucide:sparkles" className="w-4 h-4 text-primary shrink-0" />
+                            <Icon icon="iconoir:spark" className="w-4 h-4 text-primary shrink-0" />
                             <span className="text-primary font-medium">
                                 QC Marketplace • Only {QC_MARKETPLACE_FEE_PERCENT}% fee
                             </span>
@@ -499,7 +483,7 @@ export default function BuyNftPage() {
                         : `Buy for ${starsAmount || "..."} Stars`}
                     <Icon icon="lucide:arrow-right" className="w-5 h-5 ml-2" />
                 </Button>
-            </motion.div>
+            </div>
 
             {/* Biometric Auth Modal */}
             <BiometricAuth
@@ -510,4 +494,3 @@ export default function BuyNftPage() {
         </div>
     );
 }
-

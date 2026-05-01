@@ -240,11 +240,11 @@ export const achievements: Achievement[] = [
 ];
 
 export const RARITY_CONFIG: Record<AchievementRarity, { label: string; bg: string }> = {
-    common: { label: "Common", bg: "bg-gray-500/20 text-gray-400" },
-    uncommon: { label: "Uncommon", bg: "bg-green-500/20 text-green-400" },
-    rare: { label: "Rare", bg: "bg-blue-500/20 text-blue-400" },
-    epic: { label: "Epic", bg: "bg-purple-500/20 text-purple-400" },
-    legendary: { label: "Legendary", bg: "bg-amber-500/20 text-amber-400" },
+    common: { label: "Common", bg: "text-neutral-400" },
+    uncommon: { label: "Uncommon", bg: "text-green-400" },
+    rare: { label: "Rare", bg: "text-blue-400" },
+    epic: { label: "Epic", bg: "text-purple-400" },
+    legendary: { label: "Legendary", bg: "text-amber-400" },
 };
 
 export function getAchievement(id: string): Achievement | undefined {

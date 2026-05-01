@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -47,12 +46,17 @@ export default function VerifyPhrasePage() {
 
       if (walletAddress && mnemonic.length > 0) {
         try {
-          await setSecureMnemonic(telegramId, mnemonic.join(" "));
+          await setSecureMnemonic(telegramId, mnemonic.join(" "), walletAddress);
         } catch (error) {
           toast.error(error instanceof Error ? error.message : "Unable to save wallet securely. Please try again.");
           return;
         }
         localStorage.setItem(`quantum_wallet_address_${telegramId}`, walletAddress);
+        localStorage.setItem(`quantum_wallet_version_${telegramId}`, "v5r1");
+        localStorage.setItem(
+          `quantum_wallet_version_${telegramId}_${walletAddress.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
+          "v5r1"
+        );
 
         const walletName = `Wallet ${storedWallets.length + 1}`;
         addWallet(walletAddress, walletName);
@@ -105,18 +109,12 @@ export default function VerifyPhrasePage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6">
       <div className="max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
+        <div className="space-y-6">
           {/* Header */}
-          <div className="text-center space-y-3">
-            <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-              <Icon icon="lucide:check" className="w-7 h-7 text-primary"/>
-            </div>
-            <h1 className="text-2xl font-bold">Verify Your Phrase</h1>
-            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+          <div className="text-left space-y-3">
+            <Icon icon="lucide:check" className="w-9 h-9 text-neutral-300"/>
+            <h1 className="text-2xl font-bold">Verify your phrase</h1>
+            <p className="text-muted-foreground text-sm max-w-xs">
               Enter the correct words from your recovery phrase to verify you saved it.
             </p>
           </div>
@@ -140,7 +138,7 @@ export default function VerifyPhrasePage() {
                           onBlur={field.handleBlur}
                           onChange={(e) => field.handleChange(e.target.value)}
                           placeholder={`Enter word #${item.index + 1}`}
-                          className="w-full bg-muted border border-border rounded-xl px-4 py-6 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 font-mono transition-colors"
+                          className="w-full bg-secondary border-0 rounded-xl px-4 py-6 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:bg-secondary/80 focus:ring-0 font-mono transition-colors"
                           autoComplete="off"
                           autoCorrect="off"
                           autoCapitalize="off"
@@ -159,10 +157,10 @@ export default function VerifyPhrasePage() {
           <div className="flex flex-col gap-3">
             <Button
               onClick={handleGoBack}
-              variant="outline"
-              className="w-full bg-card border-border text-foreground hover:bg-muted h-12 transition-colors"
+              variant="secondary"
+              className="w-full h-12 transition-colors"
             >
-              Go Back
+              Go back
             </Button>
 
             <form.Subscribe selector={(state) => state.values}>
@@ -170,14 +168,14 @@ export default function VerifyPhrasePage() {
                 <Button
                   onClick={() => form.handleSubmit()}
                   disabled={!values.word0.trim() || !values.word1.trim() || !values.word2.trim()}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed border-0"
                 >
-                  Verify & Create Wallet
+                  Verify and create wallet
                 </Button>
               )}
             </form.Subscribe>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

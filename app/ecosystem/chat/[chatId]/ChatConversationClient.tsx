@@ -59,7 +59,6 @@ import {
   onSnapshot,
   serverTimestamp,
   updateDoc,
-  deleteDoc,
   deleteField,
   increment,
   Timestamp,
@@ -93,6 +92,8 @@ import { useQcUsernamesBatch, useQcUsernameQuery } from "@/app/(hooks)/queries/u
 import { isQcTeamMember } from "@/lib/qc-team";
 import { toast } from "sonner";
 
+const gradientPattern = /(?:linear|radial|conic)-gradient/i;
+
 interface ChatMessage {
   id: string;
   text: string;
@@ -113,7 +114,7 @@ interface ChatMessage {
     originalChatId: string;
   };
   expiresAt?: Timestamp | number;
-  type?: "text" | "poll" | "voice" | "transfer" | "file" | "nft_share" | "call";
+  type?: "text" | "poll" | "voice" | "transfer" | "file" | "nft_share" | "call" | "deleted";
   poll?: {
     question: string;
     options: string[];
@@ -207,6 +208,15 @@ function getInitials(name: string): string {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+}
+
+function normalizeQcUsername(name: string | null | undefined): string {
+  return name?.replace(/^@+/, "").trim() || "Unknown";
+}
+
+function formatQcHandle(name: string | null | undefined): string {
+  const normalized = normalizeQcUsername(name);
+  return normalized === "Unknown" ? normalized : `@${normalized}`;
 }
 
 function getAvatarColor(name: string): string {
@@ -467,7 +477,12 @@ export default function ChatConversationClient() {
   useEffect(() => {
     if (!chatId) return;
     const saved = localStorage.getItem(`chatTheme_${chatId}`);
-    if (saved) requestAnimationFrame(() => setChatTheme(saved));
+    if (!saved) return;
+    if (gradientPattern.test(saved)) {
+      localStorage.removeItem(`chatTheme_${chatId}`);
+      return;
+    }
+    requestAnimationFrame(() => setChatTheme(saved));
   }, [chatId]);
 
   // Set current chat for presence tracking + mark as read
@@ -1239,7 +1254,7 @@ export default function ChatConversationClient() {
     const currentReply = replyTo;
     setReplyTo(null);
 
-    const senderName = qcUsername || "Unknown";
+    const senderName = normalizeQcUsername(qcUsername);
 
     try {
       // Use participantsRef for latest participants
@@ -1345,7 +1360,7 @@ export default function ChatConversationClient() {
       return;
     }
 
-    const senderName = qcUsername || "Unknown";
+    const senderName = normalizeQcUsername(qcUsername);
     const msgId = `voice_${Date.now()}_${telegramId}`;
 
     try {
@@ -1467,7 +1482,7 @@ export default function ChatConversationClient() {
       return;
     }
 
-    const senderName = qcUsername || "Unknown";
+    const senderName = normalizeQcUsername(qcUsername);
     const msgId = `file_${Date.now()}_${telegramId}`;
     setIsSendingFile(true);
 
@@ -1609,7 +1624,7 @@ export default function ChatConversationClient() {
       return;
     }
 
-    const senderName = qcUsername || "Unknown";
+    const senderName = normalizeQcUsername(qcUsername);
     try {
       const participants = participantsRef.current;
       const epoch = await ensureEpoch();
@@ -1705,7 +1720,7 @@ export default function ChatConversationClient() {
     }
     if (!question.trim() || options.length < 2 || options.some((o) => !o.trim())) return;
     try {
-      const senderName = qcUsername || "Unknown";
+      const senderName = normalizeQcUsername(qcUsername);
       const participants = participantsRef.current;
       const messagesRef = collection(dbfs, "qc-chats", chatId, "messages");
 
@@ -1820,13 +1835,6 @@ export default function ChatConversationClient() {
     if (!forwardMsgId || !telegramId) return;
     const msg = messages.find((m) => m.id === forwardMsgId);
     if (!msg) return;
-    // Only text messages can be forwarded — non-text types (voice, file, poll, transfer, nftShare) would lose their type
-    if (msg.type && msg.type !== "text") {
-      toast.error("Only text messages can be forwarded");
-      setShowForwardDialog(false);
-      setForwardMsgId(null);
-      return;
-    }
     setIsForwarding(true);
     try {
         // Fetch fresh destination chat data to get current epoch & participants
@@ -1837,7 +1845,7 @@ export default function ChatConversationClient() {
         const destEpochNonce = freshDest.epochNonce ?? destChat.epochNonce;
         const destEpochCounter = freshDest.epochCounter ?? destChat.epochCounter;
         const encryptedText = await encryptMessage(msg.text, destParticipants, destChat.id, telegramId, destIsGroup, destEpochNonce, destEpochCounter);
-        const senderName = qcUsername || "Unknown";
+        const senderName = normalizeQcUsername(qcUsername);
 
         const fwdDoc: Record<string, unknown> = {
           text: encryptedText,
@@ -1849,6 +1857,14 @@ export default function ChatConversationClient() {
           encEpoch: destEpochCounter ?? 0,
           forwarded: { from: msg.senderName, originalChatId: chatId },
         };
+
+        if (msg.type && msg.type !== "text") fwdDoc.type = msg.type;
+        if (msg.poll) fwdDoc.poll = msg.poll;
+        if (msg.voice) fwdDoc.voice = msg.voice;
+        if (msg.file) fwdDoc.file = msg.file;
+        if (msg.transfer) fwdDoc.transfer = msg.transfer;
+        if (msg.nftShare) fwdDoc.nftShare = msg.nftShare;
+        if (msg.call) fwdDoc.call = msg.call;
 
         // If destination has disappearing messages, add expiresAt
         const destDisappear = freshDest.disappearAfter ?? destChat.disappearAfter;
@@ -1903,33 +1919,38 @@ export default function ChatConversationClient() {
   async function handleDeleteForEveryone(msgId: string) {
     if (!chatId) return;
     try {
+      const targetMessage = messages.find((m) => m.id === msgId);
       const wasLastMessage = messages[messages.length - 1]?.id === msgId;
-      await deleteDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId));
+      const deletedPreview = "You deleted this message";
 
-      // If deleting the last message, query Firestore for the actual last remaining message
+      await updateDoc(doc(dbfs, "qc-chats", chatId, "messages", msgId), {
+        text: deletedPreview,
+        type: "deleted",
+        deletedForEveryone: true,
+        deletedAt: serverTimestamp(),
+        encrypted: false,
+        encEpoch: deleteField(),
+        editedAt: deleteField(),
+        expiresAt: deleteField(),
+        reactions: deleteField(),
+        replyTo: deleteField(),
+        forwarded: deleteField(),
+        poll: deleteField(),
+        voice: deleteField(),
+        file: deleteField(),
+        transfer: deleteField(),
+        nftShare: deleteField(),
+        call: deleteField(),
+      });
+
       if (wasLastMessage) {
-        const lastMsgQuery = query(
-          collection(dbfs, "qc-chats", chatId, "messages"),
-          orderBy("createdAt", "desc"),
-          limit(1),
-        );
-        const lastMsgSnap = await getDocs(lastMsgQuery);
-        if (!lastMsgSnap.empty) {
-          const lastMsgData = lastMsgSnap.docs[0].data();
-          updateDoc(doc(dbfs, "qc-chats", chatId), {
-            lastMessage: lastMsgData.encrypted ? "New message" : (lastMsgData.text || ""),
-            lastMessageBy: lastMsgData.senderId || "",
-            lastMessageAt: lastMsgData.createdAt || serverTimestamp(),
-          }).catch(() => {});
-        } else {
-          updateDoc(doc(dbfs, "qc-chats", chatId), {
-            lastMessage: "",
-            lastMessageBy: "",
-            lastMessageAt: serverTimestamp(),
-            lastMessageEpoch: deleteField(),
-          }).catch(() => {});
-          try { localStorage.removeItem(`qc-preview-${chatId}`); } catch {}
-        }
+        await updateDoc(doc(dbfs, "qc-chats", chatId), {
+          lastMessage: deletedPreview,
+          lastMessageBy: "system",
+          lastMessageAt: targetMessage?.createdAt || serverTimestamp(),
+          lastMessageEpoch: deleteField(),
+        });
+        try { localStorage.setItem(`qc-preview-${chatId}`, deletedPreview); } catch {}
       }
       toast.success("Message deleted");
     } catch (err) {
@@ -2278,7 +2299,7 @@ export default function ChatConversationClient() {
       `}</style>
       {/* Chat Header */}
       <div
-        className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0"
+        className="flex items-center gap-3 px-4 pb-4 pt-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0"
         style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
       >
         <div className="relative shrink-0">
@@ -2300,12 +2321,7 @@ export default function ChatConversationClient() {
           </Avatar>
           {/* Online indicator dot for DMs */}
           {!isGroupChat && !isSelfChat && otherPresence?.isOnline && (
-            <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-card" />
-          )}
-          {isGroupChat && !chatMeta?.isGlobal && (
-            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card border-2 border-background flex items-center justify-center">
-              <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
-            </div>
+            <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500" />
           )}
         </div>
 
@@ -2339,15 +2355,24 @@ export default function ChatConversationClient() {
               <Icon icon="lucide:timer" className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 leading-4">
             {!chatMeta ? (
               <Skeleton className="h-3 w-16 rounded" />
+            ) : isGroupChat && subtitle.text.endsWith("Encrypted") ? (
+              <>
+                <span className={`text-[11px] ${subtitle.color} leading-4 truncate`}>
+                  {subtitle.text.replace(" · Encrypted", "")}
+                </span>
+                <span className="text-[11px] text-green-400 leading-4">·</span>
+                <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
+                <span className="text-[11px] text-green-400 leading-4">Encrypted</span>
+              </>
             ) : (
               <>
                 {subtitle.color === "text-green-400" && typingUsers.length === 0 && (
                   <Icon icon="solar:lock-keyhole-bold" className="w-3 h-3 text-green-400 shrink-0" />
                 )}
-                <span className={`text-[11px] ${subtitle.color} leading-none truncate`}>
+                <span className={`text-[11px] ${subtitle.color} leading-4 truncate`}>
                   {subtitle.text}
                 </span>
               </>
@@ -2433,16 +2458,14 @@ export default function ChatConversationClient() {
         <Drawer open={showShareModal} onOpenChange={setShowShareModal}>
           <DrawerContent>
             <DrawerHeader className="text-center items-center">
-              <DrawerTitle>Share Group</DrawerTitle>
+              <DrawerTitle>Share group</DrawerTitle>
               <DrawerDescription className="text-xs">
                 Invite others to join {headerName}
               </DrawerDescription>
             </DrawerHeader>
             <div className="space-y-4 px-4 pb-6">
               <div className="text-center">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-2">
-                  <Icon icon="solar:users-group-rounded-bold" className="w-7 h-7 text-primary" />
-                </div>
+                <Icon icon="solar:users-group-rounded-bold" className="mx-auto mb-2 h-8 w-8 text-primary" />
                 <p className="text-sm font-semibold">{headerName}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {chatMeta.participants.length} members
@@ -2450,7 +2473,7 @@ export default function ChatConversationClient() {
               </div>
 
               <button
-                className="w-full rounded-xl border border-border/60 bg-muted/30 p-3 text-center hover:bg-muted/50 active:scale-[0.98] transition-all"
+                className="w-full rounded-xl bg-muted/30 p-3 text-center hover:bg-muted/50 active:scale-[0.98] transition-all"
                 onClick={() => {
                   navigator.clipboard.writeText(chatMeta.joinCode!);
                   toast.success("Join code copied!");
@@ -2491,7 +2514,7 @@ export default function ChatConversationClient() {
                   }}
                 >
                   <Icon icon={codeCopied ? "lucide:check" : "lucide:link"} className="w-4 h-4" />
-                  {codeCopied ? "Copied!" : "Copy Link"}
+                  {codeCopied ? "Copied!" : "Copy link"}
                 </Button>
               </div>
             </div>
@@ -2516,7 +2539,7 @@ export default function ChatConversationClient() {
 
       {/* Disappearing Messages Dialog */}
       <Dialog open={timerPopoverOpen} onOpenChange={setTimerPopoverOpen}>
-        <DialogContent className="max-w-[280px] rounded-2xl">
+        <DialogContent className="max-w-[280px] rounded-2xl border-0">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <Icon icon="lucide:timer" className="w-5 h-5 text-primary" />
@@ -2566,7 +2589,7 @@ export default function ChatConversationClient() {
 
       {/* Forward Dialog */}
       <Dialog open={showForwardDialog} onOpenChange={(open) => { setShowForwardDialog(open); if (!open) setForwardMsgId(null); }}>
-        <DialogContent hideClose className="max-w-[340px] rounded-2xl">
+        <DialogContent hideClose className="max-w-[340px] rounded-2xl border-0">
           <DialogHeader className="text-center items-center">
             <DialogTitle className="text-center">Forward Message</DialogTitle>
             <DialogDescription className="text-center text-xs">
@@ -2626,7 +2649,7 @@ export default function ChatConversationClient() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Emoji reactions row */}
-            <div className="flex items-center justify-center gap-1 mb-2 px-2 py-1.5 bg-card border border-border/50 rounded-2xl shadow-xl">
+            <div className="flex items-center justify-center gap-1 mb-2 px-2 py-1.5 bg-card rounded-2xl shadow-xl">
               {REACTION_EMOJIS.map((emoji) => {
                 const activeMsg = messages.find((m) => m.id === reactionPickerMsgId);
                 const isReacted = activeMsg?.reactions?.[emoji.key]?.includes(telegramId || "");
@@ -2643,54 +2666,60 @@ export default function ChatConversationClient() {
             </div>
 
             {/* Action items */}
-            <div className="bg-card border border-border/50 rounded-2xl shadow-xl overflow-hidden py-1">
-              <button
-                onClick={() => {
-                  const msg = messages.find((m) => m.id === reactionPickerMsgId);
-                  if (msg) { setReplyTo(msg); inputRef.current?.focus(); }
-                  setReactionPickerMsgId(null);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
-              >
-                <Icon icon="lucide:reply" className="w-[18px] h-[18px] text-muted-foreground" />
-                <span className="text-[13px] font-medium">Reply</span>
-              </button>
-
-              <button
-                onClick={() => handleCopyText(reactionPickerMsgId)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
-              >
-                <Icon icon="lucide:copy" className="w-[18px] h-[18px] text-muted-foreground" />
-                <span className="text-[13px] font-medium">Copy Text</span>
-              </button>
-
-              {isGroupChat && (
-                <button
-                  onClick={() => {
-                    const msg = messages.find((m) => m.id === reactionPickerMsgId);
-                    if (msg) handlePinMessage(msg);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
-                >
-                  <Icon icon="lucide:pin" className="w-[18px] h-[18px] text-muted-foreground" />
-                  <span className="text-[13px] font-medium">Pin</span>
-                </button>
-              )}
-
-              <button
-                onClick={() => handleForwardStart(reactionPickerMsgId)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
-              >
-                <Icon icon="lucide:forward" className="w-[18px] h-[18px] text-muted-foreground" />
-                <span className="text-[13px] font-medium">Forward</span>
-              </button>
-
+            <div className="bg-card rounded-2xl shadow-xl overflow-hidden py-1">
               {(() => {
                 const activeMsg = messages.find((m) => m.id === reactionPickerMsgId);
+                const isTextMessage = !activeMsg?.type || activeMsg.type === "text";
+                const canCopy = !!activeMsg && isTextMessage && !!activeMsg.text.trim();
+                const canForward = !!activeMsg && activeMsg.type !== "deleted" && activeMsg.text !== "You deleted this message";
                 const canDeleteForEveryone = activeMsg?.senderId === telegramId || chatMeta?.createdBy === telegramId;
                 const canEdit = !!activeMsg && canEditMessage(activeMsg);
+
                 return (
                   <>
+                    <button
+                      onClick={() => {
+                        if (activeMsg) { setReplyTo(activeMsg); inputRef.current?.focus(); }
+                        setReactionPickerMsgId(null);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+                    >
+                      <Icon icon="lucide:reply" className="w-[18px] h-[18px] text-muted-foreground" />
+                      <span className="text-[13px] font-medium">Reply</span>
+                    </button>
+
+                    {canCopy && (
+                      <button
+                        onClick={() => handleCopyText(reactionPickerMsgId)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+                      >
+                        <Icon icon="lucide:copy" className="w-[18px] h-[18px] text-muted-foreground" />
+                        <span className="text-[13px] font-medium">Copy text</span>
+                      </button>
+                    )}
+
+                    {isGroupChat && (
+                      <button
+                        onClick={() => {
+                          if (activeMsg) handlePinMessage(activeMsg);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+                      >
+                        <Icon icon="lucide:pin" className="w-[18px] h-[18px] text-muted-foreground" />
+                        <span className="text-[13px] font-medium">Pin</span>
+                      </button>
+                    )}
+
+                    {canForward && (
+                      <button
+                        onClick={() => handleForwardStart(reactionPickerMsgId)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors"
+                      >
+                        <Icon icon="lucide:forward" className="w-[18px] h-[18px] text-muted-foreground" />
+                        <span className="text-[13px] font-medium">Forward</span>
+                      </button>
+                    )}
+
                     {canEdit && (
                       <button
                         onClick={() => activeMsg && handleStartEdit(activeMsg)}
@@ -2700,13 +2729,13 @@ export default function ChatConversationClient() {
                         <span className="text-[13px] font-medium">Edit</span>
                       </button>
                     )}
-                    <div className="mx-3 border-t border-border/50" />
+                    <div className="mx-3 h-px bg-muted/50" />
                     <button
                       onClick={() => handleDeleteForMe(reactionPickerMsgId!)}
                       className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors"
                     >
                       <Icon icon="lucide:eye-off" className="w-[18px] h-[18px] text-red-500" />
-                      <span className="text-[13px] font-medium text-red-500">Delete for Me</span>
+                      <span className="text-[13px] font-medium text-red-500">Delete for me</span>
                     </button>
                     {canDeleteForEveryone && (
                       <button
@@ -2714,7 +2743,7 @@ export default function ChatConversationClient() {
                         className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors"
                       >
                         <Icon icon="lucide:trash-2" className="w-[18px] h-[18px] text-red-500" />
-                        <span className="text-[13px] font-medium text-red-500">Delete for Everyone</span>
+                        <span className="text-[13px] font-medium text-red-500">Delete for everyone</span>
                       </button>
                     )}
                   </>
@@ -2809,7 +2838,7 @@ export default function ChatConversationClient() {
         ref={chatContainerRef}
         onScroll={() => { handleScroll(); handleScrollForPagination(); }}
         className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5"
-        style={chatTheme ? { background: chatTheme } : undefined}
+        style={chatTheme && !gradientPattern.test(chatTheme) ? { background: chatTheme } : undefined}
       >
         {/* Load older indicator */}
         {!isLoading && messages.length > 0 && (
@@ -2850,9 +2879,7 @@ export default function ChatConversationClient() {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-              <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={36} height={36} />
-            </div>
+            <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={50} height={50} />
             <div>
               <p className="text-sm font-medium text-foreground">No messages yet</p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -2938,9 +2965,9 @@ export default function ChatConversationClient() {
                       data-bubble
                       className={`relative transition-all duration-200 ${
                         isOwnMessage
-                          ? "bg-primary/15 border border-primary/20 rounded-2xl rounded-br-md"
-                          : "bg-card border border-border/50 rounded-2xl rounded-bl-md"
-                      } ${reactionPickerMsgId === msg.id ? "ring-2 ring-primary/40 scale-[1.02]" : ""} px-2.5 py-1.5`}
+                          ? "bg-primary/15 rounded-2xl rounded-br-md"
+                          : "bg-card rounded-2xl rounded-bl-md"
+                      } ${reactionPickerMsgId === msg.id ? "scale-[1.02]" : ""} px-2.5 py-1.5`}
                     >
                     {!isOwnMessage && !consecutive && isGroupChat && (
                       <div className="flex items-center gap-1 mb-0.5">
@@ -2974,7 +3001,7 @@ export default function ChatConversationClient() {
                     {msg.replyTo && (
                       <div className="border-l-2 border-primary/50 pl-2 mb-1.5 py-0.5">
                         <p className="text-[10px] font-semibold text-primary">
-                          {msg.replyTo.senderName === qcUsername ? "You" : `@${msg.replyTo.senderName}`}
+                          {normalizeQcUsername(msg.replyTo.senderName) === normalizeQcUsername(qcUsername) ? "You" : formatQcHandle(msg.replyTo.senderName)}
                         </p>
                         <p className="text-[11px] text-muted-foreground truncate max-w-[200px]">
                           {msg.replyTo.text}
@@ -2982,7 +3009,12 @@ export default function ChatConversationClient() {
                       </div>
                     )}
 
-                    {msg.type === "voice" && msg.voice ? (
+                    {msg.type === "deleted" || msg.text === "You deleted this message" ? (
+                      <span className="inline-flex items-center gap-1.5 text-[13px] leading-[1.4] text-muted-foreground">
+                        <Icon icon="proicons:delete" className="h-4 w-4 shrink-0" />
+                        You deleted this message
+                      </span>
+                    ) : msg.type === "voice" && msg.voice ? (
                       <VoiceMessage
                         audioUrl={msg.voice.url}
                         durationSec={msg.voice.durationSec}
@@ -3110,8 +3142,8 @@ export default function ChatConversationClient() {
                                 onClick={() => toggleReaction(msg.id, emojiKey)}
                                 className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] border transition-colors ${
                                   iReacted
-                                    ? "bg-primary/15 border-primary/30 text-primary"
-                                    : "bg-muted/40 border-border/50 text-muted-foreground"
+                                    ? "bg-primary/15 border-transparent text-primary"
+                                    : "bg-muted/40 border-transparent text-muted-foreground"
                                 }`}
                               >
                                 <Icon icon={emoji.icon} className="w-3.5 h-3.5" />
@@ -3138,7 +3170,7 @@ export default function ChatConversationClient() {
                 {getInitials(typingUsers[0])}
               </AvatarFallback>
             </Avatar>
-            <div className="bg-card border border-border/50 rounded-2xl rounded-bl-md px-4 py-3">
+            <div className="bg-card rounded-2xl rounded-bl-md px-4 py-3">
               {isGroupChat && (
                 <p className="text-[10px] font-semibold text-primary mb-1">
                   {typingUsers.join(", ")}
@@ -3160,7 +3192,7 @@ export default function ChatConversationClient() {
       {showScrollDown && (
         <button
           onClick={() => scrollToBottom(true)}
-          className="absolute bottom-32 right-4 z-40 w-10 h-10 rounded-full bg-card border border-border/50 shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
+          className="absolute bottom-32 right-4 z-40 w-10 h-10 rounded-full bg-card shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
         >
           <Icon icon="lucide:chevron-down" className="w-5 h-5 text-muted-foreground" />
         </button>
@@ -3171,7 +3203,7 @@ export default function ChatConversationClient() {
         <div className="px-3 py-2 border-t border-border/50 bg-card/80 backdrop-blur-sm shrink-0 flex items-center gap-2">
           <div className="flex-1 min-w-0 border-l-2 border-primary pl-2">
             <p className="text-[11px] font-semibold text-primary truncate">
-              {replyTo.senderName === qcUsername ? "You" : `@${replyTo.senderName}`}
+              {normalizeQcUsername(replyTo.senderName) === normalizeQcUsername(qcUsername) ? "You" : formatQcHandle(replyTo.senderName)}
             </p>
             <p className="text-[11px] text-muted-foreground truncate">
               {replyTo.text}

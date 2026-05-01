@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTradeEvents } from "@/app/(hooks)/queries/use-trades";
@@ -294,36 +293,28 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
 
     if (isLoading) {
         return (
-            <Card className="bg-[#111] border-[#222]">
-                <CardContent className="p-4">
+            <section className="relative left-1/2 w-screen -translate-x-1/2 px-4">
+                <div className="p-0">
                     <div className="flex items-center gap-2 mb-3">
                         <div className="w-5 h-5 rounded bg-white/5 animate-pulse" />
                         <div className="w-20 h-4 rounded bg-white/5 animate-pulse" />
                     </div>
                     <div className="h-[160px] bg-white/[0.02] rounded-lg animate-pulse" />
-                </CardContent>
-            </Card>
+                </div>
+            </section>
         );
     }
 
     return (
-        <Card className="bg-[#111] border-[#222] overflow-hidden">
-            <CardContent className="p-0">
+        <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden px-4">
+            <div className="p-0">
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 pt-3 pb-2 z-20 relative">
-                    {/* On-Chain Badge */}
+                <div className="flex items-center justify-between pb-2 z-20 relative">
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                            </span>
-                            <span className="text-[9px] font-bold text-green-400 uppercase tracking-wider">On-Chain</span>
-                        </div>
                         {/* Chart mode toggle */}
                         <button
                             onClick={() => setChartMode(chartMode === "area" ? "candlestick" : "area")}
-                            className="w-6 h-6 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+                            className="w-6 h-6 rounded flex items-center justify-center text-neutral-500 hover:text-white hover:bg-white/5 transition-colors"
                             title={chartMode === "area" ? "Switch to candlestick" : "Switch to area"}
                         >
                             <Icon
@@ -334,11 +325,11 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
                     </div>
 
                     {/* Time Range Controls */}
-                    <div className="flex items-center gap-1 bg-[#1a1a1a] rounded-full px-1.5 py-0.5 border border-white/5">
+                    <div className="flex items-center gap-1 bg-secondary rounded-full px-1.5 py-0.5 border-0">
                         <button
                             onClick={() => handleSlide("left")}
                             disabled={timeRangeIndex === 0}
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-neutral-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                             <Icon icon="solar:alt-arrow-left-linear" className="w-3.5 h-3.5" />
                         </button>
@@ -348,7 +339,7 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
                         <button
                             onClick={() => handleSlide("right")}
                             disabled={timeRangeIndex === TIME_RANGES.length - 1}
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-neutral-500 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                             <Icon icon="solar:alt-arrow-right-linear" className="w-3.5 h-3.5" />
                         </button>
@@ -357,22 +348,22 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
 
                 {/* Chart */}
                 {hasData ? (
-                    <div className="relative h-[160px] px-2">
+                    <div className="relative h-[160px]">
                         <div ref={containerRef} className="w-full h-full [&_a[href*='tradingview']]:!hidden" />
                         {/* Custom tooltip */}
                         {tooltip?.visible && (
                             <div
-                                className="absolute bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-2 shadow-xl pointer-events-none z-10"
+                                className="absolute bg-[#1a1a1a] border-0 rounded-lg px-3 py-2 shadow-xl pointer-events-none z-10"
                                 style={{
                                     left: Math.min(tooltip.x, (containerRef.current?.clientWidth ?? 200) - 140),
                                     top: Math.max(0, tooltip.y - 60),
                                 }}
                             >
-                                <p className="text-[10px] text-gray-500 mb-0.5">{tooltip.time}</p>
+                                <p className="text-[10px] text-neutral-500 mb-0.5">{tooltip.time}</p>
                                 <p className="text-sm font-semibold text-white">
                                     {formatPrice(tooltip.price)} TON
                                 </p>
-                                <p className="text-[10px] text-gray-500">
+                                <p className="text-[10px] text-neutral-500">
                                     ≈ ${((tooltip.price * (tonPrice || 5))).toFixed(6)}
                                 </p>
                             </div>
@@ -380,16 +371,16 @@ export default function PriceChart({ currentPrice, jettonAddress }: PriceChartPr
                     </div>
                 ) : (
                     <div className="h-[160px] flex flex-col items-center justify-center text-center px-4">
-                        <Icon icon="solar:chart-2-linear" className="w-8 h-8 text-gray-700 mb-2" />
-                        <p className="text-xs text-gray-500">
+                        <Icon icon="solar:chart-2-linear" className="w-8 h-8 text-neutral-700 mb-2" />
+                        <p className="text-xs text-neutral-500">
                             {jettonAddress ? "No on-chain trades yet" : "Contract not deployed"}
                         </p>
-                        <p className="text-[10px] text-gray-600">
+                        <p className="text-[10px] text-neutral-600">
                             {jettonAddress ? "Chart updates from blockchain" : "Deploy token to see chart"}
                         </p>
                     </div>
                 )}
-            </CardContent>
-        </Card>
+            </div>
+        </section>
     );
 }

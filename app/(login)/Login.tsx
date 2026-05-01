@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -166,47 +166,7 @@ export default function Login() {
     }
   }, [authContext?.currentUser, authContext?.authLoading, isLoading, rootError, router]);
 
-  // Auto-trigger Telegram login when no user is signed in. With Telegram-only
-  // auth, initData is always available inside the Mini App — there is no
-  // reason to make the user click a button. The error state below is only
-  // reached if the Telegram WebApp surface is unavailable (browser, broken
-  // WebView) or auto-login failed outright.
-  useEffect(() => {
-    if (
-      !authContext?.authLoading &&
-      !authContext?.currentUser &&
-      !autoLoginAttempted.current &&
-      !isLoading &&
-      !rootError &&
-      typeof window !== "undefined" &&
-      window.Telegram?.WebApp?.initData
-    ) {
-      autoLoginAttempted.current = true;
-      handleTelegramLogin();
-    }
-  }, [
-    authContext?.authLoading,
-    authContext?.currentUser,
-    isLoading,
-    rootError,
-  ]);
-
-  // Show loader while auth is resolving, during Telegram login, or when
-  // auto-login is about to fire (prevents a single-frame flash of the
-  // error screen between authLoading→false and the effect setting
-  // isLoading→true).
-  const willAutoLogin = !authContext?.currentUser && !rootError &&
-    typeof window !== "undefined" && !!window.Telegram?.WebApp?.initData;
-  const showLoader = authContext?.authLoading || isLoading || willAutoLogin;
-
-  useEffect(() => {
-    // Prefetch destinations for faster post-login navigation
-    router.prefetch("/legal/terms");
-    router.prefetch("/legal/privacy");
-    router.prefetch("/home");
-  }, [router]);
-
-  const handleTelegramLogin = async () => {
+  const handleTelegramLogin = useCallback(async () => {
     setIsLoading(true);
     setRootError(null);
     try {
@@ -297,7 +257,60 @@ export default function Login() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+    SetMainQuantAmount,
+    authContext,
+    setDaily,
+    setLastActiveTime,
+    setQcUsername,
+    setRank,
+    setRemainingSolveToEarn,
+    setTelegramId,
+    setUserRank,
+    setUsername,
+    setWalletAddress,
+  ]);
+
+  // Auto-trigger Telegram login when no user is signed in. With Telegram-only
+  // auth, initData is always available inside the Mini App — there is no
+  // reason to make the user click a button. The error state below is only
+  // reached if the Telegram WebApp surface is unavailable (browser, broken
+  // WebView) or auto-login failed outright.
+  useEffect(() => {
+    if (
+      !authContext?.authLoading &&
+      !authContext?.currentUser &&
+      !autoLoginAttempted.current &&
+      !isLoading &&
+      !rootError &&
+      typeof window !== "undefined" &&
+      window.Telegram?.WebApp?.initData
+    ) {
+      autoLoginAttempted.current = true;
+      handleTelegramLogin();
+    }
+  }, [
+    authContext?.authLoading,
+    authContext?.currentUser,
+    handleTelegramLogin,
+    isLoading,
+    rootError,
+  ]);
+
+  // Show loader while auth is resolving, during Telegram login, or when
+  // auto-login is about to fire (prevents a single-frame flash of the
+  // error screen between authLoading→false and the effect setting
+  // isLoading→true).
+  const willAutoLogin = !authContext?.currentUser && !rootError &&
+    typeof window !== "undefined" && !!window.Telegram?.WebApp?.initData;
+  const showLoader = authContext?.authLoading || isLoading || willAutoLogin;
+
+  useEffect(() => {
+    // Prefetch destinations for faster post-login navigation
+    router.prefetch("/legal/terms");
+    router.prefetch("/legal/privacy");
+    router.prefetch("/home");
+  }, [router]);
 
   // Auto-init guarantees that anyone reaching this page from inside Telegram
   // is signed in within ~1s. Show the loader for the entire normal path.

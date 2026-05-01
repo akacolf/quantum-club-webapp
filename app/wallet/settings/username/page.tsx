@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
@@ -11,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useWallet } from "../../WalletContext";
@@ -140,16 +138,12 @@ export default function QCDomainPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6 pb-24">
       <div className="max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="space-y-6"
         >
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-              <Icon icon="solar:user-id-bold" className="w-7 h-7 text-primary" />
-            </div>
+            <Icon icon="solar:user-id-bold" className="mx-auto w-8 h-8 text-primary" />
             <h1 className="text-2xl font-bold">Username</h1>
             <p className="text-muted-foreground text-sm">
               Your unique identity on Quantum Club
@@ -158,22 +152,18 @@ export default function QCDomainPage() {
 
           {/* Existing Username + Domain Display */}
           {qcUsername && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
+            <div
               className="space-y-3"
             >
               {/* Username Card */}
-              <Card className="bg-primary/5 border-primary/20 overflow-hidden">
+              <Card className="bg-card border-0 overflow-hidden">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Icon icon="solar:verified-check-bold" className="w-5 h-5 text-green-400" />
-                      <span className="text-sm font-medium text-foreground">Your Username</span>
+                      <span className="text-sm font-medium text-foreground">Your username</span>
                     </div>
-                    <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-[10px]">
-                      Active
-                    </Badge>
+                    <span className="text-[10px] font-medium text-green-400">Active</span>
                   </div>
 
                   <button
@@ -194,7 +184,7 @@ export default function QCDomainPage() {
                   {/* Linked Address */}
                   <div className="space-y-1">
                     <Label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                      Resolves To
+                      Resolves to
                     </Label>
                     <p className="text-xs font-mono text-muted-foreground break-all">
                       {existingAddress || walletAddress}
@@ -203,7 +193,7 @@ export default function QCDomainPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="mt-2 h-7 text-[10px]"
+                        className="mt-2 h-7 border-0 bg-card text-[10px] hover:bg-muted"
                         onClick={handleUpdateAddress}
                       >
                         Update to current wallet address
@@ -212,17 +202,14 @@ export default function QCDomainPage() {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           )}
 
           {/* Registration Form (only if no username yet) */}
           {!qcUsername && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+            <div
             >
-              <Card className="bg-card border-border overflow-hidden">
+              <Card className="bg-card border-0 overflow-hidden">
                 <CardContent className="p-5 space-y-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Choose your username</Label>
@@ -242,7 +229,7 @@ export default function QCDomainPage() {
                                 }}
                                 onBlur={field.handleBlur}
                                 maxLength={USERNAME_MAX_LENGTH}
-                                className="pl-8 font-mono"
+                                className="pl-8 font-mono border border-border"
                                 disabled={registerUsernameMutation.isPending}
                               />
                             </div>
@@ -251,7 +238,7 @@ export default function QCDomainPage() {
                               size="sm"
                               onClick={checkAvailability}
                               disabled={!isValidInput || isChecking}
-                              className="px-4 shrink-0"
+                              className="px-4 shrink-0 border-0"
                             >
                               {isChecking ? (
                                 <ButtonLoader size="sm" />
@@ -276,24 +263,20 @@ export default function QCDomainPage() {
 
                     {/* Availability feedback */}
                     {availability === "available" && (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                      <p
                         className="text-xs text-green-400 flex items-center gap-1"
                       >
                         <Icon icon="solar:check-circle-bold" className="w-3 h-3" />
                         @{currentUsername} is available!
-                      </motion.p>
+                      </p>
                     )}
                     {availability === "taken" && (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                      <p
                         className="text-xs text-destructive flex items-center gap-1"
                       >
                         <Icon icon="solar:close-circle-bold" className="w-3 h-3" />
                         @{currentUsername} is already taken
-                      </motion.p>
+                      </p>
                     )}
                   </div>
 
@@ -336,20 +319,17 @@ export default function QCDomainPage() {
                   </Button>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           )}
 
           {/* How it works */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+          <div
           >
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-0">
               <CardContent className="p-5 space-y-4">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-primary" />
-                  How It Works
+                  How it works
                 </h3>
 
                 <div className="space-y-3">
@@ -371,9 +351,7 @@ export default function QCDomainPage() {
                     },
                   ].map((item, i) => (
                     <div key={i} className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 mt-0.5">
-                        <Icon icon={item.icon} className="w-4 h-4 text-muted-foreground" />
-                      </div>
+                      <Icon icon={item.icon} className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-medium text-foreground">{item.title}</p>
                         <p className="text-xs text-muted-foreground">{item.desc}</p>
@@ -383,8 +361,8 @@ export default function QCDomainPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
     </div>
   );

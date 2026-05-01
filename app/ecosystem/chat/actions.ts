@@ -38,6 +38,11 @@ function resolveTelegramId(userData: Record<string, unknown>): string | null {
   return null;
 }
 
+function formatQcDisplayName(value: string, fallback: string) {
+  const normalized = value.replace(/^@+/, "").trim();
+  return normalized ? `@${normalized}` : fallback;
+}
+
 export const sendChatNotification = authActionClient
   .schema(chatNotificationSchema)
   .action(
@@ -68,9 +73,11 @@ export const sendChatNotification = authActionClient
           const numericalId = resolveTelegramId(userData);
           if (!numericalId) return;
 
+          const displaySenderName = formatQcDisplayName(senderName, "Quantum Club user");
+          const displayChatName = chatName.trim() || "QC chat";
           const message = isGroup
-            ? `<b>${senderName}</b> in <b>${chatName}</b>\nYou have a new message`
-            : `You have a new message from <b>${senderName}</b>`;
+            ? `<b>${displaySenderName}</b> in <b>${displayChatName}</b>\nYou have a new message`
+            : `You have a new message from <b>${displaySenderName}</b>`;
 
           const botUsername = env.BOT_USERNAME || "QuantumClubBot";
           const deepLinkUrl = `https://t.me/${botUsername}/app?startapp=chat_${chatId}`;

@@ -2,7 +2,6 @@
 
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TokenImageFill } from "@/components/ui/token-image";
 import { toast } from "sonner";
@@ -101,7 +100,7 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
         <div className="space-y-3">
             {/* Token Header */}
             <div className="flex items-center gap-3">
-                <div className="relative w-14 h-14 rounded-full overflow-hidden bg-[#222] ring-1 ring-white/10 flex-shrink-0">
+                <div className="relative w-14 h-14 rounded-full overflow-hidden bg-[#222] flex-shrink-0">
                     {token.imageUrl ? (
                         <TokenImageFill src={token.imageUrl} alt={token.displayName} />
                     ) : (
@@ -117,14 +116,12 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
                             <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-blue-400 flex-shrink-0" />
                         )}
                         {trustScore !== undefined && trustScore >= 80 && (
-                            <Badge className="bg-green-500/10 text-green-400 border-0 text-[9px] h-4">
-                                {trustScore}/100
-                            </Badge>
+                            <span className="text-[9px] font-semibold text-green-400">{trustScore}/100</span>
                         )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">{token.displayName}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                        <button onClick={copyAddress} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] text-muted-foreground hover:text-white transition-colors">
+                        <button onClick={copyAddress} className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-white transition-colors">
                             {shortAddr}
                             <Icon icon="solar:copy-linear" className="w-3 h-3" />
                         </button>
@@ -136,17 +133,16 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
                         >
                             <Icon icon="solar:link-round-bold" className="w-3.5 h-3.5" />
                         </a>
-                        <Badge className="bg-green-500/10 text-green-400 border-0 text-[9px] h-4">STON.fi</Badge>
                     </div>
                 </div>
             </div>
 
             {/* Price + Key Stats */}
-            <Card className="bg-white/5 border-white/5">
+            <Card className="bg-white/5 border-0">
                 <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Market cap</p>
+                            <p className="text-[10px] text-muted-foreground mb-1">Market cap</p>
                             {(isLoadingDetail || isLoadingMarket) && !marketCap ? (
                                 <Skeleton className="h-8 w-24 mt-1" />
                             ) : (
@@ -170,7 +166,7 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
                     <p className="text-[10px] text-muted-foreground mb-0.5">Price</p>
                     <div className="flex items-center gap-2">
                         <p className="text-base font-semibold text-white">
-                            {priceUsd !== undefined && priceUsd > 0 ? formatUsdPrice(priceUsd) : "--"}
+                            {priceTon !== undefined && priceTon > 0 ? formatTonPrice(priceTon) : "--"}
                         </p>
                         {priceChange !== undefined && (
                             <span className={`text-xs font-semibold ${isPositive ? "text-green-400" : "text-red-400"}`}>
@@ -179,12 +175,6 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
                         )}
                     </div>
                 </div>
-                {priceTon !== undefined && priceTon > 0 && (
-                    <div className="text-right">
-                        <p className="text-[10px] text-muted-foreground mb-0.5">Price (TON)</p>
-                        <p className="text-base font-semibold text-white">{formatTonPrice(priceTon)}</p>
-                    </div>
-                )}
             </div>
 
             {/* Price changes + Token info */}
@@ -236,7 +226,7 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
 
             {/* Description */}
             {isLoadingDetail ? (
-                <Card className="bg-white/5 border-white/5">
+                <Card className="bg-white/5 border-0">
                     <CardContent className="p-3">
                         <p className="text-xs text-muted-foreground mb-1">About</p>
                         <div className="space-y-1.5">
@@ -246,7 +236,7 @@ export default function SpotTokenDetail({ token, detail, market, dyor, priceTon,
                     </CardContent>
                 </Card>
             ) : (dyor?.description || detail?.description) ? (
-                <Card className="bg-white/5 border-white/5">
+                <Card className="bg-white/5 border-0">
                     <CardContent className="p-3">
                         <p className="text-xs text-muted-foreground mb-1">About</p>
                         <p className="text-sm text-white/80 line-clamp-3">{dyor?.description || detail?.description}</p>

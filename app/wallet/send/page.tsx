@@ -2,7 +2,6 @@
 
 import { useState, useEffect, ChangeEvent } from "react";
 import { useForm, useStore } from "@tanstack/react-form";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -33,7 +32,7 @@ import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth"
 import { mnemonicToPrivateKey } from "@ton/crypto";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { WalletContractV5R1, WalletContractV4, WalletContractV3R2, internal, SendMode } from "@ton/ton";
-import { toNano, Address, beginCell, Cell } from "@ton/core";
+import { toNano, Address, beginCell, Cell, external, storeMessage } from "@ton/core";
 import { TonApiClient } from "@ton-api/client";
 import { ContractAdapter } from "@ton-api/ton-adapter";
 import { encryptComment as encryptCommentMessage, createTextComment } from "@/lib/ton-encrypted-comment";
@@ -56,6 +55,7 @@ import {
 } from "../utils/multichain";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { tonApiGet, tonApiPost, sendBoc } from "@/lib/tonapi-client";
+import { formatTruncatedAmount } from "@/lib/format";
 
 type NetworkMode = "ton" | "multichain";
 type MultiChainType = "eth" | "sol" | "trx" | "btc";
@@ -82,6 +82,16 @@ interface MultiChainOption {
   image: string;
   color: string;
   explorerUrl: string;
+}
+
+function buildWalletExternalMessage(wallet: any, body: Cell, includeInit: boolean) {
+  const message = external({
+    to: wallet.address,
+    init: includeInit ? wallet.init : undefined,
+    body,
+  });
+
+  return beginCell().store(storeMessage(message)).endCell();
 }
 
 export default function SendPage() {
@@ -301,8 +311,8 @@ export default function SendPage() {
   // Validate multi-chain address
   useEffect(() => {
     if (!multiChainRecipient.trim()) {
-      setMultiChainAddressError("");
-      return;
+      const timer = window.setTimeout(() => setMultiChainAddressError(""), 0);
+      return () => window.clearTimeout(timer);
     }
 
     const debounceTimer = setTimeout(() => {
@@ -437,15 +447,18 @@ export default function SendPage() {
 
   // Redirect if no wallet
   useEffect(() => {
-    const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
-    if (!storedWallet) {
-      router.push("/wallet");
-    }
-    // Load saved addresses
-    const storedAddresses = localStorage.getItem(`quantum_address_book_${telegramId}`);
-    if (storedAddresses) {
-      try { setSavedAddresses(JSON.parse(storedAddresses)); } catch {}
-    }
+    const timer = window.setTimeout(() => {
+      const storedWallet = localStorage.getItem(`quantum_wallet_address_${telegramId}`);
+      if (!storedWallet) {
+        router.push("/wallet");
+      }
+      // Load saved addresses
+      const storedAddresses = localStorage.getItem(`quantum_address_book_${telegramId}`);
+      if (storedAddresses) {
+        try { setSavedAddresses(JSON.parse(storedAddresses)); } catch {}
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [router, telegramId]);
 
   // Get sendable assets from context data
@@ -455,7 +468,7 @@ export default function SendPage() {
         type: "ton",
         symbol: "TON",
         name: "Toncoin",
-        balance: tonBalance,
+        balance: formatTruncatedAmount(tonBalance, 2),
         decimals: 9,
         image: "/svg/ton-logo.svg",
         priceUsd: tonPrice
@@ -467,7 +480,7 @@ export default function SendPage() {
         type: "jetton",
         symbol: jetton.symbol,
         name: jetton.name,
-        balance: (parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)).toFixed(4),
+        balance: formatTruncatedAmount(parseFloat(jetton.balance) / Math.pow(10, jetton.decimals), 2),
         decimals: jetton.decimals,
         image: jetton.image,
         jettonAddress: jetton.jettonAddress,
@@ -482,7 +495,8 @@ export default function SendPage() {
   // Set default asset when data is ready
   useEffect(() => {
     if (hasFetched && !selectedAsset && sendableAssets.length > 0) {
-      setSelectedAsset(sendableAssets[0]);
+      const timer = window.setTimeout(() => setSelectedAsset(sendableAssets[0]), 0);
+      return () => window.clearTimeout(timer);
     }
   }, [hasFetched, selectedAsset, sendableAssets]);
 
@@ -621,7 +635,7 @@ export default function SendPage() {
   const estimateFee = async () => {
     setIsEstimating(true);
     try {
-      const storedMnemonic = await getSecureMnemonic(telegramId);
+      const storedMnemonic = await getSecureMnemonic(telegramId, walletAddress);
       if (!storedMnemonic) {
         throw new Error("Wallet not found");
       }
@@ -630,7 +644,12 @@ export default function SendPage() {
       const keyPair = await mnemonicToPrivateKey(mnemonic);
 
       // Get the stored wallet version to create the correct wallet contract
-      const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+      const storedVersion =
+        (walletAddress
+          ? localStorage.getItem(`quantum_wallet_version_${telegramId}_${walletAddress.replace(/[^a-zA-Z0-9_-]/g, "_")}`)
+          : null) ||
+        localStorage.getItem(`quantum_wallet_version_${telegramId}`) ||
+        "v5r1";
       let wallet;
       switch (storedVersion) {
         case "v4r2":
@@ -643,6 +662,10 @@ export default function SendPage() {
         default:
           wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
           break;
+      }
+
+      if (walletAddress && !Address.parse(walletAddress).equals(wallet.address)) {
+        throw new Error("Wallet credentials do not match the selected wallet. Re-import this wallet to send from it.");
       }
 
       const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL, apiKey: env.NEXT_PUBLIC_TONAPI_KEY });
@@ -713,21 +736,7 @@ export default function SendPage() {
           messages,
         });
 
-        // Build external message for emulation
-        const externalMessage = beginCell()
-          .storeWritable((builder) => {
-            builder.storeUint(0b10, 2);
-            builder.storeUint(0, 2);
-            builder.storeAddress(wallet.address);
-            builder.storeCoins(0);
-          })
-          .storeBuilder(
-            beginCell()
-              .storeBit(false)
-              .storeBit(true)
-              .storeRef(transfer)
-          )
-          .endCell();
+        const externalMessage = buildWalletExternalMessage(wallet, transfer, isNewWallet);
 
         // Use TON API emulation for accurate fee
         try {
@@ -777,6 +786,11 @@ export default function SendPage() {
         }
       }
 
+      if (selectedAsset?.type === "ton" && parseFloat(amount) - networkFee < 0.001) {
+        toast.error("Amount too small - recipient would receive less than 0.001 TON after fees");
+        return;
+      }
+
       setEstimatedFee(networkFee.toFixed(6));
       setStep("confirm");
     } catch (error) {
@@ -823,7 +837,7 @@ export default function SendPage() {
   };
 
   const executeSend = async () => {
-    const storedMnemonic = await getSecureMnemonic(telegramId);
+    const storedMnemonic = await getSecureMnemonic(telegramId, walletAddress);
     if (!storedMnemonic) {
       toast.error("Wallet credentials not found");
       analyticsEvents.transactionSigningFailed("Wallet credentials not found");
@@ -838,7 +852,12 @@ export default function SendPage() {
       const keyPair = await mnemonicToPrivateKey(mnemonic);
 
       // Get the stored wallet version to create the correct wallet contract
-      const storedVersion = localStorage.getItem(`quantum_wallet_version_${telegramId}`) || "v5r1";
+      const storedVersion =
+        (walletAddress
+          ? localStorage.getItem(`quantum_wallet_version_${telegramId}_${walletAddress.replace(/[^a-zA-Z0-9_-]/g, "_")}`)
+          : null) ||
+        localStorage.getItem(`quantum_wallet_version_${telegramId}`) ||
+        "v5r1";
       let wallet;
       switch (storedVersion) {
         case "v4r2":
@@ -851,6 +870,10 @@ export default function SendPage() {
         default:
           wallet = WalletContractV5R1.create({ workchain: 0, publicKey: keyPair.publicKey });
           break;
+      }
+
+      if (walletAddress && !Address.parse(walletAddress).equals(wallet.address)) {
+        throw new Error("Wallet credentials do not match the selected wallet. Re-import this wallet to send from it.");
       }
 
       const ta = new TonApiClient({ baseUrl: TON_API_BASE_URL, apiKey: env.NEXT_PUBLIC_TONAPI_KEY });
@@ -878,10 +901,10 @@ export default function SendPage() {
       const toAddress = Address.parse(resolvedAddress);
 
       if (selectedAsset?.type === "ton") {
-        // Send the full user-entered amount to the recipient.
-        // PAY_GAS_SEPARATELY means gas comes from the sender's remaining balance,
-        // so the recipient receives exactly what the user typed.
-        const recipientAmount = parseFloat(amount);
+        // The amount field represents the total spend. For MAX sends, and to match
+        // the confirmation screen, the recipient value is reduced by the estimated
+        // fee so the wallet does not try to spend balance + gas.
+        const recipientAmount = Math.max(0, parseFloat(amount) - parseFloat(estimatedFee));
 
         // Build comment body if provided - use encryption if enabled and recipient has public key
         let messageBody: Cell | undefined = undefined;
@@ -918,27 +941,7 @@ export default function SendPage() {
             ],
           });
 
-          // Build external message with StateInit for wallet deployment
-          const externalMessage = beginCell()
-            .storeWritable((builder) => {
-              builder.storeUint(0b10, 2); // ext_in_msg_info$10
-              builder.storeUint(0, 2); // src: addr_none$00
-              builder.storeAddress(wallet.address); // dest
-              builder.storeCoins(0); // import_fee
-            })
-            .storeBit(true) // state_init present
-            .storeBit(true) // state_init in ref
-            .storeRef(
-              beginCell()
-                .storeUint(0, 2) // split_depth = 0, special = 0
-                .storeMaybeRef(wallet.init.code) // code
-                .storeMaybeRef(wallet.init.data) // data
-                .storeUint(0, 1) // library = 0
-                .endCell()
-            )
-            .storeBit(true) // body in ref
-            .storeRef(transfer)
-            .endCell();
+          const externalMessage = buildWalletExternalMessage(wallet, transfer, true);
 
           // Send the external message via TonAPI
           const boc = externalMessage.toBoc().toString('base64');
@@ -994,27 +997,7 @@ export default function SendPage() {
             ],
           });
 
-          // Build external message with StateInit for wallet deployment
-          const externalMessage = beginCell()
-            .storeWritable((builder) => {
-              builder.storeUint(0b10, 2); // ext_in_msg_info$10
-              builder.storeUint(0, 2); // src: addr_none$00
-              builder.storeAddress(wallet.address); // dest
-              builder.storeCoins(0); // import_fee
-            })
-            .storeBit(true) // state_init present
-            .storeBit(true) // state_init in ref
-            .storeRef(
-              beginCell()
-                .storeUint(0, 2) // split_depth = 0, special = 0
-                .storeMaybeRef(wallet.init.code) // code
-                .storeMaybeRef(wallet.init.data) // data
-                .storeUint(0, 1) // library = 0
-                .endCell()
-            )
-            .storeBit(true) // body in ref
-            .storeRef(transfer)
-            .endCell();
+          const externalMessage = buildWalletExternalMessage(wallet, transfer, true);
 
           // Send the external message via TonAPI
           const boc = externalMessage.toBoc().toString('base64');
@@ -1089,7 +1072,7 @@ export default function SendPage() {
     setMultiChainStep("processing");
 
     try {
-      const mnemonic = await getSecureMnemonic(telegramId);
+      const mnemonic = await getSecureMnemonic(telegramId, walletAddress);
       if (!mnemonic) {
         throw new Error("Wallet not found");
       }
@@ -1180,23 +1163,25 @@ export default function SendPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-4 pt-6">
       <div className="max-w-md mx-auto">
-        <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold">Send Assets</h1>
-        </div>
+        {((networkMode === "ton" || isTestnet) ? step === "input" : multiChainStep === "input") && (
+          <div className="mb-6 text-left">
+            <h1 className="text-xl font-bold">Send assets</h1>
+          </div>
+        )}
 
         {/* Network Toggle - Only show on mainnet */}
-        {!isTestnet && (
+        {!isTestnet && step === "input" && multiChainStep === "input" && (
           <Tabs value={networkMode} onValueChange={(v) => setNetworkMode(v as NetworkMode)} className="mb-6">
             <TabsList className="grid w-full grid-cols-2 h-12">
               <TabsTrigger
                 value="ton"
-                className="h-full text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
+                className="h-full text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-neutral-400"
               >
                 TON
               </TabsTrigger>
               <TabsTrigger
                 value="multichain"
-                className="h-full text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-gray-400"
+                className="h-full text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-black text-neutral-400"
               >
                 Multi-chain
               </TabsTrigger>
@@ -1206,13 +1191,10 @@ export default function SendPage() {
 
         {/* Multi-chain Send Form */}
         {networkMode === "multichain" && !isTestnet && (
-          <AnimatePresence mode="wait">
+          <>
             {multiChainStep === "input" && (
-              <motion.div
+              <div
                 key="multichain-input"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
                 className="space-y-6"
               >
                 {/* Chain Selection */}
@@ -1222,13 +1204,13 @@ export default function SendPage() {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full bg-card border-border h-16 px-5 justify-between hover:bg-accent/50 hover:border-muted-foreground/20 transition-all rounded-2xl shadow-sm"
+                        className="w-full bg-secondary border-0 h-16 px-5 justify-between hover:bg-accent/50 hover:bg-secondary/80 transition-all rounded-2xl shadow-sm"
                       >
                         <div className="flex items-center gap-3">
                           <Image src={currentChain.image} alt={currentChain.symbol} width={32} height={32} className="w-8 h-8 rounded-full" unoptimized />
                           <div className="text-left">
                             <div className="font-bold text-foreground">{currentChain.symbol}</div>
-                            <div className="text-xs text-muted-foreground">Balance: {currentChain.balance.toFixed(6)}</div>
+                            <div className="text-xs text-muted-foreground">Balance: {formatTruncatedAmount(currentChain.balance, 2)}</div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1237,8 +1219,8 @@ export default function SendPage() {
                         </div>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[calc(100vw-2rem)] max-w-md bg-popover border-border text-popover-foreground rounded-2xl p-2 shadow-2xl">
-                      <DropdownMenuLabel className="text-muted-foreground text-[10px] uppercase tracking-widest px-3 py-2 font-bold">Select Chain</DropdownMenuLabel>
+                    <DropdownMenuContent className="w-[calc(100vw-2rem)] max-w-md bg-popover border-0 text-popover-foreground rounded-2xl p-2 shadow-2xl">
+                      <DropdownMenuLabel className="text-muted-foreground text-[10px] tracking-wide px-3 py-2 font-bold">Select chain</DropdownMenuLabel>
                       <DropdownMenuSeparator className="bg-border" />
                       {multiChainOptions.map((chain) => (
                         <DropdownMenuItem
@@ -1248,7 +1230,7 @@ export default function SendPage() {
                             setMultiChainRecipient("");
                             setMultiChainAddressError("");
                           }}
-                          className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer rounded-xl transition-colors"
+                          className="flex items-center gap-3 p-3 hover:bg-secondary/80 cursor-pointer rounded-xl transition-colors"
                         >
                           <Image src={chain.image} alt={chain.symbol} width={32} height={32} className="w-8 h-8 rounded-full" unoptimized />
                           <div className="flex-1">
@@ -1256,7 +1238,7 @@ export default function SendPage() {
                             <div className="text-xs text-muted-foreground">{chain.name}</div>
                           </div>
                           <div className="text-right">
-                            <div className="font-medium">{chain.balance.toFixed(6)}</div>
+                            <div className="font-medium">{formatTruncatedAmount(chain.balance, 2)}</div>
                             <div className="text-xs text-muted-foreground">${chain.usdValue.toFixed(2)}</div>
                           </div>
                           {chain.id === selectedChain && (
@@ -1270,15 +1252,15 @@ export default function SendPage() {
 
                 {/* Recipient Address */}
                 <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground ml-1">{currentChain.symbol} Address</Label>
+                  <Label className="text-sm text-muted-foreground ml-1">{currentChain.symbol} address</Label>
                   <div className="relative">
                     <Input
                       value={multiChainRecipient}
                       onChange={(e) => setMultiChainRecipient(e.target.value)}
                       placeholder={`Enter ${currentChain.symbol} address`}
-                      className={`bg-card border-border h-14 pl-4 pr-20 text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all font-mono text-sm ${
-                        multiChainAddressError ? 'border-destructive focus:border-destructive' :
-                        multiChainRecipient && !multiChainAddressError ? 'border-green-500/50 focus:border-green-500' : 'focus:border-primary/50'
+                      className={`bg-secondary border-0 h-14 pl-4 pr-20 text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all font-mono text-sm ${
+                        multiChainAddressError ? 'ring-1 ring-destructive focus:ring-0' :
+                        multiChainRecipient && !multiChainAddressError ? 'ring-1 ring-green-500/50 focus:ring-0' : 'focus:ring-0'
                       }`}
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
@@ -1292,7 +1274,7 @@ export default function SendPage() {
                         variant="ghost"
                         size="icon"
                         onClick={openQRScanner}
-                        className="w-8 h-8 rounded-lg bg-muted hover:bg-accent"
+                        className="h-8 w-8 bg-transparent hover:bg-transparent"
                       >
                         <Icon icon="lucide:scan-line" className="w-4 h-4"/>
                       </Button>
@@ -1312,13 +1294,13 @@ export default function SendPage() {
                     <Label className="text-sm text-muted-foreground">Amount</Label>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">
-                        {currentChain.balance.toFixed(6)} {currentChain.symbol}
+                        {formatTruncatedAmount(currentChain.balance, 2)} {currentChain.symbol}
                       </span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={handleMultiChainMaxAmount}
-                        className="h-auto p-0 text-xs font-bold text-primary hover:text-primary/80 hover:bg-transparent transition-colors uppercase"
+                        className="h-auto p-0 text-xs font-bold text-primary hover:text-primary/80 hover:bg-transparent transition-colors"
                       >
                         Max
                       </Button>
@@ -1336,7 +1318,7 @@ export default function SendPage() {
                         }
                       }}
                       placeholder="0.00"
-                      className="bg-card border-border h-14 pl-4 pr-24 text-foreground placeholder:text-muted-foreground/50 text-2xl font-bold rounded-xl focus:border-primary/50 transition-all"
+                      className="bg-secondary border-0 h-14 pl-4 pr-24 text-foreground placeholder:text-muted-foreground/50 text-2xl font-bold rounded-xl focus:ring-0 transition-all"
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
                       {currentChain.symbol}
@@ -1351,24 +1333,24 @@ export default function SendPage() {
 
                 {/* Comment/Memo (Optional) */}
                 <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground ml-1">Comment (Optional)</Label>
+                  <Label className="text-sm text-muted-foreground ml-1">Comment (optional)</Label>
                   <Input
                     value={multiChainComment}
                     onChange={(e) => setMultiChainComment(e.target.value)}
                     placeholder="Add a memo or note"
                     maxLength={200}
-                    className="bg-card border-border h-12 px-4 text-foreground placeholder:text-muted-foreground/50 rounded-xl focus:border-primary/50 transition-all text-sm"
+                    className="bg-secondary border-0 h-12 px-4 text-foreground placeholder:text-muted-foreground/50 rounded-xl focus:ring-0 transition-all text-sm"
                   />
                   <p className="text-[10px] text-muted-foreground/70 ml-1">
-                    Note: Comments are for your records only and may not be stored on all chains.
+                    Note: comments are for your records only and may not be stored on all chains.
                   </p>
                 </div>
 
                 {/* Fee Estimate */}
-                <Card className="bg-card border-border rounded-xl">
+                <Card className="bg-secondary border-0 rounded-xl">
                   <CardContent className="p-4">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Estimated Fee</span>
+                      <span className="text-muted-foreground">Estimated fee</span>
                       <span className="font-medium">~{multiChainEstimatedFee} {currentChain.symbol}</span>
                     </div>
                   </CardContent>
@@ -1394,18 +1376,15 @@ export default function SendPage() {
                 >
                   Continue
                 </Button>
-              </motion.div>
+              </div>
             )}
 
             {multiChainStep === "confirm" && (
-              <motion.div
+              <div
                 key="multichain-confirm"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
                 className="space-y-6"
               >
-                <Card className="bg-card border-border rounded-2xl overflow-hidden">
+                <Card className="bg-secondary border-0 rounded-2xl overflow-hidden">
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center justify-center mb-4">
                       <div className="p-4 rounded-full" style={{ backgroundColor: `${currentChain.color}20` }}>
@@ -1418,7 +1397,7 @@ export default function SendPage() {
                         ≈ ${(parseFloat(multiChainAmount || "0") * currentChain.price).toFixed(2)} USD
                       </p>
                     </div>
-                    <div className="border-t border-border pt-4 space-y-3">
+                    <div className="border-0 pt-4 space-y-3">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">To</span>
                         <span className="font-mono text-xs">{multiChainRecipient.slice(0, 12)}...{multiChainRecipient.slice(-8)}</span>
@@ -1428,7 +1407,7 @@ export default function SendPage() {
                         <span className="font-medium">{currentChain.name}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Est. Fee</span>
+                        <span className="text-muted-foreground">Estimated fee</span>
                         <span>~{multiChainEstimatedFee} {currentChain.symbol}</span>
                       </div>
                     </div>
@@ -1439,7 +1418,7 @@ export default function SendPage() {
                   <Button
                     variant="outline"
                     onClick={() => setMultiChainStep("input")}
-                    className="flex-1 h-14 rounded-xl border-border"
+                    className="flex-1 h-14 rounded-xl border-0"
                   >
                     Back
                   </Button>
@@ -1448,18 +1427,16 @@ export default function SendPage() {
                     disabled={isMultiChainSending}
                     className="flex-1 h-14 rounded-xl bg-primary hover:bg-primary/90"
                   >
-                    {isMultiChainSending ? <ButtonLoader /> : "Confirm & Send"}
+                    {isMultiChainSending ? <ButtonLoader /> : "Confirm and send"}
                   </Button>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {multiChainStep === "processing" && (
-              <motion.div
+              <div
                 key="multichain-processing"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center justify-center py-16 space-y-6"
+                className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
               >
                 <div className="relative flex items-center justify-center text-primary">
                   <div className="w-16 h-16 rounded-full border-2 animate-spin shadow-[0_0_15px] shadow-primary/30" style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)", borderTopColor: "currentColor" }} />
@@ -1467,24 +1444,20 @@ export default function SendPage() {
                   <div className="absolute w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_10px] shadow-primary/80" />
                 </div>
                 <div className="text-center">
-                  <p className="text-lg font-semibold">Processing Transaction</p>
+                  <p className="text-lg font-semibold">Processing transaction</p>
                   <p className="text-muted-foreground text-sm mt-1">Please wait while we send your {currentChain.symbol}...</p>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {multiChainStep === "success" && (
-              <motion.div
+              <div
                 key="multichain-success"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-6"
+                className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
               >
                 <div className="flex flex-col items-center justify-center py-8">
-                  <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
-                    <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
-                  </div>
-                  <h2 className="text-xl font-bold">Transaction Sent!</h2>
+                  <Icon icon="lucide:check" className="mb-4 h-20 w-20 text-green-500"/>
+                  <h2 className="text-xl font-bold">Transaction sent</h2>
                   <p className="text-muted-foreground text-sm mt-1 text-center">
                     Your {multiChainAmount} {currentChain.symbol} has been sent successfully.
                   </p>
@@ -1498,7 +1471,7 @@ export default function SendPage() {
                     className="flex items-center justify-center gap-2 text-primary text-sm hover:underline"
                   >
                     <Icon icon="lucide:external-link" className="w-4 h-4"/>
-                    View on Explorer
+                    View on explorer
                   </a>
                 )}
 
@@ -1515,33 +1488,28 @@ export default function SendPage() {
                 >
                   Done
                 </Button>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </>
         )}
 
         {/* TON Send Form - Original */}
         {(networkMode === "ton" || isTestnet) && (
-        <AnimatePresence mode="wait">
+        <>
           {step === "input" && (
-            <motion.div
+            <div
               key="input"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
               className="space-y-6"
             >
               {/* Batch Send Feature Link */}
               <Link
                 href="/wallet/send-multiple"
-                className="w-full p-3 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between hover:bg-primary/10 transition-colors"
+                className="w-full p-3 rounded-xl bg-primary/5 border-0 flex items-center justify-between hover:bg-primary/10 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Icon icon="lucide:users" className="w-4 h-4 text-primary"/>
-                  </div>
+                  <Icon icon="lucide:users" className="h-4 w-4 shrink-0 text-primary"/>
                   <div className="text-left">
-                    <p className="text-sm font-medium text-foreground">Send to Multiple</p>
+                    <p className="text-sm font-medium text-foreground">Send to multiple</p>
                     <p className="text-xs text-muted-foreground">Send TON to multiple recipients at once</p>
                   </div>
                 </div>
@@ -1555,7 +1523,7 @@ export default function SendPage() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full bg-card border-border h-16 px-5 justify-between hover:bg-accent/50 hover:border-muted-foreground/20 transition-all rounded-2xl shadow-sm"
+                      className="w-full bg-secondary border-0 h-16 px-5 justify-between hover:bg-accent/50 hover:bg-secondary/80 transition-all rounded-2xl shadow-sm"
                     >
                       <div className="flex items-center gap-3">
                         {selectedAsset?.image ? (
@@ -1573,14 +1541,14 @@ export default function SendPage() {
                       <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground"/>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-[calc(100vw-2rem)] max-w-md bg-popover border-border text-popover-foreground rounded-2xl p-2 shadow-2xl">
-                    <DropdownMenuLabel className="text-muted-foreground text-[10px] uppercase tracking-widest px-3 py-2 font-bold">Select Asset</DropdownMenuLabel>
+                  <DropdownMenuContent className="w-[calc(100vw-2rem)] max-w-md bg-popover border-0 text-popover-foreground rounded-2xl p-2 shadow-2xl">
+                    <DropdownMenuLabel className="text-muted-foreground text-[10px] tracking-wide px-3 py-2 font-bold">Select asset</DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-border" />
                     {sendableAssets.map((asset) => (
                       <DropdownMenuItem
                         key={asset.symbol}
                         onClick={() => setSelectedAsset(asset)}
-                        className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer rounded-xl transition-colors"
+                        className="flex items-center gap-3 p-3 hover:bg-secondary/80 cursor-pointer rounded-xl transition-colors"
                       >
                         {asset.image ? (
                           <Image src={asset.image} alt={asset.symbol} width={32} height={32} className="w-8 h-8 rounded-full" unoptimized />
@@ -1609,7 +1577,7 @@ export default function SendPage() {
 
               {/* Recipient */}
               <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground ml-1">Recipient Address or .ton Domain</Label>
+                <Label className="text-sm text-muted-foreground ml-1">Recipient address or .ton domain</Label>
 
                 {/* Quick Select from Address Book */}
                 {savedAddresses.length > 0 && (
@@ -1620,7 +1588,7 @@ export default function SendPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => setRecipient(addr.address)}
-                        className="flex items-center gap-1.5 h-8 px-3 bg-muted border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-colors rounded-lg text-xs"
+                        className="flex items-center gap-1.5 h-8 px-3 bg-secondary border-0 text-foreground hover:bg-accent hover:text-accent-foreground transition-colors rounded-lg text-xs"
                       >
                         <Icon icon="lucide:book-user" className="w-3 h-3 text-purple-400"/>
                         <span>{addr.name}</span>
@@ -1634,8 +1602,8 @@ export default function SendPage() {
                     value={recipient}
                     onChange={(e) => setRecipient(e.target.value)}
                     placeholder="Enter TON address or name.ton"
-                    className={`bg-card border-border h-14 pl-4 pr-20 text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all font-mono text-sm ${addressError ? 'border-destructive focus:border-destructive' :
-                      resolvedAddress ? 'border-green-500/50 focus:border-green-500' : 'focus:border-primary/50'
+                    className={`bg-secondary border-0 h-14 pl-4 pr-20 text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all font-mono text-sm ${addressError ? 'ring-1 ring-destructive focus:ring-0' :
+                      resolvedAddress ? 'ring-1 ring-green-500/50 focus:ring-0' : 'focus:ring-0'
                       }`}
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
@@ -1651,7 +1619,7 @@ export default function SendPage() {
                       variant="ghost"
                       size="icon"
                       onClick={openQRScanner}
-                      className="w-8 h-8 rounded-lg bg-muted hover:bg-accent"
+                      className="h-8 w-8 bg-transparent hover:bg-transparent"
                     >
                       <Icon icon="lucide:scan-line" className="w-4 h-4"/>
                     </Button>
@@ -1671,17 +1639,17 @@ export default function SendPage() {
                 )}
               </div>
 
-              {/* Comment (Optional) */}
+              {/* Comment (optional) */}
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground ml-1 flex items-center gap-2">
                   <Icon icon="lucide:message-square" className="w-3 h-3"/>
-                  Comment (Optional)
+                  Comment (optional)
                 </Label>
                 <Textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="Add a message to your transaction..."
-                  className="bg-card border-border text-foreground placeholder:text-muted-foreground/50 rounded-xl focus:border-primary/50 transition-all resize-none h-20"
+                  className="bg-secondary border-0 text-foreground placeholder:text-muted-foreground/50 rounded-xl focus:ring-0 transition-all resize-none h-20"
                   maxLength={120}
                 />
                 <div className="flex items-center justify-between">
@@ -1744,7 +1712,7 @@ export default function SendPage() {
                       variant="ghost"
                       size="sm"
                       onClick={handleMaxAmount}
-                      className="h-auto p-0 text-xs font-bold text-primary hover:text-primary/80 hover:bg-transparent transition-colors uppercase"
+                      className="h-auto p-0 text-xs font-bold text-primary hover:text-primary/80 hover:bg-transparent transition-colors"
                     >
                       Max
                     </Button>
@@ -1757,7 +1725,7 @@ export default function SendPage() {
                     value={amount}
                     onChange={handleAmountChange}
                     placeholder="0.00"
-                    className={`bg-card border-border h-14 pl-4 pr-20 text-2xl font-bold text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all ${insufficientFunds ? 'border-destructive focus:border-destructive' : 'focus:border-primary/50'
+                    className={`bg-secondary border-0 h-14 pl-4 pr-20 text-2xl font-bold text-foreground placeholder:text-muted-foreground/50 rounded-xl transition-all ${insufficientFunds ? 'ring-1 ring-destructive focus:ring-0' : 'focus:ring-0'
                       }`}
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-right">
@@ -1784,10 +1752,10 @@ export default function SendPage() {
 
               {/* Warning for insufficient TON for jetton gas fees */}
               {insufficientTonForGas && (
-                <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex items-start gap-3">
+                <div className="bg-destructive/10 border-0 rounded-xl p-4 flex items-start gap-3">
                   <Icon icon="lucide:alert-triangle" className="w-5 h-5 text-destructive shrink-0 mt-0.5"/>
                   <div>
-                    <p className="text-sm font-medium text-destructive">Insufficient TON for Transaction</p>
+                    <p className="text-sm font-medium text-destructive">Insufficient TON for transaction</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       You need at least <span className="text-foreground font-medium">0.1 TON</span> to cover network fees when sending tokens.
                       Your current TON balance is <span className="text-foreground font-medium">{tonBalance} TON</span>.
@@ -1804,31 +1772,28 @@ export default function SendPage() {
                 {isEstimating ? (
                   <div className="flex items-center gap-2">
                     <ButtonLoader />
-                    Estimating Fee...
+                    Estimating fee...
                   </div>
                 ) : (
                   "Continue"
                 )}
               </Button>
-            </motion.div>
+            </div>
           )}
 
           {step === "confirm" && (
-            <motion.div
+            <div
               key="confirm"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
               {isTestnet && (
-                <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-3 flex items-center gap-2">
+                <div className="bg-yellow-500/20 border-0 rounded-xl p-3 flex items-center gap-2">
                   <Icon icon="lucide:info" className="w-4 h-4 text-yellow-500 shrink-0"/>
-                  <span className="text-xs text-yellow-400 font-medium">Testnet Mode - For testing only</span>
+                  <span className="text-xs text-yellow-400 font-medium">Testnet mode - for testing only</span>
                 </div>
               )}
 
-              <Card className="bg-card border-border overflow-hidden">
+              <Card className="bg-secondary border-0 overflow-hidden">
                 <CardContent className="p-6 space-y-6">
                   <div className="text-center space-y-1">
                     <div className="text-sm text-muted-foreground">Sending</div>
@@ -1842,7 +1807,7 @@ export default function SendPage() {
                     )}
                   </div>
 
-                  <div className="space-y-4 pt-4 border-t border-border">
+                  <div className="space-y-4 pt-4 border-0">
                     <div className="flex justify-between items-start">
                       <span className="text-sm text-muted-foreground">To</span>
                       <div className="text-right flex-1 pl-8">
@@ -1873,7 +1838,7 @@ export default function SendPage() {
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">
-                        Network Fee
+                        Network fee
                         {isFirstTransaction && (
                           <span className="text-xs text-yellow-500 ml-1">(incl. wallet activation)</span>
                         )}
@@ -1887,14 +1852,14 @@ export default function SendPage() {
                     </div>
 
                     {isFirstTransaction && (
-                      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2 -mx-1">
+                      <div className="bg-yellow-500/10 border-0 rounded-lg p-2 -mx-1">
                         <p className="text-xs text-yellow-500/90 text-center">
                           First transaction includes one-time wallet activation fee
                         </p>
                       </div>
                     )}
 
-                    <div className="flex justify-between items-center pt-2 border-t border-border">
+                    <div className="flex justify-between items-center pt-2 border-0">
                       <span className="text-sm text-green-400 font-medium">Recipient receives</span>
                       <span className="text-sm text-green-400 font-bold">
                         {selectedAsset?.type === "ton"
@@ -1907,7 +1872,7 @@ export default function SendPage() {
                 </CardContent>
               </Card>
 
-              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
+              <div className="bg-primary/10 border-0 rounded-xl p-4 flex items-start gap-3">
                 <Icon icon="lucide:info" className="w-5 h-5 text-primary mt-0.5 shrink-0"/>
                 <p className="text-xs text-primary/90 leading-relaxed">
                   Please verify the recipient address carefully. Transactions on the blockchain are irreversible.
@@ -1918,7 +1883,7 @@ export default function SendPage() {
                 <Button
                   variant="outline"
                   onClick={() => setStep("input")}
-                  className="h-14 bg-card border-border text-foreground hover:bg-accent hover:text-accent-foreground rounded-xl font-bold"
+                  className="h-14 bg-secondary border-0 text-foreground hover:bg-accent hover:text-accent-foreground rounded-xl font-bold"
                 >
                   Back
                 </Button>
@@ -1933,19 +1898,17 @@ export default function SendPage() {
                       Sending...
                     </div>
                   ) : (
-                    "Confirm & Send"
+                    "Confirm and send"
                   )}
                 </Button>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {step === "processing" && (
-            <motion.div
+            <div
               key="processing"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-20 space-y-6"
+              className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
             >
               <div className="relative">
                 <div className="w-20 h-20 border-4 rounded-full animate-spin text-blue-500" style={{ borderColor: "color-mix(in srgb, currentColor 25%, transparent)", borderTopColor: "currentColor" }} />
@@ -1954,24 +1917,20 @@ export default function SendPage() {
                 </div>
               </div>
               <div className="text-center space-y-2">
-                <h2 className="text-xl font-bold text-foreground">Processing Transaction</h2>
+                <h2 className="text-xl font-bold text-foreground">Processing transaction</h2>
                 <p className="text-muted-foreground text-sm">Please wait while we broadcast your transaction...</p>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {step === "success" && (
-            <motion.div
+            <div
               key="success"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center py-10 space-y-6"
+              className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
             >
-              <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center border border-green-500/20">
-                <Icon icon="lucide:check" className="w-12 h-12 text-green-500"/>
-              </div>
+              <Icon icon="lucide:check" className="h-20 w-20 text-green-500"/>
               <div className="text-center space-y-2">
-                <h2 className="text-2xl font-bold text-foreground">Transaction Sent!</h2>
+                <h2 className="text-2xl font-bold text-foreground">Transaction sent</h2>
                 <p className="text-muted-foreground text-sm max-w-xs mx-auto">
                   Your transaction has been successfully broadcasted to the network.
                 </p>
@@ -1982,10 +1941,10 @@ export default function SendPage() {
                   <Button
                     variant="outline"
                     onClick={() => window.open(`${EXPLORER_BASE_URL}/${lastTxHash}`, "_blank")}
-                    className="w-full h-12 bg-card border-border text-foreground hover:bg-accent hover:text-accent-foreground rounded-xl font-medium flex items-center justify-center gap-2"
+                    className="w-full h-12 bg-secondary border-0 text-foreground hover:bg-accent hover:text-accent-foreground rounded-xl font-medium flex items-center justify-center gap-2"
                   >
                     <Icon icon="lucide:external-link" className="w-4 h-4"/>
-                    View in Explorer
+                    View in explorer
                   </Button>
                 )}
                 <Button
@@ -2004,12 +1963,12 @@ export default function SendPage() {
                   }}
                   className="w-full h-14 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold"
                 >
-                  Back to Wallet
+                  Back to wallet
                 </Button>
               </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </>
         )}
       </div>
 
@@ -2018,7 +1977,7 @@ export default function SendPage() {
         isOpen={isAuthOpen}
         onSuccess={handleAuthSuccess}
         onCancel={handleAuthCancel}
-        title="Confirm Transaction"
+        title="Confirm transaction"
         description={`Authenticate to send ${networkMode === "multichain" ? multiChainAmount + " " + currentChain.symbol : amount + " " + (selectedAsset?.symbol || '')} to ${networkMode === "multichain" ? (multiChainRecipient ? multiChainRecipient.slice(0, 8) + '...' : 'recipient') : (recipient ? recipient.slice(0, 8) + '...' : 'recipient')}`}
       />
     </div>

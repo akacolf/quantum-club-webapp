@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import Loader from "@/app/(components)/Loader";
-import { useTelegramCloseConfirmation } from "@/app/(hooks)/useCloseConfirmation";
+import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useGameSaveMutation } from "@/app/(hooks)/queries/use-mining-data";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,7 @@ const SolveToEarnContent = () => {
   const [again, setAgain] = useState(true);
   const [answers, setAnswers] = useState(0);
   const [leftTime, setLeftTime] = useState(60);
+  const [totalQuestions, setTotalQuestions] = useState(0);
   const router = useRouter();
   const [mathProcess, setMathProcess] = useState("");
   const [options, setOptions] = useState(["first", "second", "third", "fourth"]);
@@ -21,8 +22,9 @@ const SolveToEarnContent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const answersRef = useRef(answers);
   const correctRef = useRef(correctAnswer);
+  const totalQuestionsRef = useRef(totalQuestions);
 
-  useTelegramCloseConfirmation();
+  useTelegramBackButton("/home");
 
   // Reset scroll position and lock body scroll
   useEffect(() => {
@@ -41,6 +43,10 @@ const SolveToEarnContent = () => {
   useEffect(() => {
     correctRef.current = correctAnswer;
   }, [correctAnswer]);
+
+  useEffect(() => {
+    totalQuestionsRef.current = totalQuestions;
+  }, [totalQuestions]);
 
   useEffect(() => {
     const MathCreator = async () => {
@@ -286,6 +292,8 @@ const SolveToEarnContent = () => {
     MathCreator();
   }, [again]);
   const checkAnswer = (sort: number) => {
+    totalQuestionsRef.current += 1;
+    setTotalQuestions(totalQuestionsRef.current);
     const mathprocessSplit = mathProcess.split(" ");
     const value1 = Number(mathprocessSplit[0]);
     const value2 = Number(mathprocessSplit[2]);
@@ -343,6 +351,7 @@ const SolveToEarnContent = () => {
         if (prevTime <= 0) {
           clearInterval(interval);
           setIsLoading(true);
+          sessionStorage.setItem("solveToEarnTotalQuestions", String(totalQuestionsRef.current));
           gameSaveMutation.mutate(
             {
               telegramId: telegramId!,
@@ -369,7 +378,6 @@ const SolveToEarnContent = () => {
     !isLoading ? (
       <div className="fixed inset-0 z-100 bg-black text-white p-4 flex flex-col overflow-hidden h-dvh">
         {/* Background Effects */}
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_50%)] pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
 
         {/* Main Game Area */}
@@ -378,7 +386,7 @@ const SolveToEarnContent = () => {
             <CardContent className="p-0 flex flex-col items-center">
 
               {/* Unified Header Stats */}
-              <div className={`flex items-center gap-6 bg-white/5 backdrop-blur-md border border-white/10 px-8 py-4 rounded-full mb-24 shadow-2xl`}>
+              <div className="flex items-center gap-6 bg-white/5 backdrop-blur-md px-8 py-4 rounded-full mb-24 shadow-2xl">
                 {/* Score Section */}
                 <div className="flex items-center gap-3">
                   <div className="text-white">
@@ -406,7 +414,7 @@ const SolveToEarnContent = () => {
               </div>
 
               <div className="w-full mb-12 text-center">
-                <span className="text-gray-400 text-sm uppercase tracking-widest mb-4 block font-medium">Solve This</span>
+                <span className="text-neutral-400 text-sm mb-4 block font-medium">Solve this</span>
                 <div className="font-bold text-6xl text-white tracking-tight animate-in fade-in zoom-in duration-300 drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">
                   {mathProcess}
                 </div>

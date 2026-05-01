@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,7 +12,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import Loader from "@/app/(components)/Loader";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
@@ -22,6 +20,7 @@ import { useWallet } from "../WalletContext";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { useLendingDataQuery } from "@/app/(hooks)/queries/use-lending";
+import { formatCompactAmount, formatTruncatedAmount } from "@/lib/format";
 import {
     buildSupplyParams,
     buildWithdrawParams,
@@ -230,9 +229,9 @@ export default function LendingPage() {
             if (mode === "supply") {
                 const params = buildSupplyParams(selectedAsset.name, amountBigInt, walletAddress);
                 messageBody = master.createSupplyMessage(params);
-                // For TON supply: value = amount + gas; for jettons: just gas
+                // For TON supply: value = amount + protocol gas; for jettons: just gas.
                 sendValue = selectedAsset.name === "TON"
-                    ? amountBigInt + 300000000n // amount + 0.3 TON gas
+                    ? amountBigInt + 300000000n
                     : 300000000n;
             } else {
                 const params = buildWithdrawParams(selectedAsset.name, amountBigInt, walletAddress);
@@ -296,7 +295,7 @@ export default function LendingPage() {
         if (viewMode === "supply") {
             const balance = parseFloat(getWalletBalance(selectedAsset.name));
             if (parseFloat(amount) > balance) return false;
-            if (selectedAsset.name === "TON" && balance - parseFloat(amount) < 0.3) return false;
+            if (selectedAsset.name === "TON" && balance - parseFloat(amount) < TON_GAS_RESERVE) return false;
         }
         if (viewMode === "withdraw") {
             const supplied = parseFloat(getUserSupplied(selectedAsset.name));
@@ -332,25 +331,33 @@ export default function LendingPage() {
                 <div className="mb-6 text-center">
                     <h1 className="text-2xl font-bold text-foreground">Lending</h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Supply & borrow on <span className="font-semibold text-foreground">EVAA Protocol</span>
+                        Powered by{" "}
+                        <a
+                            href="https://evaa.finance"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-semibold text-foreground underline-offset-4 hover:underline"
+                        >
+                            EVAA Protocol
+                        </a>
                     </p>
                 </div>
 
                 {/* User Overview */}
                 {userPositions && userPositions.positions.length > 0 && viewMode === "markets" && (
-                    <Card className="mb-4 bg-card/80 backdrop-blur-xl border-border rounded-2xl">
+                    <Card className="mb-4 bg-card/80 backdrop-blur-xl border-0 rounded-2xl">
                         <CardContent className="p-4">
                             <div className="grid grid-cols-3 gap-3 text-center">
                                 <div>
                                     <p className="text-xs text-muted-foreground">Supplied</p>
                                     <p className="text-sm font-bold text-green-500">
-                                        ${parseFloat(userPositions.totalSuppliedUsd).toFixed(2)}
+                                        ${formatCompactAmount(userPositions.totalSuppliedUsd, 2)}
                                     </p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-muted-foreground">Borrowed</p>
                                     <p className="text-sm font-bold text-orange-500">
-                                        ${parseFloat(userPositions.totalBorrowedUsd).toFixed(2)}
+                                        ${formatCompactAmount(userPositions.totalBorrowedUsd, 2)}
                                     </p>
                                 </div>
                                 <div>
@@ -367,13 +374,9 @@ export default function LendingPage() {
                     </Card>
                 )}
 
-                <AnimatePresence mode="wait">
+                
                     {viewMode === "markets" && (
-                        <motion.div
-                            key="markets"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
+                        <div key="markets"
                             className="space-y-3"
                         >
                             {/* User Positions */}
@@ -387,7 +390,7 @@ export default function LendingPage() {
                                         return (
                                             <Card
                                                 key={pos.assetName}
-                                                className="bg-card/80 backdrop-blur-xl border-border rounded-2xl"
+                                                className="bg-card/80 backdrop-blur-xl border-0 rounded-2xl"
                                             >
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center justify-between mb-2">
@@ -395,18 +398,18 @@ export default function LendingPage() {
                                                             <TokenIcon name={pos.assetName} size={32} />
                                                             <span className="font-bold">{pos.assetName}</span>
                                                         </div>
-                                                        <Badge variant="outline" className="text-xs">
+                                                        <span className="text-xs text-green-500">
                                                             {market ? `${(market.supplyApy * 100).toFixed(2)}% APY` : "—"}
-                                                        </Badge>
+                                                        </span>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-2 text-sm">
                                                         <div>
                                                             <p className="text-xs text-muted-foreground">Supplied</p>
-                                                            <p className="font-medium text-green-500">{parseFloat(pos.supplied).toFixed(4)}</p>
+                                                            <p className="font-medium text-green-500">{formatCompactAmount(pos.supplied, 2)}</p>
                                                         </div>
                                                         <div>
                                                             <p className="text-xs text-muted-foreground">Borrowed</p>
-                                                            <p className="font-medium text-orange-500">{parseFloat(pos.borrowed).toFixed(4)}</p>
+                                                            <p className="font-medium text-orange-500">{formatCompactAmount(pos.borrowed, 2)}</p>
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-2 mt-3">
@@ -423,7 +426,7 @@ export default function LendingPage() {
                                                                     <Button
                                                                         size="sm"
                                                                         variant="outline"
-                                                                        className="flex-1 h-8 text-xs"
+                                                                        className="flex-1 h-8 text-xs bg-white/10 hover:bg-white/15"
                                                                         onClick={() => handleWithdraw(market)}
                                                                     >
                                                                         Withdraw
@@ -445,7 +448,7 @@ export default function LendingPage() {
                             {markets.map((asset) => (
                                 <Card
                                     key={asset.name}
-                                    className="bg-card/80 backdrop-blur-xl border-border rounded-2xl"
+                                    className="bg-card/80 backdrop-blur-xl border-0 rounded-2xl"
                                 >
                                     <CardContent className="p-4">
                                         <div className="flex items-center justify-between">
@@ -454,7 +457,7 @@ export default function LendingPage() {
                                                 <div>
                                                     <p className="font-bold">{asset.symbol}</p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Balance: {getWalletBalance(asset.name)}
+                                                        Balance: {formatTruncatedAmount(getWalletBalance(asset.name), 2)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -476,9 +479,7 @@ export default function LendingPage() {
                                             <div className="text-right">
                                                 <span>Liquidity: </span>
                                                 <span className="text-foreground font-medium">
-                                                    {parseFloat(asset.availableLiquidity) > 1000
-                                                        ? `${(parseFloat(asset.availableLiquidity) / 1000).toFixed(1)}K`
-                                                        : parseFloat(asset.availableLiquidity).toFixed(2)}
+                                                    {formatCompactAmount(asset.availableLiquidity, 2)}
                                                 </span>
                                             </div>
                                         </div>
@@ -486,7 +487,7 @@ export default function LendingPage() {
                                         <div className="flex gap-2 mt-3">
                                             <Button
                                                 size="sm"
-                                                className="flex-1 h-9"
+                                                className="flex-1 h-9 bg-white/10 text-foreground hover:bg-white/15"
                                                 onClick={() => handleSupply(asset)}
                                                 disabled={parseFloat(getWalletBalance(asset.name)) <= 0}
                                             >
@@ -496,7 +497,7 @@ export default function LendingPage() {
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="flex-1 h-9"
+                                                className="flex-1 h-9 bg-white/10 text-foreground hover:bg-white/15 border-0"
                                                 onClick={() => handleWithdraw(asset)}
                                                 disabled={parseFloat(getUserSupplied(asset.name)) <= 0}
                                             >
@@ -507,18 +508,14 @@ export default function LendingPage() {
                                     </CardContent>
                                 </Card>
                             ))}
-                        </motion.div>
+                        </div>
                     )}
 
                     {(viewMode === "supply" || viewMode === "withdraw") && selectedAsset && (
-                        <motion.div
-                            key={viewMode}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key={viewMode}
                             className="space-y-4"
                         >
-                            <Card className="bg-card/80 backdrop-blur-xl border-border rounded-2xl">
+                            <Card className="bg-card/80 backdrop-blur-xl border-0 rounded-2xl">
                                 <CardContent className="p-5">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
@@ -530,9 +527,9 @@ export default function LendingPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <Badge variant="outline">
+                                        <span className="text-sm font-medium text-green-500">
                                             {(selectedAsset.supplyApy * 100).toFixed(2)}% APY
-                                        </Badge>
+                                        </span>
                                     </div>
 
                                     <div className="space-y-3">
@@ -548,21 +545,21 @@ export default function LendingPage() {
                                                             const bal = parseFloat(getWalletBalance(selectedAsset.name));
                                                             if (selectedAsset.name === "TON") {
                                                                 const max = Math.max(0, bal - TON_GAS_RESERVE);
-                                                                setAmount(max > 0 ? max.toFixed(4) : "0");
+                                                                setAmount(max > 0 ? formatTruncatedAmount(max, 2) : "0");
                                                             } else {
-                                                                setAmount(bal > 0 ? bal.toFixed(4) : "0");
+                                                                setAmount(bal > 0 ? formatTruncatedAmount(bal, 2) : "0");
                                                             }
                                                         } else {
                                                             const supplied = parseFloat(getUserSupplied(selectedAsset.name));
-                                                            setAmount(supplied > 0 ? supplied.toFixed(4) : "0");
+                                                            setAmount(supplied > 0 ? formatTruncatedAmount(supplied, 2) : "0");
                                                         }
                                                     }}
                                                 >
-                                                    MAX: {viewMode === "supply"
+                                                    Max: {viewMode === "supply"
                                                         ? (selectedAsset.name === "TON"
-                                                            ? Math.max(0, parseFloat(getWalletBalance(selectedAsset.name)) - TON_GAS_RESERVE).toFixed(4)
-                                                            : getWalletBalance(selectedAsset.name))
-                                                        : getUserSupplied(selectedAsset.name)}
+                                                            ? formatTruncatedAmount(Math.max(0, parseFloat(getWalletBalance(selectedAsset.name)) - TON_GAS_RESERVE), 2)
+                                                            : formatTruncatedAmount(getWalletBalance(selectedAsset.name), 2))
+                                                        : formatTruncatedAmount(getUserSupplied(selectedAsset.name), 2)}
                                                 </Button>
                                             </div>
                                             <Input
@@ -582,11 +579,11 @@ export default function LendingPage() {
 
                                         {viewMode === "supply" && selectedAsset.name === "TON" && (
                                             <p className="text-xs text-muted-foreground">
-                                                {TON_GAS_RESERVE} TON will be reserved for gas fees.
+                                                {formatTruncatedAmount(TON_GAS_RESERVE, 2)} TON will be reserved for gas fees.
                                             </p>
                                         )}
 
-                                        <div className="bg-accent/30 rounded-xl p-3 space-y-2 text-sm">
+                                        <div className="bg-white/10 rounded-xl p-3 space-y-2 text-sm">
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Supply APY</span>
                                                 <span className="text-green-500 font-medium">
@@ -600,9 +597,9 @@ export default function LendingPage() {
                                                 </span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Available Liquidity</span>
+                                                <span className="text-muted-foreground">Available liquidity</span>
                                                 <span className="font-medium">
-                                                    {parseFloat(selectedAsset.availableLiquidity).toFixed(2)} {selectedAsset.symbol}
+                                                    {formatCompactAmount(selectedAsset.availableLiquidity, 2)} {selectedAsset.symbol}
                                                 </span>
                                             </div>
                                         </div>
@@ -627,9 +624,9 @@ export default function LendingPage() {
                                     </div>
                                 </CardContent>
                             </Card>
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
+                
 
                 <BiometricAuth
                     isOpen={isAuthOpen}

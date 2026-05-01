@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -11,7 +10,6 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     AlertDialog,
@@ -41,6 +39,7 @@ export default function ConnectedAppsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [now, setNow] = useState(() => Date.now());
     
     // Track initialization to prevent multiple calls
     const initRef = useRef(false);
@@ -105,6 +104,11 @@ export default function ConnectedAppsPage() {
         
         initWallet();
     }, [walletKit?.isReady, walletKit?.isWalletRegistered, telegramId, walletKit]);
+
+    useEffect(() => {
+        const interval = window.setInterval(() => setNow(Date.now()), 60_000);
+        return () => window.clearInterval(interval);
+    }, []);
 
     // Handle QR code scan result
     const handleScanResult = async (result: string) => {
@@ -207,7 +211,7 @@ export default function ConnectedAppsPage() {
 
     // Format time ago
     const formatTimeAgo = (timestamp: number): string => {
-        const seconds = Math.floor((Date.now() - timestamp) / 1000);
+        const seconds = Math.floor((now - timestamp) / 1000);
         
         if (seconds < 60) return "Just now";
         if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
@@ -223,13 +227,13 @@ export default function ConnectedAppsPage() {
         return (
             <div className="flex flex-col w-full max-w-md mx-auto p-4 min-h-screen bg-background text-foreground">
                 <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-foreground">Connected Apps</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Connected apps</h1>
                     <p className="text-sm text-muted-foreground mt-1">
                         Manage dApp connections via TON Connect
                     </p>
                 </div>
 
-                <Card className="bg-yellow-500/10 border-yellow-500/20 mb-6">
+                <Card className="bg-yellow-500/10 border-0 mb-6">
                     <CardContent className="p-4 flex items-start gap-3">
                         <Icon icon="lucide:alert-triangle" className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
                         <div>
@@ -249,15 +253,15 @@ export default function ConnectedAppsPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Connected Apps</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Connected apps</h1>
                     <p className="text-sm text-muted-foreground mt-1">
                         Manage dApp connections via TON Connect
                     </p>
                 </div>
                 {sessions.length > 0 && (
-                    <Badge variant="secondary" className="h-6">
+                    <span className="text-xs font-medium text-muted-foreground">
                         {sessions.length} app{sessions.length !== 1 ? 's' : ''}
-                    </Badge>
+                    </span>
                 )}
             </div>
 
@@ -282,7 +286,7 @@ export default function ConnectedAppsPage() {
 
             {/* Error Message */}
             {error && (
-                <Card className="bg-destructive/10 border-destructive/20 mb-6">
+                <Card className="bg-destructive/10 border-0 mb-6">
                     <CardContent className="p-4 flex items-start gap-3">
                         <Icon icon="lucide:alert-triangle" className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                         <div>
@@ -292,31 +296,13 @@ export default function ConnectedAppsPage() {
                 </Card>
             )}
 
-            {/* Info Card */}
-            <Card className="bg-primary/5 border-primary/20 mb-6">
-                <CardContent className="p-4 flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Icon icon="lucide:shield" className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-foreground text-sm">TON Connect Ready</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                            Scan the QR code on any TON dApp to connect securely.
-                            {walletKit.isTestnet && (
-                                <span className="text-orange-400"> (Testnet Mode)</span>
-                            )}
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-
             {/* Sessions List */}
             <ScrollArea className="flex-1">
                 <div className="space-y-3 pb-20">
                     {isLoading ? (
                         // Loading skeleton
                         Array.from({ length: 3 }).map((_, i) => (
-                            <Card key={i} className="bg-card border-border">
+                            <Card key={i} className="bg-card border-0">
                                 <CardContent className="p-4">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-full bg-muted animate-pulse" />
@@ -331,11 +317,9 @@ export default function ConnectedAppsPage() {
                     ) : sessions.length === 0 ? (
                         // Empty state
                         <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
-                                <Icon icon="lucide:link-2-off" className="w-10 h-10 text-muted-foreground" />
-                            </div>
+                            <Icon icon="lucide:link-2-off" className="w-10 h-10 text-muted-foreground mb-4" />
                             <h3 className="text-lg font-semibold text-foreground mb-2">
-                                No Connected Apps
+                                No connected apps
                             </h3>
                             <p className="text-sm text-muted-foreground mb-6 max-w-xs">
                                 Scan the QR code on any TON dApp to connect your wallet
@@ -348,20 +332,15 @@ export default function ConnectedAppsPage() {
                     ) : (
                         // Sessions list
                         <>
-                            <AnimatePresence mode="popLayout">
+                            
                                 {sessions.map((session) => (
-                                    <motion.div
-                                        key={session.sessionId}
-                                        layout
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, x: -100 }}
+                                    <div key={session.sessionId}
                                     >
-                                        <Card className="bg-card border-border hover:border-muted-foreground/20 transition-colors">
+                                        <Card className="bg-card border-0 transition-colors">
                                             <CardContent className="p-4">
                                                 <div className="flex items-center gap-4">
                                                     {/* App Icon */}
-                                                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden border border-border">
+                                                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden border-0">
                                                         {session.dAppIconUrl ? (
                                                             <Image
                                                                 src={session.dAppIconUrl}
@@ -447,19 +426,19 @@ export default function ConnectedAppsPage() {
                                                 </div>
                                                 
                                                 {/* Session Info */}
-                                                <div className="mt-3 pt-3 border-t border-border">
+                                                <div className="mt-3 pt-3">
                                                     <div className="flex flex-wrap gap-2">
-                                                        <Badge variant="outline" className="text-[10px]">
-                                                            <Icon icon="lucide:check" className="w-3 h-3 mr-1" />
+                                                        <span className="inline-flex items-center text-[10px] text-green-400">
+                                                            <Icon icon="charm:tick" className="w-3 h-3 mr-1" />
                                                             Connected
-                                                        </Badge>
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </CardContent>
                                         </Card>
-                                    </motion.div>
+                                    </div>
                                 ))}
-                            </AnimatePresence>
+                            
                             
                             {/* Disconnect All */}
                             {sessions.length > 1 && (
@@ -467,7 +446,7 @@ export default function ConnectedAppsPage() {
                                     <AlertDialogTrigger asChild>
                                         <Button
                                             variant="outline"
-                                            className="w-full h-12 mt-4 text-destructive border-destructive/30 hover:bg-destructive/10"
+                                            className="w-full h-12 mt-4 text-destructive border-0 hover:bg-destructive/10"
                                         >
                                             <Icon icon="lucide:link-2-off" className="w-4 h-4 mr-2" />
                                             Disconnect All Apps

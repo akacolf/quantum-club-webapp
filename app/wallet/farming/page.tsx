@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import Link from "next/link";
@@ -13,7 +12,6 @@ import { useFarmingDataQuery } from "@/app/(hooks)/queries/use-farming";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { BiometricAuth, useBiometricAuth } from "@/components/ui/biometric-auth";
 import { toast } from "sonner";
@@ -232,13 +230,9 @@ export default function FarmingPage() {
     return (
         <div className="flex flex-col min-h-screen bg-black pb-28">
             <div className="px-4 pt-2 pb-4 space-y-5">
-                <AnimatePresence mode="wait">
+                
                     {viewMode === "list" && (
-                        <motion.div
-                            key="list"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
+                        <div key="list"
                             className="space-y-5"
                         >
                             {/* Header */}
@@ -260,20 +254,20 @@ export default function FarmingPage() {
 
                             {/* Stats Row */}
                             <div className="grid grid-cols-2 gap-3">
-                                <Card className="bg-[#111] border-[#222]">
+                                <Card className="bg-[#111] border-0">
                                     <CardContent className="p-4">
                                         <div className="flex items-center gap-2 mb-1">
                                             <Icon icon="lucide:sprout" className="w-4 h-4 text-green-500"/>
-                                            <span className="text-xs text-gray-500">Active Farms</span>
+                                            <span className="text-xs text-gray-500">Active farms</span>
                                         </div>
                                         <p className="text-xl font-bold text-white">{farms.length}</p>
                                     </CardContent>
                                 </Card>
-                                <Card className="bg-[#111] border-[#222]">
+                                <Card className="bg-[#111] border-0">
                                     <CardContent className="p-4">
                                         <div className="flex items-center gap-2 mb-1">
                                             <Icon icon="lucide:gift" className="w-4 h-4 text-primary"/>
-                                            <span className="text-xs text-gray-500">Your Positions</span>
+                                            <span className="text-xs text-gray-500">Your positions</span>
                                         </div>
                                         <p className="text-xl font-bold text-white">{positions.length}</p>
                                     </CardContent>
@@ -284,19 +278,17 @@ export default function FarmingPage() {
                             {positions.length > 0 && (
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="font-semibold text-white">Your Positions</h3>
-                                        <Badge variant="secondary" className="bg-green-500/10 text-green-400">
+                                        <h3 className="font-semibold text-white">Your positions</h3>
+                                        <span className="text-sm font-medium text-green-400">
                                             Earning
-                                        </Badge>
+                                        </span>
                                     </div>
                                     {positions.map((position, i) => (
-                                        <Card key={i} className="bg-[#111] border-[#222]">
+                                        <Card key={i} className="bg-[#111] border-0">
                                             <CardContent className="p-4">
                                                 <div className="flex items-center justify-between mb-3">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center">
-                                                            <Icon icon="lucide:sprout" className="w-4 h-4 text-green-500"/>
-                                                        </div>
+                                                        <Icon icon="lucide:sprout" className="w-4 h-4 text-green-500"/>
                                                         <div>
                                                             <p className="font-medium text-white text-sm">{position.poolName}</p>
                                                             <p className="text-xs text-gray-500">Staked LP</p>
@@ -316,9 +308,9 @@ export default function FarmingPage() {
                                                     disabled={isProcessing || !position.nftAddress}
                                                     variant="outline"
                                                     size="sm"
-                                                    className="w-full border-[#333] text-gray-400"
+                                                    className="w-full border-0 text-gray-400"
                                                 >
-                                                    {isProcessing ? <ButtonLoader size="sm" /> : "Unstake & Claim"}
+                                                    {isProcessing ? <ButtonLoader size="sm" /> : "Unstake & claim"}
                                                 </Button>
                                             </CardContent>
                                         </Card>
@@ -328,14 +320,14 @@ export default function FarmingPage() {
 
                             {/* Available Farms */}
                             <div className="space-y-3">
-                                <h3 className="font-semibold text-white">Available Farms</h3>
+                                <h3 className="font-semibold text-white">Available farms</h3>
                                 
                                 {isLoading ? (
                                     <div className="flex items-center justify-center py-12 text-gray-500">
                                         <ButtonLoader size="lg" />
                                     </div>
                                 ) : farms.length === 0 ? (
-                                    <Card className="bg-[#111] border-[#222]">
+                                    <Card className="bg-[#111] border-0">
                                         <CardContent className="py-8 text-center">
                                             <Icon icon="lucide:sprout" className="w-10 h-10 text-gray-600 mx-auto mb-3"/>
                                             <p className="text-gray-500 text-sm">No farming pools available</p>
@@ -346,22 +338,20 @@ export default function FarmingPage() {
                                     farms.slice(0, 10).map((farm, i) => (
                                         <Card 
                                             key={i} 
-                                            className="bg-[#111] border-[#222] hover:bg-[#161616] cursor-pointer transition-colors"
+                                            className="bg-[#111] border-0 hover:bg-[#161616] cursor-pointer transition-colors"
                                             onClick={() => handleSelectFarm(farm)}
                                         >
                                             <CardContent className="p-4">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-[#222] flex items-center justify-center">
-                                                            <Icon icon="lucide:sprout" className="w-5 h-5 text-green-500"/>
-                                                        </div>
+                                                        <Icon icon="lucide:sprout" className="w-5 h-5 text-green-500"/>
                                                         <div>
                                                             <p className="font-medium text-white text-sm">{farm.poolName}</p>
                                                             <div className="flex items-center gap-2 mt-1">
                                                                 {farm.apr && (
-                                                                    <Badge variant="secondary" className="bg-green-500/10 text-green-400 text-xs">
+                                                                    <span className="text-xs text-green-400">
                                                                         {farm.apr.toFixed(1)}% APR
-                                                                    </Badge>
+                                                                    </span>
                                                                 )}
                                                                 <span className="text-xs text-gray-500 flex items-center gap-0.5">
                                                                     <Icon icon="lucide:arrow-right" className="w-3 h-3"/> {farm.rewardTokenSymbol}
@@ -411,27 +401,23 @@ export default function FarmingPage() {
                                     Add Liquidity First
                                 </Link>
                             </Button>
-                        </motion.div>
+                        </div>
                     )}
 
                     {viewMode === "stake" && selectedFarm && (
-                        <motion.div
-                            key="stake"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="stake"
                             className="space-y-5"
                         >
                             {/* Header */}
                             <div>
-                                <h1 className="text-xl font-bold text-white">Stake LP Tokens</h1>
+                                <h1 className="text-xl font-bold text-white">Stake LP tokens</h1>
                                 <p className="text-sm text-gray-500">{selectedFarm.poolName}</p>
                             </div>
 
                             {step === "input" && (
                                 <>
                                     {/* Farm Info */}
-                                    <Card className="bg-[#111] border-[#222]">
+                                    <Card className="bg-[#111] border-0">
                                         <CardContent className="p-4">
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
@@ -441,7 +427,7 @@ export default function FarmingPage() {
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs text-gray-500 mb-1">Total Value Locked</p>
+                                                    <p className="text-xs text-gray-500 mb-1">Total value locked</p>
                                                     <p className="text-lg font-bold text-white">
                                                         {selectedFarm.tvl ? `$${formatNumber(selectedFarm.tvl)}` : "~"}
                                                     </p>
@@ -451,12 +437,12 @@ export default function FarmingPage() {
                                     </Card>
 
                                     {/* LP Balance */}
-                                    <Card className="bg-[#111] border-[#222]">
+                                    <Card className="bg-[#111] border-0">
                                         <CardContent className="p-4">
                                             <div className="flex items-center justify-between mb-3">
-                                                <Label className="text-gray-400">Your LP Balance</Label>
+                                                <Label className="text-gray-400">Your LP balance</Label>
                                                 <button onClick={handleMax} className="text-xs text-primary">
-                                                    MAX
+                                                    Max
                                                 </button>
                                             </div>
                                             <div className="flex items-center gap-3">
@@ -486,9 +472,9 @@ export default function FarmingPage() {
 
                                     {/* Estimated Earnings */}
                                     {stakeAmountNum > 0 && selectedFarm.apr && (
-                                        <Card className="bg-[#111] border-[#222]">
+                                        <Card className="bg-[#111] border-0">
                                             <CardContent className="p-4">
-                                                <p className="text-xs text-gray-500 mb-2">Estimated Yearly Rewards</p>
+                                                <p className="text-xs text-gray-500 mb-2">Estimated yearly rewards</p>
                                                 <p className="text-lg font-bold text-green-400">
                                                     +{((stakeAmountNum * selectedFarm.apr) / 100).toFixed(4)} LP value
                                                 </p>
@@ -507,7 +493,7 @@ export default function FarmingPage() {
                                         ) : (
                                             <>
                                                 <Icon icon="lucide:sprout" className="w-4 h-4 mr-2"/>
-                                                Stake LP Tokens
+                                                Stake LP tokens
                                             </>
                                         )}
                                     </Button>
@@ -552,9 +538,9 @@ export default function FarmingPage() {
                                     </Button>
                                 </div>
                             )}
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
+                
             </div>
 
             {/* Biometric Auth */}
@@ -562,7 +548,7 @@ export default function FarmingPage() {
                 isOpen={isAuthOpen}
                 onSuccess={handleAuthSuccess}
                 onCancel={handleAuthCancel}
-                title="Confirm Farming"
+                title="Confirm farming"
                 description="Authenticate to stake your LP tokens"
             />
         </div>

@@ -73,8 +73,8 @@ export default function GlobalLiveTrades() {
                     <div className="flex items-center gap-2">
                         <Icon icon="solar:pulse-2-bold" className="w-4 h-4 text-primary animate-pulse" />
                         <span className="text-xs text-muted-foreground">Loading on-chain activity...</span>
-                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[8px] ml-auto">
-                            ON-CHAIN
+                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[8px] ml-auto">
+                            On-chain
                         </Badge>
                     </div>
                 </CardContent>
@@ -89,8 +89,8 @@ export default function GlobalLiveTrades() {
                     <div className="flex items-center gap-2">
                         <Icon icon="solar:pulse-2-bold" className="w-4 h-4 text-muted-foreground" />
                         <span className="text-xs text-muted-foreground">No trades yet</span>
-                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[8px] ml-auto">
-                            ON-CHAIN
+                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[8px] ml-auto">
+                            On-chain
                         </Badge>
                     </div>
                 </CardContent>
@@ -161,10 +161,10 @@ export default function GlobalLiveTrades() {
                         </motion.div>
                     </AnimatePresence>
 
-                    {/* ON-CHAIN badge and pagination */}
+                    {/* On-chain badge and pagination */}
                     <div className="flex flex-col items-end gap-1">
-                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[8px]">
-                            ON-CHAIN
+                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[8px]">
+                            On-chain
                         </Badge>
                         {trades.length > 1 && (
                             <div className="flex gap-1">

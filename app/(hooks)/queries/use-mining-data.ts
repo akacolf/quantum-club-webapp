@@ -129,7 +129,7 @@ async function fetchMiningData(telegramId: string): Promise<MiningData> {
             const todayISO = getTodayISO();
             const diff = daysDiff(todayISO, checktime);
 
-            if (diff > 2) {
+            if (diff >= 2) {
                 // Streak broken — daily resets to 1 (written on next claim, not here)
                 checkTime.daily = 1;
                 isClaimedToday = false;

@@ -135,7 +135,7 @@ export default function GroupDirectory({ telegramId, qcUsername }: GroupDirector
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search public groups..."
-            className="w-full h-9 rounded-full bg-muted/40 border border-border/50 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+            className="w-full h-9 rounded-full bg-secondary border-0 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-0"
           />
         </div>
       </div>

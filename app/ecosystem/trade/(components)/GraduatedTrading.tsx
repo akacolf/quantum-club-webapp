@@ -42,8 +42,8 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
 
     useEffect(() => {
         if (!amount || parseFloat(amount) <= 0 || !token.jettonMasterAddress) {
-            setQuoteParams(null);
-            return;
+            const timer = window.setTimeout(() => setQuoteParams(null), 0);
+            return () => window.clearTimeout(timer);
         }
 
         const isBuying = activeTab === "buy";
@@ -80,8 +80,8 @@ export default function GraduatedTrading({ token }: GraduatedTradingProps) {
     // Simulation preview (quick estimate while Omniston streams)
     useEffect(() => {
         if (!amount || parseFloat(amount) <= 0 || !token.jettonMasterAddress) {
-            setPreview(null);
-            return;
+            const timer = window.setTimeout(() => setPreview(null), 0);
+            return () => window.clearTimeout(timer);
         }
 
         const simulate = async () => {

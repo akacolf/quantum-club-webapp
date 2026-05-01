@@ -9,7 +9,7 @@ export function AILoadingGlow() {
             <motion.div
                 className="absolute inset-[-50%] w-[200%] h-[200%]"
                 style={{
-                    background: "conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,0.3) 60deg, rgba(255,255,255,0.5) 120deg, rgba(255,255,255,0.3) 180deg, transparent 240deg, transparent 360deg)",
+                    background: "rgba(255,255,255,0.16)",
                     opacity: 0.3,
                 }}
                 animate={{
@@ -43,7 +43,7 @@ export function AIGlowBorder({
                 <motion.div
                     className="absolute -inset-[1px] rounded-lg z-0"
                     style={{
-                        background: "linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.4), rgba(200,220,255,0.5), rgba(255,255,255,0.4), rgba(255,255,255,0.1))",
+                        background: "rgba(255,255,255,0.18)",
                         backgroundSize: "200% 100%",
                     }}
                     animate={{
@@ -62,4 +62,3 @@ export function AIGlowBorder({
         </div>
     );
 }
-

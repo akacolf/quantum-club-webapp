@@ -6,7 +6,6 @@ import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { AIGlowBorder } from "./AIGlow";
 import { useTokenAnalysisQuery } from "@/app/(hooks)/queries/use-token-analysis";
 
@@ -61,16 +60,26 @@ export function TokenAnalysisCard({
         if (analysis) { refetch(); } else { setManualEnabled(true); }
     }
 
+    const toggleAnalysis = () => {
+        if (analysis) setIsCollapsed(!isCollapsed);
+        else runAnalysis();
+    };
+
     const getRiskColor = (score: number) => {
         if (score <= 3) return "text-green-400";
         if (score <= 6) return "text-yellow-400";
         return "text-red-400";
     };
 
-    const getRiskBadge = (score: number) => {
-        if (score <= 3) return { label: "Low Risk", className: "bg-green-500/20 text-green-400" };
-        if (score <= 6) return { label: "Medium Risk", className: "bg-yellow-500/20 text-yellow-400" };
-        return { label: "High Risk", className: "bg-red-500/20 text-red-400" };
+    const getRiskLabel = (score: number) => {
+        if (score <= 3) return "Low risk";
+        if (score <= 6) return "Medium risk";
+        return "High risk";
+    };
+
+    const formatSentiment = (sentiment: string) => {
+        const lower = sentiment.toLowerCase();
+        return lower.charAt(0).toUpperCase() + lower.slice(1);
     };
 
     const getSentimentIcon = (sentiment: string) => {
@@ -80,7 +89,7 @@ export function TokenAnalysisCard({
             case "BEARISH":
                 return <Icon icon="lucide:trending-down" className="w-4 h-4 text-red-400" />;
             default:
-                return <Icon icon="lucide:shield" className="w-4 h-4 text-gray-400" />;
+                return <Icon icon="lucide:shield" className="w-4 h-4 text-neutral-400" />;
         }
     };
 
@@ -110,43 +119,51 @@ export function TokenAnalysisCard({
 
     return (
         <AIGlowBorder isLoading={isLoading}>
-            <Card className="bg-[#111] border-[#222] overflow-hidden relative z-10">
+            <Card className="bg-[#111] border-0 overflow-hidden relative z-10">
                 <CardContent className="p-0">
                     {/* Header - Always visible */}
-                    <button
-                        onClick={() => analysis ? setIsCollapsed(!isCollapsed) : runAnalysis()}
-                        className="w-full p-4 flex items-center justify-between hover:bg-[#161616] transition-colors"
+                    <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={toggleAnalysis}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                toggleAnalysis();
+                            }
+                        }}
+                        className="w-full p-4 flex items-center justify-between hover:bg-[#161616] transition-colors cursor-pointer"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                                <Icon icon="lucide:sparkles" className="w-4 h-4 text-primary" />
-                            </div>
+                            <Icon icon="iconoir:spark" className="w-5 h-5 text-primary" />
                             <div className="text-left">
-                                <p className="text-sm font-medium text-white">AI Analysis</p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-sm font-medium text-white">AI analysis</p>
+                                <p className="text-xs text-neutral-500">
                                     {analysis
-                                        ? `Updated ${new Date(analysis.analyzedAt).toLocaleTimeString()}`
+                                        ? `Updated at ${new Date(analysis.analyzedAt).toLocaleTimeString()}`
                                         : "Tap to analyze this token"}
                                 </p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
                             {isLoading ? (
-                                <span className="text-primary"><ButtonLoader size="sm" /></span>
+                                <span className="flex h-6 w-16 items-center justify-end text-primary">
+                                    <ButtonLoader size="sm" />
+                                </span>
                             ) : analysis ? (
                                 <>
-                                    <Badge className={getRiskBadge(analysis.riskScore).className}>
-                                        {getRiskBadge(analysis.riskScore).label}
-                                    </Badge>
+                                    <span className={`text-xs font-semibold ${getRiskColor(analysis.riskScore)}`}>
+                                        {getRiskLabel(analysis.riskScore)}
+                                    </span>
                                     {isExpanded ? (
-                                        <Icon icon="lucide:chevron-up" className="w-4 h-4 text-gray-500" />
+                                        <Icon icon="lucide:chevron-up" className="w-4 h-4 text-neutral-500" />
                                     ) : (
-                                        <Icon icon="lucide:chevron-down" className="w-4 h-4 text-gray-500" />
+                                        <Icon icon="lucide:chevron-down" className="w-4 h-4 text-neutral-500" />
                                     )}
                                 </>
                             ) : null}
                         </div>
-                    </button>
+                    </div>
 
                     {/* Expanded Content */}
                     <AnimatePresence>
@@ -157,22 +174,22 @@ export function TokenAnalysisCard({
                                 exit={{ height: 0, opacity: 0 }}
                                 transition={{ duration: 0.2 }}
                             >
-                                <div className="px-4 pb-4 space-y-4 border-t border-[#222]">
+                                <div className="px-4 pb-4 space-y-4 border-t border-white/5">
                                     {/* Risk & Sentiment */}
-                                    <div className="flex items-center justify-between pt-4">
-                                        <div className="flex items-center gap-4">
-                                            <div>
-                                                <p className="text-xs text-gray-500">Risk Score</p>
+                                    <div className="grid grid-cols-[1fr_auto] items-center gap-4 pt-4">
+                                        <div className="grid grid-cols-2 items-end gap-4">
+                                            <div className="min-w-0">
+                                                <p className="text-xs text-neutral-500">Risk score</p>
                                                 <p className={`text-lg font-bold ${getRiskColor(analysis.riskScore)}`}>
                                                     {analysis.riskScore}/10
                                                 </p>
                                             </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Sentiment</p>
-                                                <div className="flex items-center gap-1">
+                                            <div className="min-w-0">
+                                                <p className="text-xs text-neutral-500">Sentiment</p>
+                                                <div className="flex h-7 items-center gap-1">
                                                     {getSentimentIcon(analysis.sentiment)}
                                                     <span className="text-sm font-medium text-white">
-                                                        {analysis.sentiment}
+                                                        {formatSentiment(analysis.sentiment)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -192,18 +209,18 @@ export function TokenAnalysisCard({
 
                                     {/* Summary */}
                                     <div>
-                                        <p className="text-xs text-gray-500 mb-1">Summary</p>
-                                        <p className="text-sm text-gray-300">{analysis.summary}</p>
+                                        <p className="text-xs text-neutral-500 mb-1">Summary</p>
+                                        <p className="text-sm text-neutral-300">{analysis.summary}</p>
                                     </div>
 
                                     {/* Warnings */}
                                     {analysis.warnings && analysis.warnings.length > 0 && (
                                         <div className="space-y-2">
-                                            <p className="text-xs text-gray-500">Warnings</p>
+                                            <p className="text-xs text-neutral-500">Warnings</p>
                                             {analysis.warnings.map((warning, i) => (
                                                 <div
                                                     key={i}
-                                                    className="flex items-start gap-2 text-sm text-yellow-400 bg-yellow-500/10 rounded-lg p-2"
+                                                    className="flex items-start gap-2 text-sm text-yellow-400"
                                                 >
                                                     <Icon icon="lucide:alert-triangle" className="w-4 h-4 shrink-0 mt-0.5" />
                                                     <span>{warning}</span>
@@ -221,7 +238,7 @@ export function TokenAnalysisCard({
                                     )}
 
                                     {/* Disclaimer */}
-                                    <p className="text-[10px] text-gray-600 italic">
+                                    <p className="text-[10px] text-neutral-600 italic">
                                         This analysis is AI-generated and not financial advice. DYOR.
                                     </p>
                                 </div>

@@ -13,9 +13,10 @@ interface SpotTokenCardProps {
     userBalance?: string;
     showBalance?: number;
     showValue?: number;
+    isTransparent?: boolean;
 }
 
-export default function SpotTokenCard({ token, index, userBalance, showBalance, showValue }: SpotTokenCardProps) {
+export default function SpotTokenCard({ token, index, userBalance, showBalance, showValue, isTransparent }: SpotTokenCardProps) {
     const priceUsd = token.priceUsd;
     const change = token.priceChange24h;
     const mcap = token.marketCapUsd;
@@ -28,8 +29,8 @@ export default function SpotTokenCard({ token, index, userBalance, showBalance, 
             transition={{ delay: Math.min(index * 0.03, 0.3) }}
         >
             <Link href={`/ecosystem/trade/spot/${encodeURIComponent(token.contractAddress)}`} prefetch={true}>
-                <Card className="bg-white/5 backdrop-blur-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer overflow-hidden group relative shadow-md hover:shadow-lg hover:bg-white/10">
-                    <CardContent className="p-3">
+                <Card className={`transition-all cursor-pointer overflow-hidden group relative ${isTransparent ? 'bg-transparent border-0 shadow-none hover:bg-white/5' : 'bg-white/5 backdrop-blur-xl border border-white/5 hover:border-white/10 shadow-md hover:shadow-lg hover:bg-white/10'}`}>
+                    <CardContent className={isTransparent ? 'p-2' : 'p-3'}>
                         <div className="flex gap-3 items-center">
                             {/* Token Image */}
                             <div className="relative w-11 h-11 rounded-full overflow-hidden bg-[#222] shadow-inner ring-1 ring-white/5 group-hover:ring-white/10 transition-all flex-shrink-0">

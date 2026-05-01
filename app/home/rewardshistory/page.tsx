@@ -6,8 +6,31 @@ import TasksSkeleton from "./(components)/TasksSkeleton";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { useRewardsHistoryQuery } from "@/app/(hooks)/queries/use-rewards-history";
+import { Icon } from "@iconify/react";
 
 function getPlatformIcon(platform: string | null) {
+  const iconClassName = "h-6 w-6 text-white";
+  const platformIcons: Record<string, string> = {
+    telegram: "ic:baseline-telegram",
+    "ic:baseline-telegram": "ic:baseline-telegram",
+    checktelegramAgain: "ic:baseline-telegram",
+    twitter: "simple-icons:x",
+    "pajamas:twitter": "simple-icons:x",
+    chemist: "lucide:flask-conical",
+    instagram: "simple-icons:instagram",
+    referrals: "lucide:users",
+    referrals10: "lucide:user-plus",
+    onchain: "lucide:infinity",
+    userMilestone: "lucide:trophy",
+    connectwallet: "lucide:wallet",
+    solvetoearnExplore: "lucide:brain",
+  };
+
+  const icon = platform ? platformIcons[platform] : null;
+  if (icon) {
+    return <Icon icon={icon} className={iconClassName} />;
+  }
+
   if (platform === "dailycheck-in-reward") {
     return (
       <svg
@@ -290,8 +313,8 @@ export default function RewardsHistory() {
    return (
       <div className="min-h-screen bg-black text-white p-4 pb-24">
         <div className="mb-6">
-          <h1 className="font-bold text-3xl bg-linear-to-r from-white to-gray-500 bg-clip-text text-transparent">History</h1>
-          <p className="text-gray-400 text-sm mt-1">Track your earnings and rewards</p>
+          <h1 className="font-bold text-3xl bg-linear-to-r from-white to-neutral-500 bg-clip-text text-transparent">History</h1>
+          <p className="text-neutral-400 text-sm mt-1">Track your earnings and rewards</p>
         </div>
 
         {tasksLoading ? (
@@ -313,16 +336,16 @@ export default function RewardsHistory() {
                       <Card className="bg-[#111] border-[#333] hover:bg-[#161616] transition-colors">
                         <CardContent className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-4">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#222] border border-[#333] shrink-0">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center text-white">
                               {getPlatformIcon(task.platform)}
                             </div>
                             <div className="flex flex-col gap-0.5">
                               <p className="font-semibold text-white text-sm">{task.title}</p>
-                              <p className="text-gray-500 text-xs font-medium">{task.date}</p>
+                              <p className="text-neutral-500 text-xs font-medium">{task.date}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="flex items-center gap-1 bg-green-500/10 px-2.5 py-1 rounded-lg border border-green-500/20">
+                            <div className="flex items-center justify-end gap-1">
                               <span className="text-green-400 font-bold text-sm">
                                 +{task.quant}
                               </span>
@@ -338,7 +361,7 @@ export default function RewardsHistory() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-[50vh] text-gray-500 gap-2">
+          <div className="flex flex-col items-center justify-center h-[50vh] text-neutral-500 gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="3em" height="3em" viewBox="0 0 24 24" className="opacity-20">
               <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67c0-.84.79-1.43 2.1-1.43c1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81c0 1.79 1.49 2.69 3.66 3.21c1.95.46 2.34 1.15 2.34 1.87c0 .53-.39 1.39-2.1 1.39c-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77c-.01-2.2-1.9-2.96-3.66-3.42z"/>
             </svg>

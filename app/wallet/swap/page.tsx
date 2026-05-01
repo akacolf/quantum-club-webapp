@@ -7,7 +7,6 @@ import { flushSync } from "react-dom";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { sendBoc } from "@/lib/tonapi-client";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -52,6 +51,7 @@ import {
 import { useOmnistonSwap, type QuoteParams } from "./hooks/useOmnistonSwap";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { swapSchema } from "@/lib/validations";
+import { formatTruncatedAmount } from "@/lib/format";
 
 // Custom hook for debouncing values
 function useDebounce<T>(value: T, delay: number): T {
@@ -65,7 +65,7 @@ function useDebounce<T>(value: T, delay: number): T {
     return debouncedValue;
 }
 
-// Format large numbers to prevent layout issues
+// Format large numbers to prevent issues
 function formatDisplayNumber(value: string | number, maxDecimals: number = 4): string {
     const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num) || num === 0) return "0.0";
@@ -201,11 +201,11 @@ export default function SwapPage() {
     const [quoteTimedOut, setQuoteTimedOut] = useState(false);
     useEffect(() => {
         if (isQuotingRaw) {
-            setQuoteTimedOut(false);
+            queueMicrotask(() => setQuoteTimedOut(false));
             const timer = setTimeout(() => setQuoteTimedOut(true), 10000);
             return () => clearTimeout(timer);
         } else {
-            setQuoteTimedOut(false);
+            queueMicrotask(() => setQuoteTimedOut(false));
         }
     }, [isQuotingRaw, quoteParams]);
 
@@ -250,8 +250,10 @@ export default function SwapPage() {
         if (swapAssets.length > 0 && !fromAsset && !toAsset) {
             const tonAsset = swapAssets.find((a) => a.kind === "Ton");
             const firstJetton = swapAssets.find((a) => a.kind === "Jetton");
-            if (tonAsset) setFromAsset(tonAsset);
-            if (firstJetton) setToAsset(firstJetton);
+            queueMicrotask(() => {
+                if (tonAsset) setFromAsset(tonAsset);
+                if (firstJetton) setToAsset(firstJetton);
+            });
         }
     }, [swapAssets, fromAsset, toAsset]);
 
@@ -272,11 +274,12 @@ export default function SwapPage() {
     };
 
     // Get user's balance for an asset
-    const getAssetBalance = (asset: SwapAsset | null): string => {
+    const getAssetBalance = (asset: SwapAsset | null, displayDecimals?: number): string => {
         if (!asset) return "0";
 
         if (asset.kind === "Ton") {
-            return tonBalance;
+            const ton = parseFloat(tonBalance) || 0;
+            return displayDecimals === undefined ? tonBalance : formatTruncatedAmount(ton, displayDecimals);
         }
 
         // Convert STON.fi asset address to raw format
@@ -290,9 +293,8 @@ export default function SwapPage() {
         });
 
         if (jetton) {
-            return (
-                parseFloat(jetton.balance) / Math.pow(10, jetton.decimals)
-            ).toFixed(4);
+            const balance = parseFloat(jetton.balance) / Math.pow(10, jetton.decimals);
+            return displayDecimals === undefined ? balance.toString() : formatTruncatedAmount(balance, displayDecimals);
         }
 
         return "0";
@@ -640,23 +642,21 @@ export default function SwapPage() {
             <div className="min-h-screen bg-background text-foreground p-4 pt-6">
                 <div className="max-w-md mx-auto">
                     <div className="mb-8 text-center">
-                        <h1 className="text-2xl font-bold text-foreground">Swap Tokens</h1>
+                        <h1 className="text-2xl font-bold text-foreground">Swap tokens</h1>
                         <p className="text-sm text-muted-foreground mt-1">
-                            Powered by <span className="font-semibold text-foreground">STON.fi</span>
+                            Powered by <a href="https://ston.fi" target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground underline-offset-4 hover:underline">STON.fi</a>
                         </p>
                     </div>
 
                     <div className="text-center py-16 space-y-6">
-                        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                            <Icon icon="lucide:alert-triangle" className="w-10 h-10 text-primary"/>
-                        </div>
+                        <Icon icon="lucide:alert-triangle" className="mx-auto w-10 h-10 text-primary"/>
                         <div className="space-y-2">
-                            <h2 className="text-xl font-bold text-foreground">Not Available in Testnet</h2>
+                            <h2 className="text-xl font-bold text-foreground">Not available in testnet</h2>
                             <p className="text-muted-foreground text-sm max-w-sm mx-auto">
                                 Token swapping is only available on mainnet. Switch to mainnet mode in Settings to use this feature.
                             </p>
                         </div>
-                        <Button asChild className="bg-card border border-border text-foreground hover:bg-accent h-12 px-8 rounded-xl">
+                        <Button asChild variant="secondary" className="h-12 px-8 rounded-xl">
                             <Link href="/wallet">Back to Wallet</Link>
                         </Button>
                     </div>
@@ -669,20 +669,16 @@ export default function SwapPage() {
         <div className="min-h-screen bg-background text-foreground p-4 pt-6">
             <div className="max-w-md mx-auto">
                 <div className="mb-6 text-center">
-                    <h1 className="text-2xl font-bold text-foreground">Swap Tokens</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Swap tokens</h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Powered by <span className="font-semibold text-foreground">STON.fi</span>
+                        Powered by <a href="https://ston.fi" target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground underline-offset-4 hover:underline">STON.fi</a>
                     </p>
                 </div>
 
-                <AnimatePresence mode="wait">
+                
                     {step === "input" && (
-                        <motion.div
-                            key="input"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            className="space-y-4"
+                        <div key="input"
+                            className="space-y-3"
                         >
                             {/* Swap Mode Tabs */}
                             <Tabs
@@ -707,37 +703,32 @@ export default function SwapPage() {
                                 <TabsList className="w-full">
                                     <TabsTrigger value="ton" className="flex-1 gap-1.5">
                                         <Icon icon="cryptocurrency-color:ton" className="w-4 h-4" />
-                                        TON Swap
+                                        TON swap
                                     </TabsTrigger>
                                     <TabsTrigger value="cross-chain" className="flex-1 gap-1.5">
                                         <Icon icon="lucide:arrow-left-right" className="w-4 h-4" />
-                                        Cross-Chain
+                                        Cross-chain
                                     </TabsTrigger>
                                 </TabsList>
                             </Tabs>
 
                             {/* Cross-chain coming soon */}
                             {isCrossChain ? (
-                                <Card className="bg-card/80 backdrop-blur-xl border-border rounded-3xl overflow-hidden">
-                                    <CardContent className="py-16 text-center space-y-4">
-                                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                                            <Icon icon="lucide:globe" className="w-8 h-8 text-primary" />
-                                        </div>
+                                <div className="py-16 text-center space-y-4">
+                                        <Icon icon="lucide:globe" className="mx-auto w-8 h-8 text-primary" />
                                         <div>
-                                            <h3 className="text-lg font-bold text-foreground">Cross-Chain Swaps</h3>
+                                            <h3 className="text-lg font-bold text-foreground">Cross-chain swaps</h3>
                                             <p className="text-sm text-muted-foreground mt-1">Coming soon</p>
                                         </div>
                                         <p className="text-xs text-muted-foreground max-w-[260px] mx-auto">
                                             Cross-chain liquidity bridging via STON.fi Omniston is not yet available. Stay tuned for updates.
                                         </p>
-                                    </CardContent>
-                                </Card>
+                                </div>
                             ) : (
                             <>
 
                             {/* From Asset */}
-                            <Card className="bg-card/80 backdrop-blur-xl border-border rounded-3xl overflow-hidden relative group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <Card className="bg-secondary border-0 rounded-3xl overflow-hidden relative group">
                                 <CardContent className="p-5 relative">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm text-muted-foreground">You pay</span>
@@ -747,7 +738,7 @@ export default function SwapPage() {
                                             onClick={handleMaxAmount}
                                             className="h-auto p-0 text-xs text-primary hover:text-primary/80 hover:bg-transparent"
                                         >
-                                            MAX: {fromAsset ? getAssetBalance(fromAsset) : "0"}
+                                            MAX: {fromAsset ? getAssetBalance(fromAsset, 2) : "0.00"}
                                         </Button>
                                     </div>
 
@@ -756,7 +747,7 @@ export default function SwapPage() {
                                             <DropdownMenuTrigger asChild>
                                                 <Button
                                                     variant="ghost"
-                                                    className="bg-accent/50 border border-border hover:bg-accent h-11 rounded-xl px-3 gap-2 transition-colors"
+                                                    className="bg-secondary border-0 hover:bg-secondary/80 h-11 rounded-xl px-3 gap-2 transition-colors"
                                                 >
                                                     {fromAsset?.imageUrl ? (
                                                         <Image
@@ -778,7 +769,7 @@ export default function SwapPage() {
                                                     <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground"/>
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-64 bg-popover border-border text-popover-foreground max-h-80 overflow-y-auto scrollbar-hide">
+                                            <DropdownMenuContent className="w-64 bg-popover border-0 text-popover-foreground max-h-80 overflow-y-auto scrollbar-hide">
                                                 <DropdownMenuLabel>Select token</DropdownMenuLabel>
                                                 <DropdownMenuSeparator className="bg-border" />
                                                 {swapAssets.filter(asset => {
@@ -824,7 +815,7 @@ export default function SwapPage() {
                                                                 </div>
                                                             </div>
                                                             <div className="text-right text-sm text-muted-foreground">
-                                                                {getAssetBalance(asset)}
+                                                                {getAssetBalance(asset, 2)}
                                                             </div>
                                                         </DropdownMenuItem>)
                                                     ))
@@ -851,25 +842,24 @@ export default function SwapPage() {
                             </Card>
 
                             {/* Swap Direction Toggle */}
-                            <div className="flex justify-center -my-5 relative z-10">
+                            <div className="relative z-10 -my-6 flex justify-center">
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleToggleDirection}
-                                    className="w-10 h-10 bg-card hover:bg-accent active:scale-95 rounded-xl flex items-center justify-center border-[4px] border-background transition-all shadow-lg text-primary hover:text-primary/80"
+                                    className="flex h-11 w-11 items-center justify-center rounded-full border-4 border-background bg-black text-primary transition-all hover:bg-black hover:text-primary/80 active:scale-95"
                                 >
                                     <Icon icon="lucide:arrow-down-up" className="w-5 h-5"/>
                                 </Button>
                             </div>
 
                             {/* To Asset */}
-                            <Card className="bg-card/80 backdrop-blur-xl border-border rounded-3xl overflow-hidden relative group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <Card className="bg-secondary border-0 rounded-3xl overflow-hidden relative group">
                                 <CardContent className="p-5 relative">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm text-muted-foreground">You receive</span>
                                         <span className="text-xs text-muted-foreground">
-                                            Balance: {toAsset ? getAssetBalance(toAsset) : "0"}
+                                            Balance: {toAsset ? getAssetBalance(toAsset, 2) : "0.00"}
                                         </span>
                                     </div>
 
@@ -878,7 +868,7 @@ export default function SwapPage() {
                                             <DropdownMenuTrigger asChild>
                                                 <Button
                                                     variant="ghost"
-                                                    className="bg-accent/50 border border-border hover:bg-accent h-11 rounded-xl px-3 gap-2 transition-colors"
+                                                    className="bg-secondary border-0 hover:bg-secondary/80 h-11 rounded-xl px-3 gap-2 transition-colors"
                                                 >
                                                     {toAsset?.imageUrl ? (
                                                         <Image
@@ -900,7 +890,7 @@ export default function SwapPage() {
                                                     <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground"/>
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-64 bg-popover border-border text-popover-foreground max-h-80 overflow-y-auto scrollbar-hide">
+                                            <DropdownMenuContent className="w-64 bg-popover border-0 text-popover-foreground max-h-80 overflow-y-auto scrollbar-hide">
                                                 <DropdownMenuLabel>Select token</DropdownMenuLabel>
                                                 <DropdownMenuSeparator className="bg-border" />
                                                 {swapAssets.map((asset) => (
@@ -938,7 +928,7 @@ export default function SwapPage() {
                                                             </div>
                                                         </div>
                                                         <div className="text-right text-sm text-muted-foreground">
-                                                            {getAssetBalance(asset)}
+                                                            {getAssetBalance(asset, 2)}
                                                         </div>
                                                     </DropdownMenuItem>
                                                 ))}
@@ -962,7 +952,7 @@ export default function SwapPage() {
 
                             {/* Swap Details */}
                             {omnistonQuote && (
-                                <Card className="bg-muted/50 border-border rounded-xl overflow-hidden">
+                                <Card className="bg-secondary border-0 rounded-xl overflow-hidden">
                                     <CardContent className="p-4 space-y-3">
                                         <div className="flex items-center justify-between text-sm gap-2">
                                             <span className="text-muted-foreground shrink-0">Rate</span>
@@ -995,7 +985,7 @@ export default function SwapPage() {
                                             </div>
                                         )}
 
-                                        <div className="border-t border-border pt-3 mt-2 space-y-2">
+                                        <div className="pt-3 mt-2 space-y-2">
                                             <div className="flex items-center justify-between text-sm gap-2">
                                                 <span className="text-muted-foreground flex items-center gap-1 shrink-0">
                                                     Network fee
@@ -1005,7 +995,7 @@ export default function SwapPage() {
                                                                 <Icon icon="lucide:info" className="w-3 h-3 text-muted-foreground cursor-help"/>
                                                             </Button>
                                                         </PopoverTrigger>
-                                                        <PopoverContent side="top" className="w-56 bg-popover border-border text-popover-foreground p-3">
+                                                        <PopoverContent side="top" className="w-56 bg-popover border-0 text-popover-foreground p-3">
                                                             <p className="font-medium text-foreground mb-1 text-xs">Includes 50% safety buffer</p>
                                                             <p className="text-[11px] leading-relaxed">This ensures your swap completes successfully. Any unused gas is automatically returned to your wallet.</p>
                                                         </PopoverContent>
@@ -1032,9 +1022,9 @@ export default function SwapPage() {
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => setSlippage(s)}
-                                                            className={`h-auto px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-tight transition-all active:scale-95 ${slippage === s
-                                                                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary hover:text-primary-foreground"
-                                                                : "bg-muted text-muted-foreground hover:text-foreground hover:bg-accent"
+                                                            className={`h-auto rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight transition-all active:scale-95 ${slippage === s
+                                                                ? "bg-transparent text-foreground hover:bg-transparent hover:text-foreground"
+                                                                : "bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground"
                                                                 }`}
                                                         >
                                                             {s}%
@@ -1044,7 +1034,7 @@ export default function SwapPage() {
                                             </div>
                                             
                                             {/* Gasless swap toggle */}
-                                            <div className="flex items-center justify-between text-sm gap-2 pt-2 border-t border-border/50">
+                                            <div className="flex items-center justify-between text-sm gap-2 pt-2">
                                                 <div className="flex items-center gap-1.5 shrink-0">
                                                     <Icon icon="lucide:fuel" className="w-3 h-3 text-muted-foreground"/>
                                                     <Label htmlFor="gasless" className={`text-sm cursor-pointer ${isGasless ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}>
@@ -1056,7 +1046,7 @@ export default function SwapPage() {
                                                                 <Icon icon="lucide:info" className="w-3 h-3 text-muted-foreground cursor-help"/>
                                                             </Button>
                                                         </PopoverTrigger>
-                                                        <PopoverContent side="top" className="w-56 bg-popover border-border text-popover-foreground p-3">
+                                                        <PopoverContent side="top" className="w-56 bg-popover border-0 text-popover-foreground p-3">
                                                             <p className="font-medium text-foreground mb-1 text-xs">Pay gas with swap token</p>
                                                             <p className="text-[11px] leading-relaxed">Gas fees are deducted from the token you&apos;re swapping. Not available for all pairs.</p>
                                                         </PopoverContent>
@@ -1085,7 +1075,7 @@ export default function SwapPage() {
 
                             {/* Info: Fee deduction explanation for MAX swaps */}
                             {fromAsset?.kind === "Ton" && swapDetails.isMaxSwap && omnistonQuote && swapDetails.hasEnoughForGas && (
-                                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex items-start gap-3">
+                                <div className="bg-secondary border-0 rounded-xl p-3 flex items-start gap-3">
                                     <Icon icon="lucide:info" className="w-4 h-4 text-primary mt-0.5 shrink-0"/>
                                     <p className="text-xs text-primary/90">
                                         <span className="font-semibold">~{swapDetails.estimatedGas.toFixed(4)} TON</span> network fee will be deducted from your swap amount.
@@ -1095,7 +1085,7 @@ export default function SwapPage() {
 
                             {/* Quote error message */}
                             {quoteError && !isQuoting && (
-                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
+                                <div className="bg-red-500/10 border-0 rounded-xl p-3 flex items-center gap-2">
                                     <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-destructive shrink-0"/>
                                     <p className="text-xs text-destructive/90">
                                         {quoteError}
@@ -1105,7 +1095,7 @@ export default function SwapPage() {
 
                             {/* Warning: Minimum balance not met */}
                             {fromAsset?.kind === "Ton" && amount && parseFloat(amount) > 0 && !swapDetails.hasMinBalance && (
-                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
+                                <div className="bg-yellow-500/10 border-0 rounded-xl p-3 flex items-start gap-3">
                                     <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0"/>
                                     <p className="text-xs text-yellow-500/90">
                                         You need at least {MIN_TON_BALANCE} TON in your wallet to swap.
@@ -1115,7 +1105,7 @@ export default function SwapPage() {
 
                             {/* Warning for low TON balance when swapping jettons */}
                             {fromAsset?.kind === "Jetton" && parseFloat(tonBalance) < MIN_GAS_RESERVE_TON && (
-                                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-start gap-3">
+                                <div className="bg-yellow-500/10 border-0 rounded-xl p-3 flex items-start gap-3">
                                     <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0"/>
                                     <p className="text-xs text-yellow-500/90">
                                         You need at least {MIN_GAS_RESERVE_TON} TON to cover network fees for token swaps.
@@ -1125,7 +1115,7 @@ export default function SwapPage() {
 
                             {/* Error when not enough balance for both swap and gas */}
                             {fromAsset?.kind === "Ton" && amount && parseFloat(amount) > 0 && !swapDetails.isMaxSwap && !swapDetails.hasEnoughForGas && (
-                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-3">
+                                <div className="bg-red-500/10 border-0 rounded-xl p-3 flex items-start gap-3">
                                     <Icon icon="lucide:alert-triangle" className="w-4 h-4 text-destructive mt-0.5 shrink-0"/>
                                     <p className="text-xs text-destructive/90">
                                         Insufficient balance for network fees. Reduce swap amount or use MAX.
@@ -1165,20 +1155,16 @@ export default function SwapPage() {
                             </Button>
                             </>
                             )}
-                        </motion.div>
+                        </div>
                     )}
 
                     {step === "confirm" && confirmedQuote && (
-                        <motion.div
-                            key="confirm"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                        <div key="confirm"
                             className="space-y-6"
                         >
-                            <Card className="bg-card border-border rounded-2xl">
+                            <Card className="bg-secondary border-0 rounded-2xl">
                                 <CardContent className="p-6 text-center space-y-4">
-                                    <h2 className="text-lg font-bold">Confirm Swap</h2>
+                                    <h2 className="text-lg font-bold">Confirm swap</h2>
 
                                     <div className="flex items-center justify-center gap-4 py-4">
                                         <div className="text-center">
@@ -1224,7 +1210,7 @@ export default function SwapPage() {
                                         </div>
                                     </div>
 
-                                    <div className="border-t border-border pt-4 space-y-2 text-sm text-left">
+                                    <div className="pt-4 space-y-2 text-sm text-left">
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Rate</span>
                                             <span>
@@ -1248,9 +1234,9 @@ export default function SwapPage() {
 
                             <div className="flex gap-3">
                                 <Button
-                                    variant="outline"
+                                    variant="secondary"
                                     onClick={() => setStep("input")}
-                                    className="flex-1 bg-secondary text-secondary-foreground border-border h-12 hover:bg-secondary/80"
+                                    className="flex-1 h-12"
                                 >
                                     Back
                                 </Button>
@@ -1259,17 +1245,14 @@ export default function SwapPage() {
                                     disabled={isSwapping}
                                     className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground h-12"
                                 >
-                                    {isSwapping ? <ButtonLoader /> : "Confirm Swap"}
+                                    {isSwapping ? <ButtonLoader /> : "Confirm swap"}
                                 </Button>
                             </div>
-                        </motion.div>
+                        </div>
                     )}
 
                     {step === "processing" && (
-                        <motion.div
-                            key="processing"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
+                        <div key="processing"
                             className="flex flex-col items-center justify-center py-20"
                         >
                             <div className="relative flex items-center justify-center mb-6">
@@ -1279,14 +1262,11 @@ export default function SwapPage() {
                             <p className="text-muted-foreground text-center">
                                 Please wait while your swap is being processed...
                             </p>
-                        </motion.div>
+                        </div>
                     )}
 
                     {step === "success" && (
-                        <motion.div
-                            key="success"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
+                        <div key="success"
                             className="flex flex-col items-center justify-center py-8 space-y-6"
                         >
                             <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -1319,9 +1299,9 @@ export default function SwapPage() {
                                     </a>
                                 </Button>
                             )}
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
+                
             </div>
 
             <BiometricAuth

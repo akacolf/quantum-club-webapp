@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -155,8 +154,10 @@ export default function LiquidityPage() {
     if (!swapAssets || tokenA || tokenB) return;
     const tonAsset = swapAssets.find((a) => a.kind === "Ton");
     const firstJetton = swapAssets.find((a) => a.kind === "Jetton");
-    if (tonAsset) setTokenA(tonAsset);
-    if (firstJetton) setTokenB(firstJetton);
+    queueMicrotask(() => {
+      if (tonAsset) setTokenA(tonAsset);
+      if (firstJetton) setTokenB(firstJetton);
+    });
   }, [swapAssets, tokenA, tokenB]);
 
 
@@ -195,7 +196,7 @@ export default function LiquidityPage() {
   // Debounce simulation
   useEffect(() => {
     if (!tokenA || !tokenB || !amountA || parseFloat(amountA) <= 0) {
-      setSimulationResult(null);
+      queueMicrotask(() => setSimulationResult(null));
       return;
     }
 
@@ -347,7 +348,7 @@ export default function LiquidityPage() {
   // Clear amountB when single-sided mode is enabled (user only provides tokenA)
   useEffect(() => {
     if (isSingleSided) {
-      setAmountB("");
+      queueMicrotask(() => setAmountB(""));
     }
   }, [isSingleSided]);
 
@@ -667,31 +668,30 @@ export default function LiquidityPage() {
         <div className="max-w-md mx-auto">
           <div className="mb-8 text-center">
             <h1 className="text-2xl font-bold text-foreground">
-              Liquidity Pools
+              Liquidity pools
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Powered by{" "}
-              <span className="font-semibold text-foreground">STON.fi</span>
+              <a href="https://ston.fi" target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground underline-offset-4 hover:underline">STON.fi</a>
             </p>
           </div>
 
           <div className="text-center py-16 space-y-6">
-            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-              <Icon icon="lucide:alert-triangle" className="w-10 h-10 text-primary"/>
-            </div>
+            <Icon icon="lucide:alert-triangle" className="mx-auto h-10 w-10 text-primary"/>
             <div className="space-y-2">
               <h2 className="text-xl font-bold text-foreground">
-                Not Available in Testnet
+                Not available in testnet
               </h2>
               <p className="text-muted-foreground text-sm max-w-sm mx-auto">
                 Liquidity pools are only available on mainnet.
               </p>
             </div>
             <Button
-              className="bg-card border border-border text-foreground hover:bg-accent h-12 px-8 rounded-xl"
+              variant="secondary"
+              className="h-12 rounded-xl px-8"
               asChild
             >
-              <Link href="/wallet">Back to Wallet</Link>
+              <Link href="/wallet">Back to wallet</Link>
             </Button>
           </div>
         </div>
@@ -704,11 +704,11 @@ export default function LiquidityPage() {
       <div className="max-w-md mx-auto">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-foreground">
-            Liquidity Pools
+            Liquidity pools
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Powered by{" "}
-            <span className="font-semibold text-foreground">STON.fi</span>
+            <a href="https://ston.fi" target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground underline-offset-4 hover:underline">STON.fi</a>
           </p>
         </div>
 
@@ -748,13 +748,11 @@ export default function LiquidityPage() {
                 <ButtonLoader />
               </div>
             ) : positions.length === 0 ? (
-              <Card className="bg-card/80 border-border rounded-2xl">
-                <CardContent className="p-8 text-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
-                    <Icon icon="lucide:droplets" className="w-8 h-8 text-muted-foreground"/>
-                  </div>
+              <div>
+                <div className="p-8 text-center space-y-4">
+                  <Icon icon="lucide:droplets" className="mx-auto h-8 w-8 text-muted-foreground"/>
                   <div>
-                    <h3 className="font-bold text-lg">No LP Positions</h3>
+                    <h3 className="text-lg font-bold">No LP positions</h3>
                     <p className="text-muted-foreground text-sm mt-1">
                       Add liquidity to start earning fees
                     </p>
@@ -764,16 +762,16 @@ export default function LiquidityPage() {
                     className="bg-primary text-primary-foreground"
                   >
                     <Icon icon="lucide:plus" className="w-4 h-4 mr-2"/>
-                    Add Liquidity
+                    Add liquidity
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ) : (
               <div className="space-y-3">
                 {positions.map((position, idx) => (
                   <Card
                     key={idx}
-                    className="bg-card/80 border-border rounded-2xl"
+                    className="bg-secondary border-0 rounded-2xl"
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -785,7 +783,7 @@ export default function LiquidityPage() {
                                 alt={position.token0.symbol}
                                 width={32}
                                 height={32}
-                                className="w-8 h-8 rounded-full border-2 border-card"
+                                className="w-8 h-8 rounded-full"
                                 unoptimized
                               />
                             )}
@@ -795,7 +793,7 @@ export default function LiquidityPage() {
                                 alt={position.token1.symbol}
                                 width={32}
                                 height={32}
-                                className="w-8 h-8 rounded-full border-2 border-card"
+                                className="w-8 h-8 rounded-full"
                                 unoptimized
                               />
                             )}
@@ -830,19 +828,15 @@ export default function LiquidityPage() {
           </TabsContent>
 
           {/* Add Liquidity Tab */}
-          <TabsContent value="add" className="space-y-4">
-            <AnimatePresence mode="wait">
+          <TabsContent value="add" className="space-y-3">
+            
               {step === "input" && (
-                <motion.div
-                  key="input"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-4"
+                <div key="input"
+                  className="space-y-3"
                 >
                   {/* Token A */}
-                  <Card className="bg-card/80 border-border rounded-2xl">
-                    <CardContent className="p-4">
+                  <Card className="bg-secondary border-0 rounded-3xl overflow-hidden relative group">
+                    <CardContent className="p-5 relative">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-muted-foreground">
                           Token A
@@ -859,7 +853,7 @@ export default function LiquidityPage() {
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
-                              className="bg-accent/50 border border-border h-11 rounded-xl px-3 gap-2"
+                              className="h-11 rounded-xl bg-secondary px-3 gap-2"
                             >
                               {tokenA?.imageUrl ? (
                                 <Image
@@ -879,7 +873,7 @@ export default function LiquidityPage() {
                               <Icon icon="lucide:chevron-down" className="w-4 h-4"/>
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto scrollbar-hide">
+                          <DropdownMenuContent className="w-64 bg-popover border-0 max-h-80 overflow-y-auto scrollbar-hide">
                             <DropdownMenuLabel>Select token</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             {swapAssets?.map((asset) => (
@@ -935,22 +929,22 @@ export default function LiquidityPage() {
                               setAmountA(value);
                             }
                           }}
-                          className="flex-1 bg-transparent border-0 text-2xl font-bold text-right h-11 focus-visible:ring-0 p-0"
+                          className="flex-1 bg-transparent border-0 text-3xl font-bold text-right h-14 focus-visible:ring-0 p-0 placeholder:text-muted-foreground/50"
                         />
                       </div>
                     </CardContent>
                   </Card>
 
                   {/* Plus Icon */}
-                  <div className="flex justify-center -my-2 relative z-10">
-                    <div className="w-10 h-10 bg-card border-4 border-background rounded-xl flex items-center justify-center">
-                      <Icon icon="lucide:plus" className="w-5 h-5 text-muted-foreground"/>
+                  <div className="relative z-10 -my-6 flex justify-center">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full border-4 border-background bg-black text-primary">
+                      <Icon icon="lucide:plus" className="h-5 w-5"/>
                     </div>
                   </div>
 
                   {/* Token B */}
-                  <Card className="bg-card/80 border-border rounded-2xl">
-                    <CardContent className="p-4">
+                  <Card className="bg-secondary border-0 rounded-3xl overflow-hidden relative group">
+                    <CardContent className="p-5 relative">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-muted-foreground">
                           Token B
@@ -967,7 +961,7 @@ export default function LiquidityPage() {
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
-                              className="bg-accent/50 border border-border h-11 rounded-xl px-3 gap-2"
+                              className="h-11 rounded-xl bg-secondary px-3 gap-2"
                             >
                               {tokenB?.imageUrl ? (
                                 <Image
@@ -987,7 +981,7 @@ export default function LiquidityPage() {
                               <Icon icon="lucide:chevron-down" className="w-4 h-4"/>
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-64 bg-popover border-border max-h-80 overflow-y-auto scrollbar-hide">
+                          <DropdownMenuContent className="w-64 bg-popover border-0 max-h-80 overflow-y-auto scrollbar-hide">
                             <DropdownMenuLabel>Select token</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             {swapAssets?.map((asset) => (
@@ -1062,14 +1056,14 @@ export default function LiquidityPage() {
                             }
                           }}
                           disabled={isSingleSided || !!simulationResult}
-                          className="flex-1 bg-transparent border-0 text-2xl font-bold text-right h-11 focus-visible:ring-0 p-0 disabled:opacity-50"
+                          className="flex-1 bg-transparent border-0 text-3xl font-bold text-right h-14 focus-visible:ring-0 p-0 placeholder:text-muted-foreground/50 disabled:opacity-50"
                         />
                       </div>
                     </CardContent>
                   </Card>
 
                   {/* Single-sided toggle */}
-                  <Card className="bg-muted/50 border-border rounded-xl">
+                  <Card className="bg-secondary border-0 rounded-xl">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -1100,7 +1094,7 @@ export default function LiquidityPage() {
                     </div>
                   ) : (
                     simulationResult && (
-                      <Card className="bg-muted/50 border-border rounded-xl">
+                      <Card className="bg-secondary border-0 rounded-xl">
                         <CardContent className="p-4 space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">
@@ -1149,41 +1143,35 @@ export default function LiquidityPage() {
                     ) : !simulationResult ? (
                       "Calculating..."
                     ) : (
-                      "Add Liquidity"
+                      "Add liquidity"
                     )}
                   </Button>
-                </motion.div>
+                </div>
               )}
 
               {step === "processing" && (
-                <motion.div
-                  key="processing"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <div key="processing"
                   className="text-center py-16 space-y-4"
                 >
                   <div className="relative mx-auto w-20 h-20">
                     <Loader />
                   </div>
-                  <h2 className="text-xl font-bold">Adding Liquidity...</h2>
+                  <h2 className="text-xl font-bold">Adding liquidity...</h2>
                   <p className="text-muted-foreground text-sm">
                     Please wait while your transaction is processed
                   </p>
-                </motion.div>
+                </div>
               )}
 
               {step === "success" && (
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <div key="success"
                   className="text-center py-16 space-y-4"
                 >
                   <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
                     <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
                   </div>
                   <h2 className="text-xl font-bold text-green-500">
-                    Liquidity Added!
+                    Liquidity added!
                   </h2>
                   <p className="text-muted-foreground text-sm">
                     Your tokens have been added to the pool
@@ -1194,43 +1182,37 @@ export default function LiquidityPage() {
                       {tokenB.symbol}
                     </p>
                   )}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            
           </TabsContent>
 
           {/* Remove Liquidity Tab */}
           <TabsContent value="remove" className="space-y-4">
-            <AnimatePresence mode="wait">
+            
               {removeStep === "processing" && (
-                <motion.div
-                  key="remove-processing"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <div key="remove-processing"
                   className="text-center py-16 space-y-4"
                 >
                   <div className="relative mx-auto w-20 h-20">
                     <Loader />
                   </div>
-                  <h2 className="text-xl font-bold">Removing Liquidity...</h2>
+                  <h2 className="text-xl font-bold">Removing liquidity...</h2>
                   <p className="text-muted-foreground text-sm">
                     Please wait while your transaction is processed
                   </p>
-                </motion.div>
+                </div>
               )}
 
               {removeStep === "success" && (
-                <motion.div
-                  key="remove-success"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <div key="remove-success"
                   className="text-center py-16 space-y-4"
                 >
                   <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
                     <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
                   </div>
                   <h2 className="text-xl font-bold text-green-500">
-                    Liquidity Removed!
+                    Liquidity removed!
                   </h2>
                   <p className="text-muted-foreground text-sm">
                     Your LP tokens have been burned and tokens returned
@@ -1240,48 +1222,40 @@ export default function LiquidityPage() {
                       Removed {removePercent}% from {selectedPosition.token0?.symbol}/{selectedPosition.token1?.symbol}
                     </p>
                   )}
-                </motion.div>
+                </div>
               )}
 
               {removeStep === "input" && positions.length === 0 && (
-                <motion.div
-                  key="remove-empty"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                <div key="remove-empty"
                 >
-                  <Card className="bg-card/80 border-border rounded-2xl">
+                  <div>
                     <CardContent className="p-8 text-center space-y-4">
-                      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
-                        <Icon icon="lucide:minus" className="w-8 h-8 text-muted-foreground"/>
-                      </div>
+                      <Icon icon="lucide:minus" className="mx-auto h-8 w-8 text-muted-foreground"/>
                       <div>
                         <h3 className="font-bold text-lg">
-                          No Positions to Remove
+                          No positions to remove
                         </h3>
                         <p className="text-muted-foreground text-sm mt-1">
                           You need to add liquidity first
                         </p>
                       </div>
-                      <Button onClick={() => setTab("add")} variant="outline">
-                        Add Liquidity
+                      <Button onClick={() => setTab("add")} variant="secondary">
+                        Add liquidity
                       </Button>
                     </CardContent>
-                  </Card>
-                </motion.div>
+                  </div>
+                </div>
               )}
 
               {removeStep === "input" && positions.length > 0 && (
-                <motion.div
-                  key="remove-input"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                <div key="remove-input"
                   className="space-y-4"
                 >
                   {/* Position selector */}
-                  <Card className="bg-card/80 border-border rounded-2xl">
+                  <Card className="bg-secondary border-0 rounded-2xl">
                     <CardContent className="p-4">
                       <Label className="text-sm text-muted-foreground mb-2 block">
-                        Select Position
+                        Select position
                       </Label>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -1298,7 +1272,7 @@ export default function LiquidityPage() {
                                       alt={selectedPosition.token0.symbol}
                                       width={20}
                                       height={20}
-                                      className="w-5 h-5 rounded-full border border-card"
+                                      className="w-5 h-5 rounded-full"
                                       unoptimized
                                     />
                                   )}
@@ -1308,7 +1282,7 @@ export default function LiquidityPage() {
                                       alt={selectedPosition.token1.symbol}
                                       width={20}
                                       height={20}
-                                      className="w-5 h-5 rounded-full border border-card"
+                                      className="w-5 h-5 rounded-full"
                                       unoptimized
                                     />
                                   )}
@@ -1364,7 +1338,7 @@ export default function LiquidityPage() {
                   {selectedPosition && (
                     <>
                       {/* Position details */}
-                      <Card className="bg-muted/50 border-border rounded-xl">
+                      <Card className="bg-secondary border-0 rounded-xl">
                         <CardContent className="p-4 space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">
@@ -1394,10 +1368,10 @@ export default function LiquidityPage() {
                       </Card>
 
                       {/* Amount slider */}
-                      <Card className="bg-card/80 border-border rounded-2xl">
+                      <Card className="bg-secondary border-0 rounded-2xl">
                         <CardContent className="p-4 space-y-4">
                           <Label className="text-sm text-muted-foreground">
-                            Amount to Remove
+                            Amount to remove
                           </Label>
                           <div className="grid grid-cols-4 gap-2">
                             {["25", "50", "75", "100"].map((pct) => (
@@ -1416,7 +1390,7 @@ export default function LiquidityPage() {
                           </div>
 
                           {/* Estimated return */}
-                          <div className="pt-2 border-t border-border space-y-1">
+                          <div className="space-y-1 pt-2">
                             <p className="text-xs text-muted-foreground">You will receive approximately:</p>
                             <div className="flex justify-between text-sm">
                               <span>{selectedPosition.token0?.symbol}</span>
@@ -1449,9 +1423,9 @@ export default function LiquidityPage() {
                       </Button>
                     </>
                   )}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            
           </TabsContent>
         </Tabs>
       </div>
@@ -1461,7 +1435,7 @@ export default function LiquidityPage() {
         isOpen={isAuthOpen}
         onSuccess={handleAuthSuccess}
         onCancel={handleAuthCancel}
-        title="Confirm Liquidity"
+        title="Confirm liquidity"
         description="Authenticate to add liquidity"
       />
     </div>

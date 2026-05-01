@@ -6,10 +6,11 @@ export default function Loading() {
     <div className="min-h-screen pb-24">
       <div className="p-4 space-y-6">
         {/* Header */}
-        <Skeleton className="h-9 w-24" />
+        <Skeleton className="h-16 w-[90%]" />
+        <Skeleton className="h-4 w-[86%]" />
 
         {/* TON Referral Earnings Card */}
-        <Card className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border-[#333]">
+        <Card className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d]">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -26,11 +27,11 @@ export default function Loading() {
         </Card>
 
         {/* Referral Stats Card */}
-        <Card className="bg-[#1a1a1a]/80 border-[#333]">
+        <Card className="bg-[#1a1a1a]/80">
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-4 w-28" />
               </div>
               <div className="flex flex-col items-end">
@@ -38,14 +39,14 @@ export default function Loading() {
                 <Skeleton className="h-3 w-20 mt-1" />
               </div>
             </div>
-            <div className="border-t border-[#333] pt-4 space-y-3">
+            <div className="pt-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-4 w-16" />
                   <Skeleton className="h-4 w-28" />
                 </div>
               </div>
-              <div className="p-3 bg-white/5 border border-white/10 rounded-lg">
+              <div className="p-3 bg-white/5 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Skeleton className="w-5 h-5 rounded" />
@@ -71,7 +72,7 @@ export default function Loading() {
             <Skeleton className="h-5 w-24" />
           </div>
           {[...Array(3)].map((_, i) => (
-            <Card key={i} className="bg-white/5 border-white/5">
+            <Card key={i} className="bg-white/5">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Skeleton className="w-10 h-10 rounded-full" />

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useQueryState, parseAsString } from "nuqs";
-import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import Image from "next/image";
@@ -92,7 +91,7 @@ const CATEGORIES = [
     { id: "all", name: "All", icon: "lucide:layout-grid" },
     { id: "exchange", name: "DEX", icon: "lucide:trending-up" },
     { id: "defi", name: "DeFi", icon: "lucide:droplets" },
-    { id: "nft", name: "NFT", icon: "lucide:star" },
+    { id: "nft", name: "NFT", icon: "lucide:image" },
     { id: "gaming", name: "Gaming", icon: "lucide:gamepad-2" },
     { id: "tools", name: "Tools", icon: "lucide:shield" },
 ];
@@ -103,12 +102,12 @@ function AppIcon({ app }: { app: DApp }) {
 
     const getCategoryColor = (category: string) => {
         switch (category) {
-            case "exchange": return "bg-blue-500/20 text-blue-400";
-            case "defi": return "bg-purple-500/20 text-purple-400";
-            case "nft": return "bg-pink-500/20 text-pink-400";
-            case "gaming": return "bg-green-500/20 text-green-400";
-            case "tools": return "bg-orange-500/20 text-orange-400";
-            default: return "bg-gray-500/20 text-gray-400";
+            case "exchange": return "text-blue-400";
+            case "defi": return "text-purple-400";
+            case "nft": return "text-pink-400";
+            case "gaming": return "bg-transparent text-green-400";
+            case "tools": return "text-orange-400";
+            default: return "text-neutral-400";
         }
     };
 
@@ -116,7 +115,7 @@ function AppIcon({ app }: { app: DApp }) {
         switch (category) {
             case "exchange": return "lucide:trending-up";
             case "defi": return "lucide:droplets";
-            case "nft": return "lucide:star";
+            case "nft": return "lucide:image";
             case "gaming": return "lucide:gamepad-2";
             case "tools": return "lucide:shield";
             default: return "lucide:globe";
@@ -126,9 +125,7 @@ function AppIcon({ app }: { app: DApp }) {
     if (hasError || !app.icon) {
         const iconName = getCategoryIcon(app.category);
         return (
-            <div className={`w-full h-full flex items-center justify-center ${getCategoryColor(app.category)}`}>
-                <Icon icon={iconName} className="w-5 h-5" />
-            </div>
+            <Icon icon={iconName} className={`h-6 w-6 ${getCategoryColor(app.category)}`} />
         );
     }
 
@@ -138,22 +135,10 @@ function AppIcon({ app }: { app: DApp }) {
             alt={app.name}
             width={44}
             height={44}
-            className="w-full h-full object-cover rounded-lg"
+            className="h-11 w-11 rounded-lg object-cover"
             onError={() => setHasError(true)}
         />
     );
-}
-
-// Get category badge color
-function getCategoryBadgeColor(category: string) {
-    switch (category) {
-        case "exchange": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-        case "defi": return "bg-purple-500/10 text-purple-400 border-purple-500/20";
-        case "nft": return "bg-pink-500/10 text-pink-400 border-pink-500/20";
-        case "gaming": return "bg-green-500/10 text-green-400 border-green-500/20";
-        case "tools": return "bg-orange-500/10 text-orange-400 border-orange-500/20";
-        default: return "bg-gray-500/10 text-gray-400 border-gray-500/20";
-    }
 }
 
 export default function ExplorePage() {
@@ -187,7 +172,7 @@ export default function ExplorePage() {
                 {/* Header */}
                 <div className="space-y-1">
                     <h1 className="text-2xl font-bold text-white">Explore</h1>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-neutral-500">
                         Discover apps and services on TON
                     </p>
                 </div>
@@ -195,24 +180,22 @@ export default function ExplorePage() {
                 {/* Featured Apps */}
                 {selectedCategory === "all" && featuredApps.length > 0 && (
                     <div className="space-y-3">
-                        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                        <h2 className="text-sm font-semibold text-neutral-400">
                             Featured
                         </h2>
                         <div className="grid grid-cols-3 gap-3">
                             {featuredApps.map((app) => (
-                                <motion.button
-                                    key={app.id}
-                                    whileTap={{ scale: 0.95 }}
+                                <button key={app.id}
                                     onClick={() => openDApp(app.url)}
-                                    className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 active:bg-white/10 transition-colors"
+                                    className="flex flex-col items-center gap-2 rounded-xl bg-secondary p-3 transition-colors active:bg-secondary/80"
                                 >
-                                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10">
+                                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden">
                                         <AppIcon app={app} />
                                     </div>
                                     <span className="text-xs font-medium text-white text-center truncate w-full">
                                         {app.name}
                                     </span>
-                                </motion.button>
+                                </button>
                             ))}
                         </div>
                     </div>
@@ -223,19 +206,17 @@ export default function ExplorePage() {
                     {CATEGORIES.map((category) => {
                         const isActive = selectedCategory === category.id;
                         return (
-                            <motion.button
-                                key={category.id}
-                                whileTap={{ scale: 0.95 }}
+                            <button key={category.id}
                                 onClick={() => setSelectedCategory(category.id)}
                                 className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-colors ${
                                     isActive
                                         ? "bg-white text-black"
-                                        : "bg-white/5 text-gray-400 active:bg-white/10 border border-white/10"
+                                        : "bg-secondary text-neutral-400 active:bg-secondary/80"
                                 }`}
                             >
                                 <Icon icon={category.icon} className="w-4 h-4" />
                                 {category.name}
-                            </motion.button>
+                            </button>
                         );
                     })}
                 </div>
@@ -243,39 +224,29 @@ export default function ExplorePage() {
                 {/* All Apps List */}
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                            {selectedCategory === "all" ? "All Apps" : CATEGORIES.find(c => c.id === selectedCategory)?.name}
+                        <h2 className="text-sm font-semibold text-neutral-400">
+                            {selectedCategory === "all" ? "All apps" : CATEGORIES.find(c => c.id === selectedCategory)?.name}
                         </h2>
-                        <span className="text-xs text-gray-500">{filteredDApps.length} apps</span>
+                        <span className="text-xs text-neutral-500">{filteredDApps.length} apps</span>
                     </div>
 
                     <div className="space-y-2">
                         {filteredDApps.map((app) => (
-                            <motion.button
-                                key={app.id}
-                                whileTap={{ scale: 0.98 }}
+                            <button key={app.id}
                                 onClick={() => openDApp(app.url)}
-                                className="w-full p-4 rounded-xl bg-white/5 border border-white/10 active:bg-white/10 transition-colors flex items-center gap-3"
+                                className="flex w-full items-center gap-3 rounded-xl bg-secondary p-4 transition-colors active:bg-secondary/80"
                             >
-                                <div className="w-11 h-11 rounded-xl overflow-hidden bg-white/10 flex-shrink-0">
+                                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden">
                                     <AppIcon app={app} />
                                 </div>
                                 <div className="flex-1 min-w-0 text-left">
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-medium text-white">{app.name}</h3>
-                                        {app.featured && (
-                                            <Icon icon="lucide:star" className="w-3 h-3 text-yellow-500 fill-yellow-500"/>
-                                        )}
                                     </div>
-                                    <p className="text-sm text-gray-500 truncate">{app.description}</p>
+                                    <p className="truncate text-sm text-neutral-500">{app.description}</p>
                                 </div>
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                    <span className={`text-[10px] px-2 py-0.5 rounded-full border ${getCategoryBadgeColor(app.category)}`}>
-                                        {app.category}
-                                    </span>
-                                    <Icon icon="lucide:external-link" className="w-4 h-4 text-gray-500"/>
-                                </div>
-                            </motion.button>
+                                <Icon icon="lucide:external-link" className="w-4 h-4 flex-shrink-0 text-neutral-500"/>
+                            </button>
                         ))}
                     </div>
                 </div>

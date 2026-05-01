@@ -1,84 +1,89 @@
-import Link from "next/link";
+"use client";
+
+import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QntmBalanceProps } from "@/lib/interfaces";
+import { Icon } from "@iconify/react";
 
 export default function QntmBalance({
   MainQuantAmount,
   rank,
   getRankIcon,
   isLoading,
+  walletUsdBalance = "0.00",
+  isWalletLoading = false,
+  hasWallet = false,
+  hideBalance = false,
+  toggleHideBalance,
 }: QntmBalanceProps) {
-  return (
-    <div className="flex flex-col items-center py-6 relative">
-      {/* Background Glow - Changed to Orange */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-orange-500/20 rounded-full blur-[60px] -z-10" />
+  const [balanceMode, setBalanceMode] = useState<"qntm" | "wallet">("qntm");
+  const showingWallet = balanceMode === "wallet";
+  const loadingValue = showingWallet ? isWalletLoading : isLoading;
 
-      <div className="relative mb-4">
-        {/* Icon Color - Reverted to White, kept orange shadow */}
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="5em"
-          height="5em"
-          viewBox="0 0 32 32"
-          className="text-white drop-shadow-[0_0_15px_rgba(251,146,60,0.5)]"
+  const displayValue = showingWallet
+    ? `$${Number(walletUsdBalance || "0").toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
+    : MainQuantAmount;
+
+  return (
+    <div className="flex flex-col py-2 relative">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-sm font-medium text-neutral-400">
+          Total balance
+        </span>
+        <button
+          type="button"
+          onClick={toggleHideBalance}
+          className="text-neutral-400 transition-colors hover:text-white"
+          aria-label={hideBalance ? "Show balance" : "Hide balance"}
         >
-          <path
-            fill="currentColor"
-            d="M27.328 12.036c-2.912-1.239-6.823-2.041-11-2.26a32 32 0 0 0-1.932-.057c3.088-3.771 6.401-6.303 8.583-6.385q.644-.022 1.084.26c.943.615 1.203 2.36.724 4.787c-.052.333.161.661.479.724a.61.61 0 0 0 .724-.479c.599-3.041.156-5.131-1.255-6.052c-.505-.333-1.12-.491-1.803-.464c-2.729.104-6.583 3.068-10.12 7.631a35 35 0 0 0-4.307.38c-.86-3.865-.521-6.636.792-7.303c.181-.099.38-.145.609-.167c.932-.072 2.213.527 3.615 1.693c.26.213.645.187.859-.079a.606.606 0 0 0-.077-.859c-1.683-1.391-3.229-2.073-4.496-1.98a3 3 0 0 0-1.072.292c-1.589.812-2.224 3.104-1.828 6.453c.093.692.213 1.416.391 2.156c-4.376.875-7.161 2.631-7.281 4.833c-.084 1.563 1.151 3.047 3.572 4.297a.61.61 0 0 0 .824-.265a.607.607 0 0 0-.267-.824c-1.932-.995-2.973-2.115-2.911-3.14c.068-1.443 2.364-2.923 6.349-3.708a36 36 0 0 0 1.4 4.119c-1.359 2.516-2.344 4.996-2.848 7.199c-.751 3.287-.349 5.631 1.145 6.599c.479.312 1.036.469 1.661.469c1.245 0 2.755-.615 4.464-1.833a.611.611 0 1 0-.71-.995c-2.057 1.473-3.791 1.963-4.749 1.337c-1.011-.661-1.235-2.588-.609-5.301c.421-1.849 1.208-3.907 2.276-6.027q.4.875.839 1.751c1.901 3.729 4.229 6.968 6.547 9.131c1.849 1.719 3.568 2.615 4.979 2.615c.469 0 .907-.1 1.303-.297c1.525-.781 2.188-2.948 1.864-6.099c-.296-2.953-1.411-6.548-3.14-10.136a.614.614 0 0 0-.812-.287a.614.614 0 0 0-.292.819c3.583 7.468 3.839 13.583 1.828 14.609c-2.125 1.088-7.235-3.141-11.188-10.907a36 36 0 0 1-1.203-2.573c.453-.807.932-1.625 1.464-2.437a44 44 0 0 1 1.629-2.328h.527c.719 0 1.5.016 2.312.063c8.703.459 14.631 3.416 14.511 5.781c-.052 1.02-1.235 2.052-3.235 2.828a.612.612 0 0 0 .443 1.14c2.541-.984 3.937-2.339 4.016-3.905c.093-1.772-1.557-3.48-4.667-4.803v-.011zm-16.557.563a39 39 0 0 0-1.016 1.661a31 31 0 0 1-.963-2.953a33 33 0 0 1 3.077-.323a33 33 0 0 0-1.093 1.615v-.015zm5.234 1.568c-2.443 0-2.443 3.667 0 3.667c2.448 0 2.448-3.667 0-3.667"
-          />
-        </svg>
+          <Icon icon={hideBalance ? "lucide:eye-off" : "lucide:eye"} width="16" height="16" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setBalanceMode((mode) => (mode === "qntm" ? "wallet" : "qntm"))}
+          className="text-neutral-400 hover:text-white transition-colors"
+          aria-label="Switch balance"
+        >
+          <Icon icon="lucide:repeat-2" width="16" height="16" />
+        </button>
       </div>
 
-      <div className="flex items-center gap-2 mt-2">
-        {isLoading ? (
+      <div className="flex items-end gap-2">
+        {loadingValue ? (
           <Skeleton className="h-12 w-40 rounded-lg bg-[#1a1a1a]" />
         ) : (
-          <div className="text-5xl font-bold bg-linear-to-b from-white to-gray-400 bg-clip-text text-transparent tracking-tight">
-            {MainQuantAmount}
+          <div
+            className="text-5xl font-bold text-white tracking-tight transition-colors"
+          >
+            {hideBalance ? "********" : displayValue}
           </div>
         )}
-        <div className="text-xl font-medium text-gray-400">QNTM</div>
+        {!showingWallet ? (
+          <div className="pb-1.5 text-xl font-medium text-white flex items-center gap-1">
+            QNTM
+          </div>
+        ) : null}
       </div>
 
-      <div className="flex items-center justify-center gap-3 px-5 py-2 mt-4 rounded-full bg-[#1a1a1a]/80 border border-[#333] backdrop-blur-md shadow-sm">
-        <span className="text-[10px] font-bold text-gray-500 tracking-[0.2em] uppercase leading-none translate-y-px">RANK</span>
-        <div className="w-px h-3 bg-[#333]" />
-        <div className="flex items-center gap-2">
+      {showingWallet && !hasWallet ? (
+        <div className="mt-2 text-xs text-neutral-500">No imported wallet</div>
+      ) : null}
+
+      <div className="mt-3 flex items-center gap-1.5 text-sm">
+        <span className="text-neutral-400">Rank</span>
+        <div className="font-bold text-white flex items-center gap-1">
           {isLoading ? (
-            <Skeleton className="h-4 w-16 rounded bg-[#222]" />
+            <Skeleton className="h-4 w-12 bg-[#222]" />
           ) : (
             <>
-              <div className="flex items-center justify-center">
-                {getRankIcon(rank)}
-              </div>
-              <span className="text-sm font-bold text-white tracking-wide leading-none translate-y-px">{rank}</span>
+              {getRankIcon(rank)}
+              <span>{rank}</span>
             </>
           )}
         </div>
-      </div>
-
-      <div className="mt-4">
-        <Link
-          id="rewardsHistoryLink"
-          href={"/home/rewardshistory"}
-          prefetch={true}
-          className="group flex items-center gap-1 text-sm text-gray-500 hover:text-white transition-colors duration-200"
-        >
-          <span>Rewards history</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="1.2em"
-            height="1.2em"
-            className="transition-transform duration-200 group-hover:translate-x-0.5"
-            viewBox="-6 0 24 24"
-          >
-            <path
-              fill="currentColor"
-              fillRule="evenodd"
-              d="M10.157 12.711L4.5 18.368l-1.414-1.414l4.95-4.95l-4.95-4.95L4.5 5.64l5.657 5.657a1 1 0 0 1 0 1.414"
-            />
-          </svg>
-        </Link>
       </div>
     </div>
   );

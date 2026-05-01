@@ -8,14 +8,14 @@ export default function TasksSkeleton() {
         <Card key={i} className="bg-[#111] border-[#333]">
           <CardContent className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Skeleton className="w-10 h-10 rounded-full bg-[#222]" />
+              <Skeleton className="h-6 w-6 rounded-full bg-[#222]" />
               <div className="flex flex-col gap-2">
                 <Skeleton className="h-4 w-32 bg-[#222] rounded-md" />
                 <Skeleton className="h-3 w-20 bg-[#222] rounded-md" />
               </div>
             </div>
             <div className="text-right">
-              <Skeleton className="h-7 w-20 bg-[#222] rounded-lg" />
+              <Skeleton className="h-5 w-20 bg-[#222] rounded-md" />
             </div>
           </CardContent>
         </Card>

@@ -10,7 +10,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     Sheet,
@@ -39,8 +38,7 @@ const PriceChart = dynamic(
 import GraduatedTrading from "@/app/ecosystem/trade/(components)/GraduatedTrading";
 import GraduationProgress from "@/app/ecosystem/trade/(components)/GraduationProgress";
 import SupplyInfo from "@/app/ecosystem/trade/(components)/SupplyInfo";
-import SlippageSettings from "@/app/ecosystem/trade/(components)/SlippageSettings";
-import { DEFAULT_GRADUATION_THRESHOLD_TON, DEFAULT_SLIPPAGE } from "@/types/trading";
+import { DEFAULT_SLIPPAGE, SLIPPAGE_OPTIONS } from "@/types/trading";
 import ImageViewer from "@/components/ui/image-viewer";
 import { FEE_CONFIG } from "@/lib/platform-config";
 import { useOnChainStats, EMPTY_ON_CHAIN_STATS } from "@/app/(hooks)/queries/use-trades";
@@ -53,6 +51,20 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { TokenAnalysisCard } from "@/components/ai";
 import { dbfs } from "@/app/(firebase)/client";
 import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
+
+function normalizeAmountInput(value: string): string {
+    const sanitized = value.replace(/,/g, "").replace(/[^\d.]/g, "");
+    const [integer = "", ...decimalParts] = sanitized.split(".");
+    const decimal = decimalParts.join("");
+    return decimalParts.length > 0 ? `${integer}.${decimal}` : integer;
+}
+
+function formatAmountInput(value: string): string {
+    if (!value) return "";
+    const [integer = "", decimal] = value.split(".");
+    const formattedInteger = integer ? Number(integer).toLocaleString("en-US") : "";
+    return decimal !== undefined ? `${formattedInteger}.${decimal}` : formattedInteger;
+}
 
 export default function TokenDetailClient() {
     const params = useParams();
@@ -89,6 +101,7 @@ export default function TokenDetailClient() {
     const [isImageViewOpen, setIsImageViewOpen] = useState(false);
     const [tradingOpen, setTradingOpen] = useState(false);
     const [tokenLoadError, setTokenLoadError] = useState<string | null>(null);
+    const [priceMode, setPriceMode] = useState<"ton" | "usd">("ton");
 
     // Token community chat (QC Chat group linked to this token)
     const { data: communityChat, isLoading: isCommunityLoading } = useTokenCommunityChat(
@@ -124,7 +137,11 @@ export default function TokenDetailClient() {
     // Load token and refresh balance
     useEffect(() => {
         if (!tokenId) return;
-        setTokenLoadError(null);
+        const resetTimer = window.setTimeout(() => {
+            setTokenLoadError(null);
+            setPreview(null);
+            setAmount("");
+        }, 0);
 
         let cancelled = false;
 
@@ -152,11 +169,7 @@ export default function TokenDetailClient() {
         if (walletAddress) {
             fetchWalletAssets();
         }
-        // Reset preview when switching tokens
-        setPreview(null);
-        setAmount("");
-
-        return () => { cancelled = true; clearTimeout(timeout); };
+        return () => { cancelled = true; clearTimeout(timeout); window.clearTimeout(resetTimer); };
     }, [tokenId, selectToken, walletAddress, fetchWalletAssets]);
 
     // Get user position
@@ -166,8 +179,8 @@ export default function TokenDetailClient() {
     // Preview calculation
     useEffect(() => {
         if (!amount || parseFloat(amount) <= 0 || !selectedToken) {
-            setPreview(null);
-            return;
+            const timer = window.setTimeout(() => setPreview(null), 0);
+            return () => window.clearTimeout(timer);
         }
 
         const fetchPreview = async () => {
@@ -248,7 +261,7 @@ export default function TokenDetailClient() {
     // Quick amount buttons - minimum buy is 0.15 TON, so start at 1 TON
     const quickAmounts = activeTab === "buy"
         ? ["1", "5", "7", "10"]
-        : ["25%", "50%", "75%", "MAX"];
+        : ["25%", "50%", "75%", "100%"];
 
     const handleQuickAmount = (value: string) => {
         if (activeTab === "buy") {
@@ -267,6 +280,52 @@ export default function TokenDetailClient() {
             setAmount(tokenAmountHuman.toString());
         }
     };
+
+    const handleAmountChange = (value: string) => {
+        setAmount(normalizeAmountInput(value));
+    };
+
+    const handleSlippageChange = (value: string) => {
+        const normalized = normalizeAmountInput(value);
+        const next = parseFloat(normalized);
+        if (!Number.isNaN(next) && next > 0 && next <= 50) {
+            setSlippage(next);
+        }
+    };
+
+    const renderSlippageControls = () => (
+        <div className="space-y-3">
+            <div className="flex justify-between items-end">
+                <label className="text-xs font-semibold text-muted-foreground">Slippage tolerance</label>
+            </div>
+            <div className="relative">
+                <Input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="1"
+                    value={formatAmountInput(slippage.toString())}
+                    onChange={(e) => handleSlippageChange(e.target.value)}
+                    className="bg-white/5 border-0 text-white text-lg font-bold h-12 pl-4 pr-10 rounded-xl focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-white/10"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">%</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+                {SLIPPAGE_OPTIONS.map((option) => (
+                    <Button
+                        key={option}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSlippage(option)}
+                        className={`bg-white/5 border-0 text-xs hover:text-white hover:bg-white/10 h-9 rounded-lg ${
+                            slippage === option ? "text-white bg-white/10" : "text-muted-foreground"
+                        }`}
+                    >
+                        {option}%
+                    </Button>
+                ))}
+            </div>
+        </div>
+    );
 
     const openTrade = (tab: "buy" | "sell") => {
         setActiveTab(tab);
@@ -308,15 +367,17 @@ export default function TokenDetailClient() {
 
     const tonReserveTon = Number(selectedToken.tonReserve || selectedToken.marketCap || "0") / 1e9;
     const marketCapUsd = tonReserveTon * (tonPrice || 5);
+    const tokenPriceTon = Number(selectedToken.currentPrice || "0") / 1e9;
+    const tokenPriceUsd = tokenPriceTon * (tonPrice || 0);
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-40">
-            <div className="px-4 pt-4 space-y-4">
+            <div className="px-4 pt-4 space-y-6">
                 {/* Token Header — matches Spot Trading style */}
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => selectedToken.image && setIsImageViewOpen(true)}
-                        className="relative w-14 h-14 rounded-full overflow-hidden bg-[#222] ring-1 ring-white/10 flex-shrink-0 hover:ring-primary/50 transition-all group"
+                        className="relative w-14 h-14 rounded-full overflow-hidden bg-[#222] flex-shrink-0 transition-all group"
                         style={{ viewTransitionName: `token-img-${tokenId}` }}
                     >
                         {selectedToken.image ? (
@@ -331,17 +392,8 @@ export default function TokenDetailClient() {
                         <div className="flex items-center gap-2">
                             <h1 className="text-lg font-bold text-white truncate">{selectedToken.symbol}</h1>
                             {selectedToken.isGraduated && (
-                                <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                                <Icon icon="solar:verified-check-bold" className="w-4 h-4 text-neutral-300 flex-shrink-0" />
                             )}
-                            <Badge
-                                className={`text-[9px] h-4 border-0 font-semibold ${
-                                    !selectedToken.isGraduated
-                                    ? "bg-green-500/10 text-green-400"
-                                    : "bg-blue-500/10 text-blue-400"
-                                }`}
-                            >
-                                {!selectedToken.isGraduated ? "Active Curve" : "Graduated"}
-                            </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{selectedToken.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
@@ -352,7 +404,7 @@ export default function TokenDetailClient() {
                                             navigator.clipboard.writeText(selectedToken.jettonMasterAddress || "");
                                             toast.success("Address copied!");
                                         }}
-                                        className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] text-muted-foreground hover:text-white transition-colors"
+                                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-white transition-colors"
                                     >
                                         {shortAddr}
                                         <Icon icon="solar:copy-linear" className="w-3 h-3" />
@@ -367,23 +419,26 @@ export default function TokenDetailClient() {
                                     </a>
                                 </>
                             )}
-                            <Badge className="bg-primary/10 text-primary border-0 text-[9px] h-4">RocketStart</Badge>
                         </div>
                     </div>
                 </div>
 
                 {/* Graduation Progress */}
                 {!selectedToken.isGraduated && (
-                    <GraduationProgress token={selectedToken} tonPriceUsd={tonPrice || 5} />
+                    <GraduationProgress
+                        token={selectedToken}
+                        tonPriceUsd={tonPrice || 5}
+                        verifiedVolumeTon={onChainStats.volume24h}
+                    />
                 )}
 
                 {/* Market Stats — matches Spot Trading card layout */}
-                <Card className="bg-white/5 border-white/5">
+                <Card className="bg-white/5 border-0">
                     <CardContent className="p-4">
                         <div className="flex justify-between items-start">
                             <div>
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-                                    {selectedToken.isGraduated ? "Market cap" : "TON Reserve"}
+                                <p className="text-[10px] text-muted-foreground mb-1">
+                                    {selectedToken.isGraduated ? "Market cap" : "TON reserve"}
                                 </p>
                                 <p className="text-2xl font-bold text-white">
                                     ${formatCompactNumber(marketCapUsd, 2)}
@@ -399,28 +454,6 @@ export default function TokenDetailClient() {
                             </div>
                         </div>
 
-                        {/* Graduation progress strip */}
-                        {!selectedToken.isGraduated && (
-                            <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <Icon icon="solar:rocket-2-bold" className="w-4 h-4 text-blue-500" />
-                                    <div>
-                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">To Graduation</p>
-                                        <p className="text-xs font-semibold text-blue-100">ST<span className="text-blue-500">O</span>N.fi Listing</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-sm font-bold text-white">
-                                        {(() => {
-                                            const rawThreshold = parseFloat(selectedToken.graduationThreshold || DEFAULT_GRADUATION_THRESHOLD_TON);
-                                            let thresholdTon = rawThreshold > 1e9 ? rawThreshold / 1e9 : rawThreshold;
-                                            if (thresholdTon === 100) thresholdTon = 2000;
-                                            return formatCompactNumber(Math.max(0, thresholdTon - tonReserveTon), 0);
-                                        })()} <span className="text-xs font-normal text-muted-foreground">TON remaining</span>
-                                    </p>
-                                </div>
-                            </div>
-                        )}
                     </CardContent>
                 </Card>
 
@@ -430,21 +463,22 @@ export default function TokenDetailClient() {
                         <p className="text-[10px] text-muted-foreground mb-0.5">Price</p>
                         <div className="flex items-center gap-2">
                             <p className="text-base font-semibold text-white">
-                                {formatPrice(BigInt(selectedToken.currentPrice || "0"))} TON
+                                {priceMode === "ton"
+                                    ? `${formatPrice(BigInt(selectedToken.currentPrice || "0"))} TON`
+                                    : `$${tokenPriceUsd.toFixed(6)}`}
                             </p>
-                            <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[8px]">
-                                ON-CHAIN
-                            </Badge>
+                            {tonPrice > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setPriceMode((mode) => mode === "ton" ? "usd" : "ton")}
+                                    className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-white/10"
+                                    aria-label="Switch price currency"
+                                >
+                                    {priceMode === "ton" ? "USD" : "TON"}
+                                </button>
+                            )}
                         </div>
                     </div>
-                    {tonPrice > 0 && (
-                        <div className="text-right">
-                            <p className="text-[10px] text-muted-foreground mb-0.5">Price (USD)</p>
-                            <p className="text-base font-semibold text-white">
-                                ${(Number(selectedToken.currentPrice || "0") / 1e9 * tonPrice).toFixed(6)}
-                            </p>
-                        </div>
-                    )}
                 </div>
 
                 {/* Price Chart */}
@@ -491,7 +525,7 @@ export default function TokenDetailClient() {
                     const isPnlPositive = pnlTon >= 0;
 
                     return (
-                        <Card className="bg-white/5 border-white/5">
+                        <Card className="bg-white/5 border-0">
                             <CardContent className="p-4">
                                 <div className="flex items-center gap-2 mb-3">
                                     <Icon icon="solar:wallet-money-bold" className="w-4 h-4 text-primary" />
@@ -523,7 +557,7 @@ export default function TokenDetailClient() {
                                                 {isPnlPositive ? "+" : ""}{formatCompactNumber(pnlTon, 4)} TON
                                             </p>
                                         </div>
-                                        <div className={`px-2 py-1 rounded-lg text-xs font-bold ${isPnlPositive ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+                                        <div className={`text-xs font-bold ${isPnlPositive ? "text-green-400" : "text-red-400"}`}>
                                             {isPnlPositive ? "+" : ""}{pnlPercent.toFixed(2)}%
                                         </div>
                                     </div>
@@ -535,7 +569,7 @@ export default function TokenDetailClient() {
 
                 {/* Token Description */}
                 {selectedToken.description && (
-                    <Card className="bg-white/5 border-white/5">
+                    <Card className="bg-white/5 border-0">
                         <CardContent className="p-3">
                             <p className="text-xs text-muted-foreground mb-1">About</p>
                             <p className="text-sm text-white/80 line-clamp-3">{selectedToken.description}</p>
@@ -549,7 +583,7 @@ export default function TokenDetailClient() {
                 )}
 
                 {/* Community Group (QC Chat) */}
-                <Card className="bg-white/5 border-white/5">
+                <Card className="bg-white/5 border-0">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
@@ -571,7 +605,7 @@ export default function TokenDetailClient() {
                                 {telegramId && communityChat.participants.includes(telegramId) ? (
                                     <Button
                                         onClick={() => router.push(`/ecosystem/chat/${communityChat.chatId}`)}
-                                        className="w-full bg-white/10 hover:bg-white/15 text-white h-11 rounded-xl font-bold text-sm border border-white/10"
+                                        className="w-full bg-white/10 hover:bg-white/15 text-white h-11 rounded-xl font-bold text-sm border-0"
                                     >
                                         <Icon icon="solar:chat-round-line-bold" className="w-4 h-4 mr-2" />
                                         Open Community Chat
@@ -649,7 +683,7 @@ export default function TokenDetailClient() {
                                         }
                                     }}
                                     variant="outline"
-                                    className="w-full border-white/20 text-white hover:bg-white/10 h-10 rounded-xl text-sm"
+                                    className="w-full border-0 text-white hover:bg-white/10 h-10 rounded-xl text-sm"
                                 >
                                     {isCreatingCommunity ? (
                                         <ButtonLoader />
@@ -671,18 +705,18 @@ export default function TokenDetailClient() {
 
             {/* Floating Buy/Sell Buttons — matches Spot Trading */}
             {!selectedToken.isGraduated && (
-                <div className="fixed bottom-28 left-0 right-0 px-4 z-40">
+                <div className="fixed bottom-36 left-0 right-0 px-4 z-40">
                     <div className="flex gap-3 max-w-md mx-auto">
                         <Button
                             onClick={() => openTrade("buy")}
-                            className="flex-1 h-12 bg-green-500 hover:bg-green-600 text-white font-bold text-base rounded-xl shadow-lg shadow-green-500/20"
+                            className="flex-1 h-12 bg-green-500 hover:bg-green-600 text-white font-bold text-base rounded-xl shadow-none"
                         >
                             Buy
                         </Button>
                         <Button
                             onClick={() => openTrade("sell")}
                             disabled={!position || BigInt(position?.balance || "0") <= BigInt(0)}
-                            className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-white font-bold text-base rounded-xl shadow-lg shadow-red-500/20"
+                            className="flex-1 h-12 bg-red-500 hover:bg-red-600 text-white font-bold text-base rounded-xl shadow-none"
                         >
                             Sell
                         </Button>
@@ -693,13 +727,12 @@ export default function TokenDetailClient() {
             {/* Trading Sheet — matches Spot Trading's bottom drawer */}
             {!selectedToken.isGraduated && (
                 <Sheet open={tradingOpen} onOpenChange={setTradingOpen}>
-                    <SheetContent side="bottom" className="bg-[#111] border-t border-white/10 rounded-t-2xl max-h-[85vh] overflow-y-auto px-0">
+                    <SheetContent side="bottom" className="bg-[#111] border-t border-white/10 rounded-t-2xl max-h-[85vh] overflow-y-auto px-0 pb-12">
                         <SheetHeader className="px-5 pb-2">
                             <div className="flex items-center justify-between">
                                 <SheetTitle className="text-white font-bold">
                                     Trade {selectedToken.symbol}
                                 </SheetTitle>
-                                <SlippageSettings value={slippage} onChange={setSlippage} />
                             </div>
                         </SheetHeader>
 
@@ -708,13 +741,13 @@ export default function TokenDetailClient() {
                                 <TabsList className="w-full bg-white/5 p-1 mb-5 h-11 rounded-xl grid grid-cols-2">
                                     <TabsTrigger
                                         value="buy"
-                                        className="h-full text-sm font-semibold data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-lg"
+                                        className="h-full text-sm font-semibold data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-none"
                                     >
                                         Buy
                                     </TabsTrigger>
                                     <TabsTrigger
                                         value="sell"
-                                        className="h-full text-sm font-semibold data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=active]:shadow-lg"
+                                        className="h-full text-sm font-semibold data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=active]:shadow-none"
                                         disabled={!position || BigInt(position?.balance || "0") <= BigInt(0)}
                                     >
                                         Sell
@@ -724,19 +757,20 @@ export default function TokenDetailClient() {
                                 <TabsContent value="buy" className="space-y-4">
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-end">
-                                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Amount (TON)</label>
-                                            <span className="text-xs text-muted-foreground bg-white/5 px-2 py-1 rounded-md">
-                                                Bal: <span className="text-white">{parseFloat(tonBalance || "0").toFixed(2)}</span>
+                                            <label className="text-xs font-semibold text-muted-foreground">Amount (TON)</label>
+                                            <span className="text-xs text-muted-foreground">
+                                                Balance <span className="text-white">{parseFloat(tonBalance || "0").toFixed(2)}</span>
                                             </span>
                                         </div>
 
                                         <div className="relative">
                                             <Input
-                                                type="number"
+                                                type="text"
+                                                inputMode="decimal"
                                                 placeholder="0.00"
-                                                value={amount}
-                                                onChange={(e) => setAmount(e.target.value)}
-                                                className="bg-white/5 border-white/10 text-white text-lg font-bold h-12 pl-4 pr-14 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500/50 transition-all placeholder:text-white/10"
+                                                value={formatAmountInput(amount)}
+                                                onChange={(e) => handleAmountChange(e.target.value)}
+                                                className="bg-white/5 border-0 text-white text-lg font-bold h-12 pl-4 pr-14 rounded-xl focus:ring-1 focus:ring-green-500/30 transition-all placeholder:text-white/10"
                                             />
                                             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
                                                 <div className="w-5 h-5 relative">
@@ -752,7 +786,7 @@ export default function TokenDetailClient() {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => handleQuickAmount(value)}
-                                                    className="bg-white/5 border border-white/5 text-xs text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/20 h-9 rounded-lg"
+                                                    className="bg-white/5 border-0 text-xs text-muted-foreground hover:text-white hover:bg-white/10 h-9 rounded-lg"
                                                 >
                                                     {value}
                                                 </Button>
@@ -760,8 +794,10 @@ export default function TokenDetailClient() {
                                         </div>
                                     </div>
 
+                                    {renderSlippageControls()}
+
                                     {preview && (
-                                        <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-2">
+                                        <div className="p-3.5 rounded-xl bg-white/[0.03] border-0 space-y-2">
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">You receive</span>
                                                 <span className="text-white font-bold">
@@ -782,7 +818,7 @@ export default function TokenDetailClient() {
                                                                 <Icon icon="solar:info-circle-bold" className="w-3.5 h-3.5" />
                                                             </button>
                                                         </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-3 text-xs bg-black/95 border-white/10 text-white backdrop-blur-xl" side="top">
+                                                        <PopoverContent className="w-auto p-3 text-xs bg-black/95 border-0 text-white backdrop-blur-xl" side="top">
                                                             <div className="space-y-1">
                                                                 <div className="flex justify-between gap-4">
                                                                     <span className="text-muted-foreground">Platform Fee</span>
@@ -802,7 +838,7 @@ export default function TokenDetailClient() {
                                     )}
 
                                     <Button
-                                        className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-500/20"
+                                        className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl shadow-none"
                                         onClick={handleTrade}
                                         disabled={isLoading || !amount || parseFloat(amount) <= 0}
                                     >
@@ -820,19 +856,20 @@ export default function TokenDetailClient() {
                                 <TabsContent value="sell" className="space-y-4">
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-end">
-                                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Amount ({selectedToken.symbol})</label>
-                                            <span className="text-xs text-muted-foreground bg-white/5 px-2 py-1 rounded-md">
-                                                Avail: <span className="text-white">{(Number(availableToSell || 0) / 1e9).toLocaleString()}</span>
+                                            <label className="text-xs font-semibold text-muted-foreground">Amount ({selectedToken.symbol})</label>
+                                            <span className="text-xs text-muted-foreground">
+                                                Available <span className="text-white">{(Number(availableToSell || 0) / 1e9).toLocaleString()}</span>
                                             </span>
                                         </div>
 
                                         <div className="relative">
                                             <Input
-                                                type="number"
+                                                type="text"
+                                                inputMode="decimal"
                                                 placeholder="0"
-                                                value={amount}
-                                                onChange={(e) => setAmount(e.target.value)}
-                                                className="bg-white/5 border-white/10 text-white text-lg font-bold h-12 pl-4 pr-14 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500/50 transition-all placeholder:text-white/10"
+                                                value={formatAmountInput(amount)}
+                                                onChange={(e) => handleAmountChange(e.target.value)}
+                                                className="bg-white/5 border-0 text-white text-lg font-bold h-12 pl-4 pr-14 rounded-xl focus:ring-1 focus:ring-red-500/30 transition-all placeholder:text-white/10"
                                             />
                                             {selectedToken.image && (
                                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full overflow-hidden bg-white/10 pointer-events-none">
@@ -848,7 +885,7 @@ export default function TokenDetailClient() {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => handleQuickAmount(value)}
-                                                    className="bg-white/5 border border-white/5 text-xs text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/20 h-9 rounded-lg"
+                                                    className="bg-white/5 border-0 text-xs text-muted-foreground hover:text-white hover:bg-white/10 h-9 rounded-lg"
                                                 >
                                                     {value}
                                                 </Button>
@@ -856,8 +893,10 @@ export default function TokenDetailClient() {
                                         </div>
                                     </div>
 
+                                    {renderSlippageControls()}
+
                                     {preview && (
-                                        <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-2">
+                                        <div className="p-3.5 rounded-xl bg-white/[0.03] border-0 space-y-2">
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">You receive</span>
                                                 <span className="text-white font-bold">
@@ -873,7 +912,7 @@ export default function TokenDetailClient() {
                                     )}
 
                                     <Button
-                                        className="w-full h-12 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-500/20"
+                                        className="w-full h-12 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-none"
                                         onClick={handleTrade}
                                         disabled={isLoading || !amount || parseFloat(amount) <= 0}
                                     >
@@ -935,7 +974,7 @@ function TokenDetailSkeleton() {
             {/* Graduation Progress */}
             <Skeleton className="h-28 w-full rounded-xl" />
             {/* Market Stats */}
-            <Card className="bg-white/5 border-white/5">
+            <Card className="bg-white/5 border-0">
                 <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                         <div className="space-y-2">

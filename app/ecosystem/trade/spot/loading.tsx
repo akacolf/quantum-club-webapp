@@ -1,43 +1,32 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default function Loading() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-white/5 pb-3">
+      <div className="sticky top-0 z-40 bg-background/80 pb-3 backdrop-blur-xl">
         <div className="px-4 pt-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Skeleton className="w-8 h-8 rounded-lg" />
-            <div className="space-y-1">
-              <Skeleton className="h-6 w-28" />
-              <Skeleton className="h-3 w-24" />
-            </div>
+          <div className="mb-3 flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-6 w-28" />
           </div>
-
-          {/* Tabs */}
-          <Skeleton className="h-10 w-full rounded-xl mb-3" />
-
-          {/* Search */}
-          <Skeleton className="h-11 w-full rounded-xl" />
+          <Skeleton className="mb-3 h-10 w-full rounded-xl bg-secondary" />
+          <Skeleton className="h-11 w-full rounded-xl bg-secondary" />
         </div>
       </div>
 
-      {/* Token List */}
-      <div className="px-4 py-3 space-y-2">
-        {[...Array(6)].map((_, i) => (
-          <Card key={i} className="bg-white/5 border border-white/5">
-            <CardContent className="p-3">
-              <div className="flex gap-3 items-center">
-                <Skeleton className="w-11 h-11 rounded-xl" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-28" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-                <Skeleton className="h-4 w-20" />
-              </div>
-            </CardContent>
-          </Card>
+      <div className="space-y-1 px-4 py-3">
+        {[...Array(8)].map((_, index) => (
+          <div key={index} className="flex items-center gap-3 py-3">
+            <Skeleton className="h-11 w-11 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="mt-2 h-3 w-20" />
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-14" />
+            </div>
+          </div>
         ))}
       </div>
     </div>

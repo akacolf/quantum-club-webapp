@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
@@ -49,6 +48,32 @@ interface AssetAllocation {
   image?: string;
 }
 
+function PieTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; color: string } }> }) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
+        <p className="text-white font-bold">{data.name}</p>
+        <p className="text-gray-400 text-sm">${data.value.toFixed(2)}</p>
+      </div>
+    );
+  }
+  return null;
+}
+
+function BarTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; percentage: number } }> }) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
+        <p className="text-white font-bold">{data.name}</p>
+        <p className="text-gray-400 text-sm">${data.value.toFixed(2)}</p>
+        <p className="text-gray-500 text-xs">{data.percentage.toFixed(1)}%</p>
+      </div>
+    );
+  }
+  return null;
+}
 
 export default function AnalyticsPage() {
   useTelegramBackButton("/wallet");
@@ -174,35 +199,6 @@ export default function AnalyticsPage() {
     color: asset.color,
   }));
 
-  // Custom tooltip for pie chart
-  const PieTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; color: string } }> }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
-          <p className="text-white font-bold">{data.name}</p>
-          <p className="text-gray-400 text-sm">${data.value.toFixed(2)}</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // Custom tooltip for bar chart
-  const BarTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; percentage: number } }> }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2 shadow-xl">
-          <p className="text-white font-bold">{data.name}</p>
-          <p className="text-gray-400 text-sm">${data.value.toFixed(2)}</p>
-          <p className="text-gray-500 text-xs">{data.percentage.toFixed(1)}%</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   if (!walletAddress) {
     router.push("/wallet");
     return <Loader />;
@@ -210,29 +206,23 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen pb-24">
-      <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-4">
+      <div className="flex flex-col items-center w-full max-w-md mx-auto p-4 space-y-6">
         {/* Header */}
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
+        <div
           className="w-full"
         >
-          <h1 className="text-2xl font-bold text-white mb-1">Portfolio Analytics</h1>
+          <h1 className="text-2xl font-bold text-white mb-1">Portfolio analytics</h1>
           <p className="text-gray-400 text-sm">Track your asset performance</p>
-        </motion.div>
+        </div>
 
-        {/* Total Balance Card */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
+        {/* Total balance */}
+        <div
           className="w-full"
         >
-          <Card className="bg-gradient-to-br from-[#0c0c0c] to-black border-white/5 rounded-2xl">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-2 mb-2">
+          <div className="space-y-2">
+              <div className="flex items-center gap-2">
                 <Icon icon="lucide:wallet" className="w-4 h-4 text-gray-400"/>
-                <span className="text-gray-400 text-sm">Total Portfolio Value</span>
+                <span className="text-gray-400 text-sm">Total portfolio value</span>
               </div>
               {isLoadingAssets ? (
                 <Skeleton className="h-10 w-32 bg-[#222]" />
@@ -248,28 +238,19 @@ export default function AnalyticsPage() {
                   <Badge
                     variant="secondary"
                     className={`${change24h >= 0
-                      ? "bg-green-500/10 text-green-500 border-green-500/20"
+                      ? "bg-transparent text-green-500 border-0 px-0"
                       : "bg-red-500/10 text-red-500 border-red-500/20"
                       } text-xs`}
                   >
-                    {change24h >= 0 ? (
-                      <Icon icon="lucide:arrow-up-right" className="w-3 h-3 mr-1"/>
-                    ) : (
-                      <Icon icon="lucide:arrow-down-right" className="w-3 h-3 mr-1"/>
-                    )}
                     {hideBalance ? "••" : `${change24h >= 0 ? "+" : ""}${change24h.toFixed(2)}%`} 24h
                   </Badge>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+          </div>
+        </div>
 
         {/* AI Portfolio Health */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.15 }}
+        <div
           className="w-full"
         >
           <PortfolioHealthCard
@@ -281,13 +262,10 @@ export default function AnalyticsPage() {
             totalValue={parseFloat(totalUsdBalance) || 0}
             stakedAmount={0}
           />
-        </motion.div>
+        </div>
 
         {/* Stats Cards */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
+        <div
           className="w-full grid grid-cols-2 gap-3"
         >
           <Card className="bg-[#111] border-[#222] rounded-xl">
@@ -317,13 +295,10 @@ export default function AnalyticsPage() {
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Charts Tabs */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
+        <div
           className="w-full"
         >
           <Tabs defaultValue="allocation" className="w-full">
@@ -347,7 +322,7 @@ export default function AnalyticsPage() {
             <TabsContent value="allocation" className="mt-4">
               <Card className="bg-[#111] border-[#222] rounded-2xl">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-gray-400 font-medium">Asset Allocation</CardTitle>
+                  <CardTitle className="text-sm text-gray-400 font-medium">Asset allocation</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isLoadingAssets ? (
@@ -437,16 +412,13 @@ export default function AnalyticsPage() {
               </Card>
             </TabsContent>
           </Tabs>
-        </motion.div>
+        </div>
 
         {/* Asset List */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
+        <div
           className="w-full space-y-3"
         >
-          <h3 className="text-sm font-medium text-gray-400 px-1">All Assets</h3>
+          <h3 className="text-sm font-medium text-gray-400 px-1">All assets</h3>
 
           {isLoadingAssets ? (
             <>
@@ -513,7 +485,7 @@ export default function AnalyticsPage() {
               </Card>
             ))
           )}
-        </motion.div>
+        </div>
       </div>
     </div>
   );

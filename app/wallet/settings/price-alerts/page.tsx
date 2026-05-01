@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import Loader from "@/app/(components)/Loader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { toast } from "sonner";
@@ -148,7 +146,7 @@ export default function PriceAlertsPage() {
             <div className="max-w-md mx-auto">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h1 className="text-xl font-bold">Price Alerts</h1>
+                        <h1 className="text-xl font-bold">Price alerts</h1>
                         <p className="text-xs text-muted-foreground mt-0.5">
                             Get Telegram notifications when prices hit your targets
                         </p>
@@ -178,7 +176,7 @@ export default function PriceAlertsPage() {
                     {SUPPORTED_TOKENS.map((token) => (
                         <div
                             key={token.symbol}
-                            className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl shrink-0"
+                            className="flex items-center gap-2 px-3 py-2 bg-card border-0 rounded-xl shrink-0"
                         >
                             <Image src={token.icon} alt={token.symbol} width={20} height={20} />
                             <span className="text-sm font-medium">{token.symbol}</span>
@@ -189,21 +187,18 @@ export default function PriceAlertsPage() {
                     ))}
                 </div>
 
-                <AnimatePresence>
+                
                     {isAdding && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
+                        <div
                         >
-                            <Card className="bg-card border-border mb-4">
+                            <Card className="bg-card border-0 mb-4">
                                 <CardContent className="p-4 space-y-4">
                                     {/* Token Selector */}
                                     <div className="relative">
                                         <Button
                                             variant="outline"
                                             onClick={() => setShowTokenPicker(!showTokenPicker)}
-                                            className="w-full h-12 justify-between bg-muted border-border"
+                                            className="w-full h-12 justify-between bg-muted border border-border"
                                         >
                                             <div className="flex items-center gap-2">
                                                 <Image
@@ -220,12 +215,9 @@ export default function PriceAlertsPage() {
                                             <Icon icon="lucide:chevron-down" className="w-4 h-4 text-muted-foreground" />
                                         </Button>
 
-                                        <AnimatePresence>
+                                        
                                             {showTokenPicker && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: -10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: -10 }}
+                                                <div
                                                     className="absolute z-10 w-full mt-2 bg-card border border-border rounded-xl overflow-hidden shadow-lg"
                                                 >
                                                     {SUPPORTED_TOKENS.map((token) => (
@@ -258,9 +250,9 @@ export default function PriceAlertsPage() {
                                                             )}
                                                         </button>
                                                     ))}
-                                                </motion.div>
+                                                </div>
                                             )}
-                                        </AnimatePresence>
+                                        
                                     </div>
 
                                     {/* Direction Selector */}
@@ -270,7 +262,7 @@ export default function PriceAlertsPage() {
                                             onClick={() => form.setFieldValue("direction", "above")}
                                             className={`flex items-center justify-center gap-2 h-12 rounded-xl border transition-colors ${
                                                 direction === "above"
-                                                    ? "bg-green-500/20 border-green-500/50 text-green-500 hover:bg-green-500/30 hover:text-green-600"
+                                                    ? "bg-muted border-border text-green-500 hover:bg-muted hover:text-green-500"
                                                     : "bg-muted border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                                             }`}
                                         >
@@ -311,7 +303,7 @@ export default function PriceAlertsPage() {
                                                                     ? (currentPrices[selectedToken.symbol] * (direction === "above" ? 1.1 : 0.9)).toFixed(2)
                                                                     : "0.00"
                                                             })`}
-                                                            className="bg-muted border-border text-foreground pl-7"
+                                                            className="bg-muted border border-border text-foreground pl-7"
                                                         />
                                                     </div>
                                                     {hasErrors && <FieldError errors={field.state.meta.errors.map(e => ({ message: typeof e === 'string' ? e : (e as any)?.message ?? String(e) }))} />}
@@ -336,7 +328,7 @@ export default function PriceAlertsPage() {
                                                 form.reset();
                                                 setShowTokenPicker(false);
                                             }}
-                                            className="flex-1 bg-muted border-border text-foreground"
+                                            className="flex-1 bg-muted border border-border text-foreground"
                                             disabled={isSaving}
                                         >
                                             Cancel
@@ -349,15 +341,15 @@ export default function PriceAlertsPage() {
                                             {isSaving ? (
                                                 <ButtonLoader />
                                             ) : (
-                                                "Create Alert"
+                                                "Create alert"
                                             )}
                                         </Button>
                                     </div>
                                 </CardContent>
                             </Card>
-                        </motion.div>
+                        </div>
                     )}
-                </AnimatePresence>
+                
 
                 {alerts.length === 0 && !isAdding ? (
                     <div className="text-center py-12">
@@ -373,21 +365,17 @@ export default function PriceAlertsPage() {
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-sm font-medium text-muted-foreground">Active</h2>
-                                    <Badge variant="outline" className="text-[10px]">
+                                    <span className="text-[10px] text-muted-foreground">
                                         {activeAlerts.length} / 10
-                                    </Badge>
+                                    </span>
                                 </div>
                                 {activeAlerts.map((alert) => {
                                     const token = getTokenInfo(alert.symbol);
                                     return (
-                                        <Card key={alert.id} className="bg-card border-border">
+                                        <Card key={alert.id} className="bg-card border-0">
                                             <CardContent className="p-4 flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <div
-                                                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                                            alert.direction === "above" ? "bg-green-500/20" : "bg-red-500/20"
-                                                        }`}
-                                                    >
+                                                    <div className="flex items-center justify-center">
                                                         {alert.direction === "above" ? (
                                                             <Icon icon="lucide:trending-up" className="w-5 h-5 text-green-500" />
                                                         ) : (
@@ -427,10 +415,10 @@ export default function PriceAlertsPage() {
                                 {triggeredAlerts.map((alert) => {
                                     const token = getTokenInfo(alert.symbol);
                                     return (
-                                        <Card key={alert.id} className="bg-card border-border opacity-60">
+                                        <Card key={alert.id} className="bg-card border-0 opacity-60">
                                             <CardContent className="p-4 flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-gray-500/20 rounded-full flex items-center justify-center">
+                                                    <div className="flex items-center justify-center">
                                                         <Icon icon="lucide:bell-off" className="w-5 h-5 text-gray-400" />
                                                     </div>
                                                     <div>
@@ -441,7 +429,8 @@ export default function PriceAlertsPage() {
                                                             </span>
                                                         </div>
                                                         <div className="text-xs text-green-500">
-                                                            {alert.notified ? "Notified via Telegram ✓" : "Triggered ✓"}
+                                                            {alert.notified ? "Notified via Telegram" : "Triggered"}
+                                                            <Icon icon={alert.notified ? "charm:tick" : "basil:cross-outline"} className="ml-1 inline-block h-3.5 w-3.5 align-[-2px]" />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -462,7 +451,7 @@ export default function PriceAlertsPage() {
                     </div>
                 )}
 
-                <div className="mt-6 p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                <div className="mt-6 p-3 bg-primary/10 border-0 rounded-xl">
                     <p className="text-xs text-primary/80 text-left flex items-center justify-start gap-1.5">
                         <Icon icon="lucide:info" className="w-3.5 h-3.5 shrink-0" />
                         Alerts are checked every minute. You&apos;ll receive a Telegram notification when your price target is hit.

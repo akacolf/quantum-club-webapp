@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,6 +10,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useAuth } from "@/app/(contexts)/auth";
 import { dbfs } from "@/app/(firebase)/client";
 import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { gsap } from "@/lib/gsap";
 
 const navTabs = [
   {
@@ -41,6 +42,9 @@ const EcosystemNavigation = () => {
   const currentUser = authCtx?.currentUser ?? null;
   const [totalUnread, setTotalUnread] = useState(0);
   const [tradePopoverOpen, setTradePopoverOpen] = useState(false);
+  const pillRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const prevActiveTab = useRef<string>("");
 
   // Subscribe to total unread count across all chats
   useEffect(() => {
@@ -64,11 +68,6 @@ const EcosystemNavigation = () => {
     return () => unsub();
   }, [currentUser, telegramId]);
 
-  // Hide navbar when inside an individual chat conversation
-  if (pathname.match(/^\/ecosystem\/chat\/.+/)) {
-    return null;
-  }
-
   const getActiveTab = () => {
     for (const tab of navTabs) {
       if (pathname.startsWith(tab.href)) {
@@ -81,12 +80,78 @@ const EcosystemNavigation = () => {
 
   const activeTab = getActiveTab();
 
+  const animatePill = useCallback(() => {
+    const pill = pillRef.current;
+    const nav = navRef.current;
+    if (!pill || !nav) return;
+
+    const activeEl = nav.querySelector(`[data-tab-id="${activeTab}"]`) as HTMLElement | null;
+    if (!activeEl) return;
+
+    const navRect = nav.getBoundingClientRect();
+    const activeRect = activeEl.getBoundingClientRect();
+    const targetX = activeRect.left - navRect.left + 4;
+    const targetWidth = activeRect.width - 8;
+
+    gsap.to(pill, {
+      x: targetX,
+      width: targetWidth,
+      duration: 0.45,
+      ease: "power3.out",
+    });
+
+    const activeIcon = activeEl.querySelector("[data-tab-icon]");
+    if (activeIcon) {
+      gsap.fromTo(
+        activeIcon,
+        { scale: 0.85 },
+        { scale: 1, duration: 0.35, ease: "back.out(2)" },
+      );
+    }
+
+    prevActiveTab.current = activeTab;
+  }, [activeTab]);
+
+  useLayoutEffect(() => {
+    const pill = pillRef.current;
+    const nav = navRef.current;
+    if (!pill || !nav) return;
+
+    const activeEl = nav.querySelector(`[data-tab-id="${activeTab}"]`) as HTMLElement | null;
+    if (!activeEl) return;
+
+    const navRect = nav.getBoundingClientRect();
+    const activeRect = activeEl.getBoundingClientRect();
+    const targetX = activeRect.left - navRect.left + 4;
+    const targetWidth = activeRect.width - 8;
+
+    if (!prevActiveTab.current || prevActiveTab.current === activeTab) {
+      pill.style.transform = `translateX(${targetX}px)`;
+      pill.style.width = `${targetWidth}px`;
+      prevActiveTab.current = activeTab;
+    } else {
+      animatePill();
+    }
+  }, [activeTab, animatePill, pathname]);
+
+  // Hide navbar when inside an individual chat conversation
+  if (pathname.match(/^\/ecosystem\/chat\/.+/)) {
+    prevActiveTab.current = "";
+    return null;
+  }
+
   return (
-    <div className="fixed z-50 bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-[420px] h-[70px] bg-white/10 backdrop-blur-2xl rounded-full border border-white/20 overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/10 before:to-transparent before:pointer-events-none">
+    <div className="fixed z-50 bottom-12 left-1/2 -translate-x-1/2 w-[92%] max-w-[420px] h-[70px] bg-white/10 backdrop-blur-2xl rounded-full overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/10 before:to-transparent before:pointer-events-none">
       <nav
+        ref={navRef}
         className="grid h-full items-center relative"
         style={{ gridTemplateColumns: `repeat(${navTabs.length}, 1fr)` }}
       >
+        <div
+          ref={pillRef}
+          className="absolute left-0 top-1 h-[calc(100%-8px)] rounded-full bg-white/10 pointer-events-none will-change-transform"
+          aria-hidden
+        />
         {navTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const isComingSoon = "comingSoon" in tab && tab.comingSoon;
@@ -95,9 +160,10 @@ const EcosystemNavigation = () => {
             return (
               <div
                 key={tab.id}
+                data-tab-id={tab.id}
                 className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10 opacity-50 cursor-default"
               >
-                <div className="text-muted-foreground">
+                <div data-tab-icon className="text-muted-foreground">
                   <div className="scale-100">
                     <Icon
                       icon={tab.icon}
@@ -126,9 +192,10 @@ const EcosystemNavigation = () => {
             const tabContent = (
               <>
                 <div
-                  className={`relative transition-all duration-300 ${
+                  data-tab-icon
+                  className={`relative transition-colors duration-200 ${
                     isActive
-                      ? "text-primary scale-110"
+                      ? "text-white"
                       : "text-muted-foreground group-hover:text-foreground"
                   }`}
                 >
@@ -146,7 +213,7 @@ const EcosystemNavigation = () => {
                 </div>
                 <span
                   className={`text-[10px] font-medium tracking-wide transition-colors duration-300 ${
-                    isActive ? "text-primary" : "text-muted-foreground"
+                    isActive ? "text-white" : "text-muted-foreground"
                   }`}
                 >
                   {tab.label}
@@ -160,6 +227,7 @@ const EcosystemNavigation = () => {
                   <PopoverTrigger asChild>
                     <button
                       id={`ecosystem-nav-${tab.id}`}
+                      data-tab-id={tab.id}
                       className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10"
                       onContextMenu={(e) => e.preventDefault()}
                     >
@@ -170,19 +238,17 @@ const EcosystemNavigation = () => {
                     side="top"
                     align="start"
                     sideOffset={12}
-                    className="w-52 p-1.5 bg-[#1a1a1a] border-white/10 rounded-xl ring-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
+                    className="w-52 p-1.5 bg-[#1a1a1a] border-0 rounded-xl ring-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none"
                   >
                     <Link
                       href="/ecosystem/trade"
                       onClick={() => setTradePopoverOpen(false)}
                       className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${!isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
-                      <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                        <Icon icon="solar:rocket-bold" className="w-4 h-4 text-primary" />
-                      </div>
+                      <Icon icon="mynaui:rocket-solid" className="w-5 h-5 shrink-0 text-primary" />
                       <div className="flex-1 text-left">
-                        <p className="text-sm font-semibold text-white">QC RocketStart</p>
-                        <p className="text-[10px] text-muted-foreground">Token Launchpad</p>
+                        <p className="whitespace-nowrap text-sm font-semibold text-white">QC RocketStart</p>
+                        <p className="text-[10px] text-muted-foreground">Launchpad</p>
                       </div>
                       {!isOnSpot && (
                         <Icon icon="lucide:check" className="w-4 h-4 text-primary" />
@@ -193,15 +259,13 @@ const EcosystemNavigation = () => {
                       onClick={() => setTradePopoverOpen(false)}
                       className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
-                      <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                        <Icon icon="solar:chart-2-bold" className="w-4 h-4 text-green-400" />
-                      </div>
+                      <Icon icon="solar:chart-2-bold" className="w-5 h-5 shrink-0 text-green-400" />
                       <div className="flex-1 text-left">
-                        <p className="text-sm font-semibold text-white">Spot Trading</p>
-                        <p className="text-[10px] text-muted-foreground">Trade DEX tokens</p>
+                        <p className="text-sm font-semibold text-white">Spot</p>
+                        <p className="text-[10px] text-muted-foreground">Trade tokens</p>
                       </div>
                       {isOnSpot && (
-                        <Icon icon="lucide:check" className="w-4 h-4 text-green-400" />
+                        <Icon icon="lucide:check" className="w-4 h-4 text-white" />
                       )}
                     </Link>
                   </PopoverContent>
@@ -216,6 +280,7 @@ const EcosystemNavigation = () => {
                 id={`ecosystem-nav-${tab.id}`}
                 href={tab.href}
                 prefetch={true}
+                data-tab-id={tab.id}
                 onContextMenu={(e) => e.preventDefault()}
                 onMouseDown={(e) => e.button === 1 && e.preventDefault()}
                 className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10"
@@ -231,15 +296,17 @@ const EcosystemNavigation = () => {
               id={`ecosystem-nav-${tab.id}`}
               href={tab.href}
               prefetch={true}
+              data-tab-id={tab.id}
               onClick={(e) => pathname === tab.href && e.preventDefault()}
               onContextMenu={(e) => e.preventDefault()}
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
               className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10"
             >
               <div
+                data-tab-icon
                 className={`relative transition-all duration-300 ${
                   isActive
-                    ? "text-primary scale-110"
+                    ? "text-white"
                     : "text-muted-foreground group-hover:text-foreground"
                 }`}
               >
@@ -262,7 +329,7 @@ const EcosystemNavigation = () => {
               </div>
               <span
                 className={`text-[10px] font-medium tracking-wide transition-colors duration-300 ${
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isActive ? "text-white" : "text-muted-foreground"
                 }`}
               >
                 {tab.label}

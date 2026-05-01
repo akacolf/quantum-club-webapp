@@ -106,7 +106,7 @@ export default function UserProfilePopover({
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="mx-auto max-w-md">
         <DrawerHeader className="text-left pb-2">
-          <DrawerTitle className="sr-only">User Profile</DrawerTitle>
+          <DrawerTitle className="sr-only">User profile</DrawerTitle>
           <DrawerDescription className="sr-only">
             Profile information for {displayName}
           </DrawerDescription>
@@ -115,7 +115,7 @@ export default function UserProfilePopover({
         <div className="px-4 pb-6 space-y-4">
           {/* Profile header */}
           <div className="flex flex-col items-center gap-2">
-            <Avatar className="h-20 w-20 border-2 border-primary/20">
+            <Avatar className="h-20 w-20">
               {profilePhoto ? (
                 <>
                   <AvatarImage src={profilePhoto} alt={displayName} />
@@ -150,13 +150,13 @@ export default function UserProfilePopover({
           </div>
 
           {/* Leaderboard rank */}
-          <div className="bg-muted/30 border border-border/50 rounded-xl p-3 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+          <div className="bg-muted/30 rounded-xl p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0">
               <Icon icon="solar:cup-star-bold" className="w-4 h-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">
-                Leaderboard Rank
+              <p className="text-[9px] text-muted-foreground font-semibold">
+                Leaderboard rank
               </p>
               {rankLoading ? (
                 <Skeleton className="h-4 w-16 rounded mt-0.5" />
@@ -172,7 +172,7 @@ export default function UserProfilePopover({
           {walletAddress ? (
             <button
               onClick={handleCopyAddress}
-              className="w-full flex items-center gap-2 bg-muted/30 border border-border/50 rounded-xl p-3 hover:bg-muted/50 transition-colors text-left"
+              className="w-full flex items-center gap-2 bg-muted/30 rounded-xl p-3 hover:bg-muted/50 transition-colors text-left"
             >
               <Icon icon="solar:wallet-bold" className="w-4 h-4 text-primary shrink-0" />
               <code className="text-[11px] text-muted-foreground truncate flex-1">

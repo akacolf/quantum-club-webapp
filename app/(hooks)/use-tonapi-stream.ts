@@ -10,6 +10,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import type { InfiniteData } from "@tanstack/react-query";
 import { TonApiWebSocket } from "@/lib/tonapi-ws";
 import { useTradingStore } from "@/stores/trading-store";
 import {
@@ -20,6 +21,36 @@ import { ROCKETSTART_TESTNET } from "@/lib/platform-config";
 import type { Token } from "@/types/trading";
 
 const contractAdapter = getContractAdapter(ROCKETSTART_TESTNET);
+
+type TokenPage = {
+  tokens: Token[];
+  lastDoc?: unknown;
+};
+
+type TokenQueryData = Token[] | InfiniteData<TokenPage>;
+
+function updateTokenQueryData(
+  data: TokenQueryData | undefined,
+  updateToken: (token: Token) => Token,
+): TokenQueryData | undefined {
+  if (!data) return data;
+
+  if (Array.isArray(data)) {
+    return data.map(updateToken);
+  }
+
+  if (Array.isArray(data.pages)) {
+    return {
+      ...data,
+      pages: data.pages.map((page) => ({
+        ...page,
+        tokens: Array.isArray(page.tokens) ? page.tokens.map(updateToken) : page.tokens,
+      })),
+    };
+  }
+
+  return data;
+}
 
 export function useTonApiStream() {
   const queryClient = useQueryClient();
@@ -80,13 +111,13 @@ export function useTonApiStream() {
             update.volume24h = (matchedToken.volume24h || 0) + tradeTonValue;
 
             // Update TanStack Query cache directly
-            const updateList = (tokens: Token[] | undefined) =>
-              tokens?.map((t) =>
-                t.id === matchedToken.id ? { ...t, ...update } : t
+            const updateList = (data: TokenQueryData | undefined) =>
+              updateTokenQueryData(data, (token) =>
+                token.id === matchedToken.id ? { ...token, ...update } : token
               );
 
-            queryClient.setQueryData<Token[]>(["tokens", "trending"], updateList);
-            queryClient.setQueryData<Token[]>(["tokens", "new"], updateList);
+            queryClient.setQueryData<TokenQueryData>(["tokens", "trending"], updateList);
+            queryClient.setQueryData<TokenQueryData>(["tokens", "new"], updateList);
 
             // Update selected token if it matches
             const { selectedToken } = useTradingStore.getState();

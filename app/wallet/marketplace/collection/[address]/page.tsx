@@ -4,12 +4,10 @@ import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -106,9 +104,7 @@ export default function CollectionDetailPage() {
 
             <div className={cn("px-4 relative z-10 space-y-6", collection.coverImage ? "-mt-12" : "pt-4")}>
                 {/* Collection Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                <div
                     className="space-y-4"
                 >
                     {/* Collection Avatar */}
@@ -150,7 +146,7 @@ export default function CollectionDetailPage() {
                             <CardContent className="p-3 text-center">
                                 <Icon icon="lucide:grid-3x3" className="w-4 h-4 text-primary mx-auto mb-1" />
                                 <p className="text-lg font-bold">{formatItemsCount(collection.itemsCount)}</p>
-                                <p className="text-xs text-muted-foreground">Items</p>
+                                <p className="text-xs text-muted-foreground">items</p>
                             </CardContent>
                         </Card>
                         {collection.ownersCount && (
@@ -182,19 +178,16 @@ export default function CollectionDetailPage() {
                         <Icon icon="lucide:external-link" className="w-4 h-4 mr-2" />
                         View on Explorer
                     </Button>
-                </motion.div>
+                </div>
 
                 {/* NFT Grid */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
+                <div
                     className="space-y-3"
                 >
                     <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-semibold">For Sale</h2>
+                        <h2 className="text-lg font-semibold">For sale</h2>
                         {!isLoadingItems && (
-                            <Badge variant="outline">{items.length} available</Badge>
+                            <span className="text-xs text-muted-foreground">{items.length} available</span>
                         )}
                     </div>
 
@@ -234,7 +227,7 @@ export default function CollectionDetailPage() {
                                         {pair.map((item) => (
                                             <Link
                                                 key={item.address}
-                                                href={`/wallet/nft/${encodeURIComponent(item.address)}`}
+                                                href={`/wallet/nft/${encodeURIComponent(item.address)}?collection=${encodeURIComponent(collectionAddress)}`}
                                                 prefetch={true}
                                             >
                                                 <Card className="bg-card border-border overflow-hidden cursor-pointer hover:border-primary/50 transition-all">
@@ -272,7 +265,7 @@ export default function CollectionDetailPage() {
                         </div>
                     )}
 
-                </motion.div>
+                </div>
             </div>
         </div>
     );

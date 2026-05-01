@@ -1,7 +1,8 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef, useCallback } from "react";
+import { gsap } from "@/lib/gsap";
 
 function HomeIcon() {
   return (
@@ -98,6 +99,9 @@ const TAB_ROUTES = ["/home", "/wallet", "/ecosystem", "/earn", "/frens"] as cons
 const NavigationBar = () => {
   const pathname = usePathname();
   const router = useRouter();
+  const pillRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const prevActiveTab = useRef<string>("");
 
   useEffect(() => {
     TAB_ROUTES.forEach((route) => {
@@ -113,9 +117,73 @@ const NavigationBar = () => {
   else if (pathname.includes("/frens")) activeTab = "frens";
   else if (pathname.includes("/wallet")) activeTab = "wallet";
 
+  // Animate the indicator pill to the active tab using GSAP
+  const animatePill = useCallback(() => {
+    const pill = pillRef.current;
+    const nav = navRef.current;
+    if (!pill || !nav) return;
+
+    const activeEl = nav.querySelector(`[data-tab-id="${activeTab}"]`) as HTMLElement | null;
+    if (!activeEl) return;
+
+    const navRect = nav.getBoundingClientRect();
+    const activeRect = activeEl.getBoundingClientRect();
+
+    const targetX = activeRect.left - navRect.left + 4;
+    const targetWidth = activeRect.width - 8;
+    gsap.to(pill, {
+      x: targetX,
+      width: targetWidth,
+      duration: 0.45,
+      ease: "power3.out",
+    });
+
+    const activeIcon = activeEl.querySelector("[data-tab-icon]");
+    if (activeIcon) {
+      gsap.fromTo(
+        activeIcon,
+        { scale: 0.85 },
+        { scale: 1, duration: 0.35, ease: "back.out(2)" },
+      );
+    }
+
+    prevActiveTab.current = activeTab;
+  }, [activeTab]);
+
+  // Initial position (no animation) + animate on tab change
+  useLayoutEffect(() => {
+    const pill = pillRef.current;
+    const nav = navRef.current;
+    if (!pill || !nav) return;
+
+    const activeEl = nav.querySelector(`[data-tab-id="${activeTab}"]`) as HTMLElement | null;
+    if (!activeEl) return;
+
+    const navRect = nav.getBoundingClientRect();
+    const activeRect = activeEl.getBoundingClientRect();
+
+    const targetX = activeRect.left - navRect.left + 4;
+    const targetWidth = activeRect.width - 8;
+
+    // First render: snap immediately
+    if (!prevActiveTab.current || prevActiveTab.current === activeTab) {
+      pill.style.transform = `translateX(${targetX}px)`;
+      pill.style.width = `${targetWidth}px`;
+      prevActiveTab.current = activeTab;
+    } else {
+      animatePill();
+    }
+  }, [activeTab, animatePill, pathname]);
+
   return (
-    <div className="fixed z-50 bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-[420px] h-[70px] bg-white/10 backdrop-blur-2xl rounded-full border border-white/20 overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/10 before:to-transparent before:pointer-events-none">
-      <nav className="grid h-full grid-cols-5 items-center relative">
+    <div className="fixed z-50 bottom-12 left-1/2 -translate-x-1/2 w-[92%] max-w-[420px] h-[70px] bg-white/10 backdrop-blur-2xl rounded-full overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/10 before:to-transparent before:pointer-events-none">
+      <nav ref={navRef} className="grid h-full grid-cols-5 items-center relative">
+        {/* Animated pill indicator */}
+        <div
+          ref={pillRef}
+          className="absolute left-0 top-1 h-[calc(100%-8px)] rounded-full bg-white/10 pointer-events-none will-change-transform"
+          aria-hidden
+        />
 
         {navTabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -125,14 +193,16 @@ const NavigationBar = () => {
               id={tab.id}
               href={tab.href}
               prefetch={true}
+              data-tab-id={tab.id}
               onClick={(e) => pathname === tab.href && e.preventDefault()}
               onContextMenu={(e) => e.preventDefault()}
               onMouseDown={(e) => e.button === 1 && e.preventDefault()}
               className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10"
             >
               <div
-                className={`transition-all duration-300 ${isActive
-                  ? "text-primary scale-110"
+                data-tab-icon
+                className={`transition-colors duration-200 ${isActive
+                  ? "text-white"
                   : "text-muted-foreground group-hover:text-foreground"
                   }`}
               >
@@ -141,7 +211,7 @@ const NavigationBar = () => {
                 </div>
               </div>
               <span
-                className={`text-[10px] font-medium tracking-wide transition-colors duration-300 ${isActive ? "text-primary" : "text-muted-foreground"
+                className={`text-[10px] font-medium tracking-wide transition-colors duration-200 ${isActive ? "text-white" : "text-muted-foreground"
                   }`}
               >
                 {tab.label}

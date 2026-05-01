@@ -21,6 +21,17 @@ const MNEMONIC_PREFIX = "qc_wallet_mnemonic_";
 // In-memory cache to avoid repeated IndexedDB + decrypt round-trips
 const memoryCache = new Map<string, string>();
 
+function normalizeWalletAddress(walletAddress?: string | null): string | null {
+    return walletAddress ? walletAddress.replace(/[^a-zA-Z0-9_-]/g, "_") : null;
+}
+
+function getMnemonicStorageKey(telegramId: string, walletAddress?: string | null): string {
+    const normalizedAddress = normalizeWalletAddress(walletAddress);
+    return normalizedAddress
+        ? `${MNEMONIC_PREFIX}${telegramId}_${normalizedAddress}`
+        : `${MNEMONIC_PREFIX}${telegramId}`;
+}
+
 function openDB(name: string): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(name, 1);
@@ -126,9 +137,13 @@ function migrateMnemonicKey(telegramId: string): void {
  * Store an encrypted mnemonic in localStorage.
  * Format: `enc:<base64(iv[12] + ciphertext)>`
  */
-export async function setSecureMnemonic(telegramId: string | null, mnemonic: string): Promise<void> {
+export async function setSecureMnemonic(telegramId: string | null, mnemonic: string, walletAddress?: string | null): Promise<void> {
     if (!telegramId) return;
-    const storageKey = `${MNEMONIC_PREFIX}${telegramId}`;
+    const activeAddress = walletAddress || localStorage.getItem(`quantum_wallet_address_${telegramId}`);
+    const storageKeys = Array.from(new Set([
+        `${MNEMONIC_PREFIX}${telegramId}`,
+        activeAddress ? getMnemonicStorageKey(telegramId, activeAddress) : null,
+    ].filter(Boolean) as string[]));
 
     try {
         const key = await getOrCreateKey();
@@ -142,8 +157,11 @@ export async function setSecureMnemonic(telegramId: string | null, mnemonic: str
         combined.set(iv);
         combined.set(ctBytes, iv.length);
 
-        localStorage.setItem(storageKey, ENCRYPTED_PREFIX + btoa(String.fromCharCode(...combined)));
-        memoryCache.set(storageKey, mnemonic);
+        const encryptedValue = ENCRYPTED_PREFIX + btoa(String.fromCharCode(...combined));
+        for (const storageKey of storageKeys) {
+            localStorage.setItem(storageKey, encryptedValue);
+            memoryCache.set(storageKey, mnemonic);
+        }
     } catch (error) {
         // Never silently downgrade to plaintext — a plaintext seed in localStorage
         // is worse than a failed save. Surface the failure so the caller can retry.
@@ -156,21 +174,28 @@ export async function setSecureMnemonic(telegramId: string | null, mnemonic: str
  * Read and decrypt a mnemonic from localStorage.
  * Auto-migrates plaintext values to encrypted on first access.
  */
-export async function getSecureMnemonic(telegramId: string | null): Promise<string | null> {
+export async function getSecureMnemonic(telegramId: string | null, walletAddress?: string | null): Promise<string | null> {
     if (!telegramId) return null;
     migrateMnemonicKey(telegramId);
-    const storageKey = `${MNEMONIC_PREFIX}${telegramId}`;
+    const activeAddress = walletAddress || localStorage.getItem(`quantum_wallet_address_${telegramId}`);
+    const storageKeys = Array.from(new Set([
+        activeAddress ? getMnemonicStorageKey(telegramId, activeAddress) : null,
+        `${MNEMONIC_PREFIX}${telegramId}`,
+    ].filter(Boolean) as string[]));
 
     // Check memory cache first
-    const cached = memoryCache.get(storageKey);
-    if (cached) return cached;
+    for (const storageKey of storageKeys) {
+        const cached = memoryCache.get(storageKey);
+        if (cached) return cached;
+    }
 
+    const storageKey = storageKeys.find((key) => localStorage.getItem(key)) ?? storageKeys[0];
     const stored = localStorage.getItem(storageKey);
     if (!stored) return null;
 
     // Auto-migrate plaintext → encrypted
     if (!stored.startsWith(ENCRYPTED_PREFIX)) {
-        await setSecureMnemonic(telegramId, stored);
+        await setSecureMnemonic(telegramId, stored, activeAddress);
         return stored;
     }
 
@@ -201,6 +226,12 @@ export function removeSecureMnemonic(telegramId: string | null): void {
     localStorage.removeItem(storageKey);
     localStorage.removeItem(`${LEGACY_MNEMONIC_PREFIX}${telegramId}`);
     memoryCache.delete(storageKey);
+    Object.keys(localStorage)
+        .filter((key) => key.startsWith(`${MNEMONIC_PREFIX}${telegramId}_`))
+        .forEach((key) => {
+            localStorage.removeItem(key);
+            memoryCache.delete(key);
+        });
 }
 
 /**

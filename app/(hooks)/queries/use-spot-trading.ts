@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
 import { fetchSwappableAssets, createStonApiClient, fromUnits, TON_ADDRESS } from "@/lib/stonfi";
 import { tonApiGet } from "@/lib/tonapi-client";
 import type { SpotToken } from "@/types/spot-trading";
@@ -35,6 +36,13 @@ interface TonApiChartResponse {
     points: [number, number][]; // [timestamp, price]
 }
 
+const tonApiMarketCapJettonSchema = z.object({
+    total_supply: z.string(),
+    metadata: z.object({
+        decimals: z.string().optional(),
+    }).optional(),
+});
+
 // ─── Helpers ────────────────────────────────────────────────────────
 
 /** TonAPI uppercases response keys — do case-insensitive lookup */
@@ -51,6 +59,15 @@ function parsePercent(value: string | undefined): number | undefined {
     const cleaned = value.replace(/\u2212/g, "-").replace(/%/g, "").trim();
     const num = parseFloat(cleaned);
     return isNaN(num) ? undefined : num;
+}
+
+function calculateMarketCapUsd(totalSupply: string | undefined, decimals: number, priceUsd: number | undefined) {
+    if (!totalSupply || !priceUsd || priceUsd <= 0) return undefined;
+
+    const supply = Number(totalSupply) / 10 ** decimals;
+    if (!Number.isFinite(supply) || supply <= 0) return undefined;
+
+    return supply * priceUsd;
 }
 
 // ─── Token list hook ──────────────────────────────────────────────────
@@ -103,6 +120,71 @@ export function useSpotTokens() {
         },
         staleTime: 30_000,
         gcTime: 60_000,
+    });
+}
+
+/**
+ * Fetch spot jettons ranked by real market cap, computed from TonAPI rates
+ * and jetton total supply. Enabled lazily by the home MC tab.
+ */
+export function useSpotTokensByMarketCap(enabled = true) {
+    return useQuery<SpotToken[]>({
+        queryKey: ["spot-tokens", "market-cap"],
+        queryFn: async () => {
+            const assets = await fetchSwappableAssets();
+            const jettons = assets.filter((a) => a.kind === "Jetton");
+
+            const BATCH = 50;
+            const enriched: SpotToken[] = [];
+
+            for (let i = 0; i < jettons.length; i += BATCH) {
+                const batch = jettons.slice(i, i + BATCH);
+                const tokenIds = batch.map((j) => j.contractAddress).join(",");
+
+                let rates: TonApiRatesResponse | null = null;
+                try {
+                    rates = await tonApiGet<TonApiRatesResponse>(
+                        `/v2/rates?tokens=${encodeURIComponent(tokenIds)}&currencies=usd`
+                    );
+                } catch {
+                    // Fall back to STON.fi prices if TonAPI rates fail
+                }
+
+                const details = await Promise.allSettled(
+                    batch.map((asset) =>
+                        tonApiGet<unknown>(`/v2/jettons/${encodeURIComponent(asset.contractAddress)}`)
+                    )
+                );
+
+                batch.forEach((asset, index) => {
+                    const rateData = findRate(rates?.rates, asset.contractAddress);
+                    const priceUsd = rateData?.prices?.USD
+                        ?? (asset.dexPriceUsd ? parseFloat(asset.dexPriceUsd) : undefined);
+                    const detail = details[index].status === "fulfilled"
+                        ? tonApiMarketCapJettonSchema.safeParse(details[index].value)
+                        : null;
+                    const totalSupply = detail?.success ? detail.data.total_supply : undefined;
+                    const decimals = detail?.success
+                        ? Number(detail.data.metadata?.decimals ?? asset.decimals) || asset.decimals
+                        : asset.decimals;
+
+                    enriched.push({
+                        ...asset,
+                        priceUsd,
+                        priceChange24h: parsePercent(rateData?.diff_24h?.USD),
+                        marketCapUsd: calculateMarketCapUsd(totalSupply, decimals, priceUsd),
+                        totalSupply,
+                    });
+                });
+            }
+
+            return enriched
+                .filter((token) => token.marketCapUsd !== undefined)
+                .sort((a, b) => (b.marketCapUsd ?? 0) - (a.marketCapUsd ?? 0));
+        },
+        enabled,
+        staleTime: 60_000,
+        gcTime: 2 * 60_000,
     });
 }
 

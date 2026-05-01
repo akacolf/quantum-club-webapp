@@ -69,13 +69,13 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
 
     if (isLoading) {
         return (
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-white/5 border-0">
                 <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-3">
                         <Icon icon="solar:transfer-horizontal-bold" className="w-5 h-5 text-primary animate-pulse" />
-                        <h3 className="font-semibold text-white">Live Trades</h3>
-                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[9px] ml-auto">
-                            ON-CHAIN
+                        <h3 className="font-semibold text-white">Live trades</h3>
+                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[9px] ml-auto">
+                            On-chain
                         </Badge>
                     </div>
                     <div className="flex items-center justify-center py-6 text-muted-foreground text-sm">
@@ -89,11 +89,11 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
 
     if (!jettonAddress) {
         return (
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-white/5 border-0">
                 <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-3">
                         <Icon icon="solar:transfer-horizontal-bold" className="w-5 h-5 text-primary" />
-                        <h3 className="font-semibold text-white">Live Trades</h3>
+                        <h3 className="font-semibold text-white">Live trades</h3>
                     </div>
                     <div className="flex flex-col items-center justify-center py-6 text-center">
                         <Icon icon="solar:danger-triangle-bold" className="w-8 h-8 text-orange-400/50 mb-2" />
@@ -106,13 +106,13 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
 
     if (trades.length === 0) {
         return (
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-white/5 border-0">
                 <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-3">
                         <Icon icon="solar:transfer-horizontal-bold" className="w-5 h-5 text-primary" />
-                        <h3 className="font-semibold text-white">Live Trades</h3>
-                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[9px] ml-auto">
-                            ON-CHAIN
+                        <h3 className="font-semibold text-white">Live trades</h3>
+                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[9px] ml-auto">
+                            On-chain
                         </Badge>
                     </div>
                     <div className="flex flex-col items-center justify-center py-6 text-center">
@@ -126,7 +126,7 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
     }
 
     return (
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-white/5 border-0">
             <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -134,9 +134,9 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                             <Icon icon="solar:transfer-horizontal-bold" className="w-5 h-5 text-primary" />
                             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                         </div>
-                        <h3 className="font-semibold text-white">Live Trades</h3>
-                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 text-[9px]">
-                            ON-CHAIN
+                        <h3 className="font-semibold text-white">Live trades</h3>
+                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[9px]">
+                            On-chain
                         </Badge>
                     </div>
                     <Badge variant="secondary" className="bg-white/5 text-xs">
@@ -166,7 +166,7 @@ export default function LiveTrades({ tokenSymbol, jettonAddress }: LiveTradesPro
                                     <div className="flex items-center gap-2.5">
                                         <div
                                             className={`w-7 h-7 rounded-lg flex items-center justify-center ${isBuy
-                                                ? "bg-green-500/20 text-green-400"
+                                                ? "bg-transparent text-green-400"
                                                 : "bg-red-500/20 text-red-400"
                                                 }`}
                                         >
