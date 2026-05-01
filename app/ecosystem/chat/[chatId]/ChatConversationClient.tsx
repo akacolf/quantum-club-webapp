@@ -2323,11 +2323,6 @@ export default function ChatConversationClient() {
           {!isGroupChat && !isSelfChat && otherPresence?.isOnline && (
             <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500" />
           )}
-          {isGroupChat && !chatMeta?.isGlobal && (
-            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card flex items-center justify-center">
-              <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
-            </div>
-          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -2463,16 +2458,14 @@ export default function ChatConversationClient() {
         <Drawer open={showShareModal} onOpenChange={setShowShareModal}>
           <DrawerContent>
             <DrawerHeader className="text-center items-center">
-              <DrawerTitle>Share Group</DrawerTitle>
+              <DrawerTitle>Share group</DrawerTitle>
               <DrawerDescription className="text-xs">
                 Invite others to join {headerName}
               </DrawerDescription>
             </DrawerHeader>
             <div className="space-y-4 px-4 pb-6">
               <div className="text-center">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-2">
-                  <Icon icon="solar:users-group-rounded-bold" className="w-7 h-7 text-primary" />
-                </div>
+                <Icon icon="solar:users-group-rounded-bold" className="mx-auto mb-2 h-8 w-8 text-primary" />
                 <p className="text-sm font-semibold">{headerName}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {chatMeta.participants.length} members
@@ -2521,7 +2514,7 @@ export default function ChatConversationClient() {
                   }}
                 >
                   <Icon icon={codeCopied ? "lucide:check" : "lucide:link"} className="w-4 h-4" />
-                  {codeCopied ? "Copied!" : "Copy Link"}
+                  {codeCopied ? "Copied!" : "Copy link"}
                 </Button>
               </div>
             </div>
@@ -2886,9 +2879,7 @@ export default function ChatConversationClient() {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-              <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={36} height={36} />
-            </div>
+            <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={50} height={50} />
             <div>
               <p className="text-sm font-medium text-foreground">No messages yet</p>
               <p className="text-xs text-muted-foreground mt-1">

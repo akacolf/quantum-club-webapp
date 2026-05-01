@@ -1,59 +1,58 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default function Loading() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-40">
-      <div className="px-4 pt-4 space-y-4">
-        {/* Token Header */}
+      <div className="space-y-6 px-4 pt-4">
         <div className="flex items-center gap-3">
-          <Skeleton className="w-14 h-14 rounded-full shrink-0" />
-          <div className="flex-1 min-w-0 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-5 w-20" />
-              <Skeleton className="h-4 w-24 rounded-full" />
-            </div>
-            <Skeleton className="h-3 w-32" />
-            <Skeleton className="h-4 w-28 rounded-full" />
+          <Skeleton className="h-16 w-16 shrink-0 rounded-2xl" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-3 w-28" />
           </div>
         </div>
 
-        {/* Price + Market Cap Row */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <Skeleton className="h-3 w-12" />
-            <Skeleton className="h-7 w-28" />
+        <div className="flex items-end justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-10" />
+            <Skeleton className="h-8 w-36" />
           </div>
-          <div className="space-y-1 text-right">
-            <Skeleton className="h-3 w-16 ml-auto" />
-            <Skeleton className="h-7 w-24 ml-auto" />
+          <div className="space-y-2">
+            <Skeleton className="ml-auto h-3 w-20" />
+            <Skeleton className="h-8 w-28" />
           </div>
         </div>
 
-        {/* Price Chart */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-5 w-20" />
+            <Skeleton className="h-4 w-12" />
+          </div>
+          <Skeleton className="h-2 w-full rounded-full" />
+        </div>
+
+        <div className="space-y-3">
+          <Skeleton className="h-5 w-24" />
+          <div className="grid grid-cols-2 gap-3">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="space-y-2 py-2">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+            ))}
+          </div>
+        </div>
+
         <Skeleton className="h-[220px] w-full rounded-lg" />
 
-        {/* Graduation Progress */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-4 w-36" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-            <Skeleton className="h-2 w-full rounded-full" />
-          </CardContent>
-        </Card>
+        <Skeleton className="h-10 w-full rounded-lg bg-secondary" />
 
-        {/* Tabs (Chat / Trades) */}
-        <Skeleton className="h-10 w-full rounded-lg" />
-
-        {/* Trade items list */}
-        <div className="space-y-2">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="flex items-center justify-between py-3 border-b border-border">
+        <div className="space-y-1">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="flex items-center justify-between py-3">
               <div className="flex items-center gap-2">
-                <Skeleton className="w-8 h-8 rounded-full" />
-                <div className="space-y-1">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="space-y-2">
                   <Skeleton className="h-4 w-20" />
                   <Skeleton className="h-3 w-16" />
                 </div>
@@ -62,13 +61,12 @@ export default function Loading() {
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Buy/Sell Buttons */}
-        <div className="fixed bottom-20 left-0 right-0 max-w-md mx-auto px-4">
-          <div className="flex gap-3">
-            <Skeleton className="h-12 flex-1 rounded-xl" />
-            <Skeleton className="h-12 flex-1 rounded-xl" />
-          </div>
+      <div className="fixed bottom-36 left-0 right-0 z-40 px-4">
+        <div className="mx-auto flex max-w-md gap-3">
+          <Skeleton className="h-12 flex-1 rounded-xl" />
+          <Skeleton className="h-12 flex-1 rounded-xl" />
         </div>
       </div>
     </div>
