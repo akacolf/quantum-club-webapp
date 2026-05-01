@@ -142,9 +142,7 @@ export default function GroupInfoPage() {
   if (!chatMeta) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center text-center p-6">
-        <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-4">
-          <Icon icon="solar:users-group-rounded-bold" className="w-8 h-8 text-muted-foreground" />
-        </div>
+        <Icon icon="material-symbols:groups" className="mb-4 h-10 w-10 text-muted-foreground" />
         <p className="text-muted-foreground text-sm">Group not found</p>
       </div>
     );
@@ -186,7 +184,7 @@ export default function GroupInfoPage() {
           </div>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4" />
+            <Icon icon="material-symbols:groups" className="w-4 h-4" />
             {chatMeta.participants.length} members
           </div>
         </motion.div>

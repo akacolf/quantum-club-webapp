@@ -1325,7 +1325,7 @@ export default function QCChatListPage() {
                         <Icon
                           icon={
                             t === "groups"
-                              ? "solar:users-group-rounded-bold"
+                              ? "material-symbols:groups"
                               : "solar:radio-minimalistic-bold"
                           }
                           className="w-3.5 h-3.5"

@@ -193,9 +193,7 @@ export default function QcAiChatPage() {
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Image src="/svg/logo-white.svg" alt="QC AI" width={36} height={36} />
-            </div>
+            <Image src="/svg/logo-white.svg" alt="QC AI" width={44} height={44} />
             <div>
               <p className="text-sm font-semibold text-foreground">Quantum Club AI</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">
