@@ -1269,7 +1269,7 @@ export default function SwapPage() {
 
                     {step === "success" && (
                         <div key="success"
-                            className="flex flex-col items-center justify-center py-8 space-y-6"
+                            className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
                         >
                             <Icon icon="lucide:check" className="w-20 h-20 text-green-500"/>
                             <div className="text-center space-y-2">
@@ -1294,7 +1294,7 @@ export default function SwapPage() {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
-                                        View on Explorer
+                                        View on explorer
                                         <Icon icon="lucide:external-link" className="w-4 h-4"/>
                                     </a>
                                 </Button>

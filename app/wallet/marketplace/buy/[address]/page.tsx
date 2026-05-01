@@ -276,37 +276,33 @@ export default function BuyNftPage() {
     // Success View
     if (viewMode === "success") {
         return (
-            <div className="min-h-screen bg-background text-foreground p-4 flex items-center justify-center">
-                <div
-                    className="text-center space-y-6 max-w-sm"
-                >
-                    <Icon icon="lucide:check-circle-2" className="w-20 h-20 text-green-500 mx-auto" />
-                    <div>
-                        <h2 className="text-xl font-bold">Purchase complete!</h2>
-                        <p className="text-sm text-muted-foreground mt-2">
-                            The NFT is now yours. Check your wallet to view it.
-                        </p>
+            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4">
+                <Icon icon="lucide:check-circle-2" className="w-20 h-20 text-green-500" />
+                <div className="text-center space-y-2">
+                    <h2 className="text-xl font-bold">Purchase complete!</h2>
+                    <p className="text-sm text-muted-foreground">
+                        The NFT is now yours. Check your wallet to view it.
+                    </p>
+                </div>
+                {nft.image && (
+                    <div className="w-32 h-32 rounded-xl overflow-hidden">
+                        <Image
+                            src={nft.image}
+                            alt={nft.name}
+                            width={128}
+                            height={128}
+                            className="object-cover w-full h-full"
+                            unoptimized
+                        />
                     </div>
-                    {nft.image && (
-                        <div className="w-32 h-32 mx-auto rounded-xl overflow-hidden">
-                            <Image
-                                src={nft.image}
-                                alt={nft.name}
-                                width={128}
-                                height={128}
-                                className="object-cover w-full h-full"
-                                unoptimized
-                            />
-                        </div>
-                    )}
-                    <div className="space-y-3">
-                        <Button asChild className="w-full h-12 rounded-xl">
-                            <Link href="/wallet">View in Wallet</Link>
-                        </Button>
-                        <Button variant="outline" asChild className="w-full h-12 rounded-xl">
-                            <Link href="/wallet/marketplace">Back to Marketplace</Link>
-                        </Button>
-                    </div>
+                )}
+                <div className="w-full space-y-3">
+                    <Button asChild className="w-full h-12 rounded-xl">
+                        <Link href="/wallet">View in wallet</Link>
+                    </Button>
+                    <Button variant="outline" asChild className="w-full h-12 rounded-xl">
+                        <Link href="/wallet/marketplace">Back to marketplace</Link>
+                    </Button>
                 </div>
             </div>
         );

@@ -44,7 +44,6 @@ const FrensContent = () => {
 
   // Fetch referral counts, pending rewards, and TON earnings via TanStack Query
   const { data: frensData, isPending: dataPending, error: dataError } = useFrensDataQuery(telegramId);
-  const secondTierCount = frensData?.secondTierCount ?? 0;
   const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
   const tgFirstName = mounted
     ? window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || username || "Quantum User"
@@ -231,17 +230,6 @@ const FrensContent = () => {
                       <div className="text-sm font-semibold text-amber-400">Earn 2%</div>
                       <div className="text-sm text-neutral-400 font-medium">From their invites</div>
                     </div>
-                    {secondTierCount > 0 && (
-                      <div className="flex flex-col items-end">
-                        <div className="flex items-center gap-2">
-                          <Icon icon="lucide:users-2" className="w-8 h-8 text-neutral-400" />
-                          <div className="text-3xl font-bold text-white">
-                            {secondTierCount}
-                          </div>
-                        </div>
-                        <div className="text-xs text-neutral-500 font-medium mt-1">2nd tier frens</div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Pending Rewards Section */}

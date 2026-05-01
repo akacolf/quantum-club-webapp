@@ -1165,9 +1165,9 @@ export default function LiquidityPage() {
 
               {step === "success" && (
                 <div key="success"
-                  className="text-center py-16 space-y-4"
+                  className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-4 bg-background px-4"
                 >
-                  <Icon icon="lucide:check" className="w-20 h-20 text-green-500 mx-auto"/>
+                  <Icon icon="lucide:check" className="w-20 h-20 text-green-500"/>
                   <h2 className="text-xl font-bold text-green-500">
                     Liquidity added!
                   </h2>
@@ -1204,9 +1204,9 @@ export default function LiquidityPage() {
 
               {removeStep === "success" && (
                 <div key="remove-success"
-                  className="text-center py-16 space-y-4"
+                  className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-4 bg-background px-4"
                 >
-                  <Icon icon="lucide:check" className="w-20 h-20 text-green-500 mx-auto"/>
+                  <Icon icon="lucide:check" className="w-20 h-20 text-green-500"/>
                   <h2 className="text-xl font-bold text-green-500">
                     Liquidity removed!
                   </h2>

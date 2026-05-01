@@ -509,7 +509,7 @@ export default function FarmingPage() {
                             )}
 
                             {step === "success" && (
-                                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-4 bg-background px-4">
                                     <Icon icon="lucide:check-circle" className="w-16 h-16 text-green-500"/>
                                     <div className="text-center">
                                         <h3 className="text-xl font-bold text-white">Staked successfully!</h3>
@@ -532,7 +532,7 @@ export default function FarmingPage() {
                                         variant="outline"
                                         className="mt-4"
                                     >
-                                        Back to Farms
+                                        Back to farms
                                     </Button>
                                 </div>
                             )}
