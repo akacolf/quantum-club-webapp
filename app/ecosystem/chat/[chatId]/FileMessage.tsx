@@ -99,7 +99,7 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
 
   return (
     <div
-      className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
+      className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
       onClick={() => { if (scale <= 1) onClose(); }}
       onContextMenu={(e) => e.preventDefault()}
     >
@@ -112,7 +112,7 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
         </button>
       </div>
       <div
-        className="w-full h-full flex items-center justify-center overflow-hidden touch-none"
+        className="flex h-full w-full items-center justify-center overflow-hidden touch-none"
         {...bindPinch()}
         {...bindDrag()}
         onContextMenu={(e) => e.preventDefault()}
@@ -120,7 +120,7 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
         <img
           src={src}
           alt={alt}
-          className="max-w-full max-h-full object-contain select-none"
+          className="max-h-[88vh] max-w-full rounded-lg object-contain select-none"
           style={{
             transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
             transition: isGesturing ? "none" : "transform 0.2s ease-out",
@@ -278,9 +278,7 @@ export default function FileMessage({
             : `bg-primary/10 ${isPdf ? "hover:bg-primary/15" : ""}`
         }`}
       >
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-          isMine ? "bg-primary-foreground/20" : "bg-primary/20"
-        }`}>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center">
           <Icon icon={getFileIcon(file.mimeType)} className="w-5 h-5 text-white/70" />
         </div>
         <div className="flex-1 min-w-0 text-left">
@@ -294,14 +292,16 @@ export default function FileMessage({
 
       {showPdfViewer && pdfQuery.data && (
         <div
-          className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
+          className="fixed inset-0 z-[9999] flex flex-col bg-black/95"
           onTouchStart={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
         >
-          {/* Header with pt-20 to clear Telegram Mini App buttons */}
-          <div className="flex items-center justify-between px-4 pt-20 pb-3 bg-card/90 backdrop-blur-sm">
-            <p className="text-sm font-medium text-white truncate flex-1 mr-3">{file.name}</p>
+          <div
+            className="flex items-center justify-between gap-3 bg-card/90 px-4 pb-3 pt-3 backdrop-blur-sm"
+            style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
+          >
+            <p className="min-w-0 flex-1 truncate text-sm font-medium text-white">{file.name}</p>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setPdfScale((s) => Math.max(0.5, s - 0.25))}
@@ -328,37 +328,39 @@ export default function FileMessage({
           </div>
           {/* PDF pages rendered by react-pdf — pinch to zoom */}
           <div
-            className="flex-1 overflow-auto bg-neutral-200"
+            className="flex-1 overflow-auto bg-neutral-200 px-3 py-4"
             style={{ touchAction: "pan-x pan-y" }}
             onContextMenu={(e) => e.preventDefault()}
             {...bindPdfPinch()}
           >
-            <Document
-              file={pdfQuery.data}
-              onLoadSuccess={({ numPages: n }) => setNumPages(n)}
-              loading={
-                <div className="flex items-center justify-center py-20 text-neutral-400">
-                  <ButtonLoader size="lg" />
-                </div>
-              }
-              error={
-                <div className="flex flex-col items-center justify-center py-20 gap-2">
-                  <Icon icon="solar:document-bold" className="w-8 h-8 text-neutral-400" />
-                  <p className="text-sm text-neutral-500">Could not load PDF</p>
-                </div>
-              }
-            >
-              {Array.from({ length: numPages }, (_, i) => (
-                <Page
-                  key={i}
-                  pageNumber={i + 1}
-                  width={Math.min(window.innerWidth, 448) * pdfScale}
-                  className="mb-2 mx-auto"
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                />
-              ))}
-            </Document>
+            <div className="mx-auto flex w-full max-w-[448px] flex-col items-center">
+              <Document
+                file={pdfQuery.data}
+                onLoadSuccess={({ numPages: n }) => setNumPages(n)}
+                loading={
+                  <div className="flex items-center justify-center py-20 text-neutral-400">
+                    <ButtonLoader size="lg" />
+                  </div>
+                }
+                error={
+                  <div className="flex flex-col items-center justify-center gap-2 py-20">
+                    <Icon icon="solar:document-bold" className="w-8 h-8 text-neutral-400" />
+                    <p className="text-sm text-neutral-500">Could not load PDF</p>
+                  </div>
+                }
+              >
+                {Array.from({ length: numPages }, (_, i) => (
+                  <Page
+                    key={i}
+                    pageNumber={i + 1}
+                    width={Math.min(window.innerWidth - 24, 448) * pdfScale}
+                    className="mb-3 overflow-hidden rounded-md shadow-lg"
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                  />
+                ))}
+              </Document>
+            </div>
           </div>
         </div>
       )}

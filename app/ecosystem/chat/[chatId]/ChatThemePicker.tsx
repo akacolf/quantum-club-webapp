@@ -64,7 +64,7 @@ export default function ChatThemePicker({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xs rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-sm">Chat Wallpaper</DialogTitle>
+          <DialogTitle className="text-sm">Chat wallpaper</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-4 gap-2">
           {CHAT_THEMES.map((theme) => (
