@@ -11,4 +11,4 @@
  * - PATCH: Bug fixes, small improvements
  */
 
-export const APP_VERSION = "3.5.1";
+export const APP_VERSION = "3.5.0";

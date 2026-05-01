@@ -79,10 +79,8 @@ export default function NftDetailPage() {
     // Share to chat state
     const [showShareModal, setShowShareModal] = useState(false);
 
-    const collectionBackHref = sourceCollectionAddress || nft?.collectionAddress;
-
-    // Back button returns to the collection when the NFT was opened from one.
-    useTelegramBackButton(collectionBackHref ? `/wallet/marketplace/collection/${encodeURIComponent(collectionBackHref)}` : "/wallet/marketplace");
+    // Back button returns to the collection only when explicitly navigated from one.
+    useTelegramBackButton(sourceCollectionAddress ? `/wallet/marketplace/collection/${encodeURIComponent(sourceCollectionAddress)}` : "/wallet");
 
     const EXPLORER_BASE_URL = isTestnet ? "https://testnet.tonviewer.com" : "https://tonviewer.com";
 
@@ -418,7 +416,7 @@ export default function NftDetailPage() {
                 {/* NFT Info */}
                 <div className="space-y-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-foreground">{nft.name}</h1>
+                        <h1 className="text-2xl font-bold text-foreground break-words">{nft.name}</h1>
                         {nft.collectionName && (
                             <Button
                                 variant="ghost"
@@ -435,7 +433,7 @@ export default function NftDetailPage() {
                         <Card className="bg-card border-border">
                             <CardContent className="p-4">
                                 <h3 className="text-xs text-muted-foreground mb-2">Description</h3>
-                                <p className="text-sm text-foreground/80 leading-relaxed">{nft.description}</p>
+                                <p className="text-sm text-foreground/80 leading-relaxed break-words">{nft.description}</p>
                             </CardContent>
                         </Card>
                     )}
