@@ -1167,9 +1167,7 @@ export default function LiquidityPage() {
                 <div key="success"
                   className="text-center py-16 space-y-4"
                 >
-                  <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
-                    <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
-                  </div>
+                  <Icon icon="lucide:check" className="w-20 h-20 text-green-500 mx-auto"/>
                   <h2 className="text-xl font-bold text-green-500">
                     Liquidity added!
                   </h2>
@@ -1208,9 +1206,7 @@ export default function LiquidityPage() {
                 <div key="remove-success"
                   className="text-center py-16 space-y-4"
                 >
-                  <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
-                    <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
-                  </div>
+                  <Icon icon="lucide:check" className="w-20 h-20 text-green-500 mx-auto"/>
                   <h2 className="text-xl font-bold text-green-500">
                     Liquidity removed!
                   </h2>

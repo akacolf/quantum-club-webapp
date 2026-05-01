@@ -474,10 +474,8 @@ export default function SendNftPage() {
                         <div key="success"
                             className="text-center py-12"
                         >
-                            <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
-                                <Icon icon="lucide:check" className="w-10 h-10 text-green-500" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-white mb-2">NFT Sent!</h2>
+                            <Icon icon="lucide:check" className="w-20 h-20 text-green-500 mx-auto mb-6" />
+                            <h2 className="text-2xl font-bold text-white mb-2">NFT sent!</h2>
                             <p className="text-gray-400 mb-8">Your NFT has been transferred</p>
 
                             <div className="space-y-3">
@@ -495,7 +493,7 @@ export default function SendNftPage() {
                                     className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold"
                                     asChild
                                 >
-                                    <Link href="/wallet">Back to Wallet</Link>
+                                    <Link href="/wallet">Back to wallet</Link>
                                 </Button>
                             </div>
                         </div>

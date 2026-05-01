@@ -487,7 +487,7 @@ export default function SendQNTMPage() {
                 className="w-full h-14 bg-foreground text-background hover:bg-foreground/90 rounded-xl font-bold mt-4"
                 asChild
               >
-                <Link href="/wallet">Back to Wallet</Link>
+                <Link href="/wallet">Back to wallet</Link>
               </Button>
             </div>
           )}

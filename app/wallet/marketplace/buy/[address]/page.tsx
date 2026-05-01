@@ -280,11 +280,9 @@ export default function BuyNftPage() {
                 <div
                     className="text-center space-y-6 max-w-sm"
                 >
-                    <div className="w-20 h-20 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
-                        <Icon icon="lucide:check-circle-2" className="w-10 h-10 text-green-500" />
-                    </div>
+                    <Icon icon="lucide:check-circle-2" className="w-20 h-20 text-green-500 mx-auto" />
                     <div>
-                        <h2 className="text-xl font-bold">Purchase Complete!</h2>
+                        <h2 className="text-xl font-bold">Purchase complete!</h2>
                         <p className="text-sm text-muted-foreground mt-2">
                             The NFT is now yours. Check your wallet to view it.
                         </p>

@@ -51,23 +51,25 @@ export const fetchReferralList = authWithQcIdClient
 
     if (referralsSnap.empty) return { referrals: [] };
 
-    const referrals: Array<{ id: string; username: string; quantamount: number }> = [];
+    const referrals: Array<{ id: string; username: string; quantamount: number; referralCount: number }> = [];
     let count = 0;
 
     for (const docSnapshot of referralsSnap.docs) {
       if (count >= MAX_REFERRALS) break;
       const referredId = docSnapshot.id;
       try {
-        const [referredDoc, coinsDoc] = await Promise.all([
+        const [referredDoc, coinsDoc, referralCountSnap] = await Promise.all([
           firestore.doc(`user/${referredId}`).get(),
           firestore.doc(`user/${referredId}/miningData/values`).get(),
+          firestore.collection(`user/${referredId}/referrals`).count().get(),
         ]);
         const username = referredDoc.data()?.username ?? "";
         const coins = coinsDoc.exists && coinsDoc.data()?.firstQuant
           ? parseFloat(coinsDoc.data()!.firstQuant).toFixed(0)
           : "0";
+        const referralCount = referralCountSnap.data().count;
 
-        referrals.push({ id: referredId, username, quantamount: Number(coins) });
+        referrals.push({ id: referredId, username, quantamount: Number(coins), referralCount });
         count++;
       } catch (error) {
         console.error("Error fetching referral:", error);

@@ -668,12 +668,14 @@ export default function SwapPage() {
     return (
         <div className="min-h-screen bg-background text-foreground p-4 pt-6">
             <div className="max-w-md mx-auto">
+                {step !== "success" && (
                 <div className="mb-6 text-center">
                     <h1 className="text-2xl font-bold text-foreground">Swap tokens</h1>
                     <p className="text-sm text-muted-foreground mt-1">
                         Powered by <a href="https://ston.fi" target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground underline-offset-4 hover:underline">STON.fi</a>
                     </p>
                 </div>
+                )}
 
                 
                     {step === "input" && (
@@ -1269,18 +1271,16 @@ export default function SwapPage() {
                         <div key="success"
                             className="flex flex-col items-center justify-center py-8 space-y-6"
                         >
-                            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
-                                <Icon icon="lucide:check" className="w-10 h-10 text-green-500"/>
-                            </div>
+                            <Icon icon="lucide:check" className="w-20 h-20 text-green-500"/>
                             <div className="text-center space-y-2">
-                                <h2 className="text-2xl font-bold">Swap Sent!</h2>
+                                <h2 className="text-2xl font-bold">Swap sent!</h2>
                                 <p className="text-muted-foreground">
                                     Your swap transaction has been submitted to the network.
                                 </p>
                             </div>
 
                             <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 rounded-xl font-bold">
-                                <Link href="/wallet">Back to Wallet</Link>
+                                <Link href="/wallet">Back to wallet</Link>
                             </Button>
 
                             {lastTxHash && (

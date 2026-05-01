@@ -510,11 +510,9 @@ export default function FarmingPage() {
 
                             {step === "success" && (
                                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                                    <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-                                        <Icon icon="lucide:check-circle" className="w-10 h-10 text-green-500"/>
-                                    </div>
+                                    <Icon icon="lucide:check-circle" className="w-16 h-16 text-green-500"/>
                                     <div className="text-center">
-                                        <h3 className="text-xl font-bold text-white">Staked Successfully!</h3>
+                                        <h3 className="text-xl font-bold text-white">Staked successfully!</h3>
                                         <p className="text-sm text-gray-400 mt-1">
                                             Your LP tokens are now earning rewards
                                         </p>
