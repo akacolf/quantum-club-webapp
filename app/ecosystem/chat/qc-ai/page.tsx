@@ -157,10 +157,10 @@ export default function QcAiChatPage() {
     <div className="fixed inset-0 z-[41] flex flex-col">
       {/* Header — native Telegram back button handles navigation */}
       <div
-        className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-card/80 backdrop-blur-sm shrink-0"
+        className="flex items-center gap-3 px-4 py-3 bg-card/80 backdrop-blur-sm shrink-0"
         style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
       >
-        <Avatar className="h-10 w-10 shrink-0 border border-primary/30">
+        <Avatar className="h-10 w-10 shrink-0">
           <AvatarFallback className="bg-white">
             <Image src="/svg/logo-dark.svg" alt="QC AI" width={20} height={20} />
           </AvatarFallback>
@@ -193,7 +193,7 @@ export default function QcAiChatPage() {
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
               <Image src="/svg/logo-white.svg" alt="QC AI" width={36} height={36} />
             </div>
             <div>
@@ -235,7 +235,7 @@ export default function QcAiChatPage() {
                   </Avatar>
                 ) : (
                   <Avatar className="h-7 w-7 shrink-0 mt-0.5">
-                    <AvatarFallback className="bg-background border border-primary/30">
+                    <AvatarFallback className="bg-background">
                       <Image src="/svg/logo-white.svg" alt="AI" width={14} height={14} />
                     </AvatarFallback>
                   </Avatar>
@@ -243,8 +243,8 @@ export default function QcAiChatPage() {
                 <div
                   className={`max-w-[80%] rounded-2xl px-3 py-2 text-[13.5px] leading-[1.4] ${
                     isUser
-                      ? "bg-primary/15 border border-primary/20 rounded-br-md text-foreground"
-                      : "bg-card border border-border/50 rounded-bl-md text-foreground"
+                      ? "bg-primary/15 rounded-br-md text-foreground"
+                      : "bg-card rounded-bl-md text-foreground"
                   }`}
                 >
                   {isUser ? (
@@ -264,11 +264,11 @@ export default function QcAiChatPage() {
         {isStreaming && messages[messages.length - 1]?.role === "user" && (
           <div className="flex gap-2 flex-row">
             <Avatar className="h-7 w-7 shrink-0 mt-0.5">
-              <AvatarFallback className="bg-background border border-primary/30">
+              <AvatarFallback className="bg-background">
                 <Image src="/svg/logo-white.svg" alt="AI" width={14} height={14} />
               </AvatarFallback>
             </Avatar>
-            <div className="bg-card border border-border/50 rounded-2xl rounded-bl-md px-4 py-3">
+            <div className="bg-card rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex gap-1">
                 <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
                 <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
@@ -283,7 +283,7 @@ export default function QcAiChatPage() {
 
       {/* Input */}
       <div
-        className="border-t border-border/50 bg-card/50 backdrop-blur-sm px-3 py-2.5 shrink-0"
+        className="bg-card/50 backdrop-blur-sm px-3 py-2.5 shrink-0"
         style={{ paddingBottom: "max(0.625rem, var(--tg-safe-area-inset-bottom, 0px))" }}
       >
         <div className="flex items-center gap-2">
@@ -296,7 +296,7 @@ export default function QcAiChatPage() {
             placeholder="Ask Quantum Club AI…"
             maxLength={500}
             disabled={isStreaming}
-            className="flex-1 rounded-full px-4 py-2.5 h-auto bg-background border-border/50 text-base placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/40"
+            className="flex-1 rounded-full px-4 py-2.5 h-auto bg-background border-0 text-base placeholder:text-muted-foreground focus-visible:ring-0"
           />
           <Button
             onClick={handleSend}

@@ -146,7 +146,11 @@ export function TokenAnalysisCard({
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            {analysis ? (
+                            {isLoading ? (
+                                <span className="flex h-6 w-16 items-center justify-center text-primary">
+                                    <ButtonLoader size="sm" />
+                                </span>
+                            ) : analysis ? (
                                 <>
                                     <span className={`text-xs font-semibold ${getRiskColor(analysis.riskScore)}`}>
                                         {getRiskLabel(analysis.riskScore)}
@@ -160,12 +164,6 @@ export function TokenAnalysisCard({
                             ) : null}
                         </div>
                     </div>
-
-                    {isLoading && !analysis && (
-                        <div className="flex min-h-24 items-center justify-center pb-4 text-primary">
-                            <ButtonLoader />
-                        </div>
-                    )}
 
                     {/* Expanded Content */}
                     <AnimatePresence>

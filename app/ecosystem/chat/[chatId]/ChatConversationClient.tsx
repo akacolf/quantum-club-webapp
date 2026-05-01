@@ -2316,10 +2316,10 @@ export default function ChatConversationClient() {
           </Avatar>
           {/* Online indicator dot for DMs */}
           {!isGroupChat && !isSelfChat && otherPresence?.isOnline && (
-            <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-card" />
+            <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500" />
           )}
           {isGroupChat && !chatMeta?.isGlobal && (
-            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card border-2 border-background flex items-center justify-center">
+            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card flex items-center justify-center">
               <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
             </div>
           )}
@@ -2475,7 +2475,7 @@ export default function ChatConversationClient() {
               </div>
 
               <button
-                className="w-full rounded-xl border border-border/60 bg-muted/30 p-3 text-center hover:bg-muted/50 active:scale-[0.98] transition-all"
+                className="w-full rounded-xl bg-muted/30 p-3 text-center hover:bg-muted/50 active:scale-[0.98] transition-all"
                 onClick={() => {
                   navigator.clipboard.writeText(chatMeta.joinCode!);
                   toast.success("Join code copied!");
@@ -2541,7 +2541,7 @@ export default function ChatConversationClient() {
 
       {/* Disappearing Messages Dialog */}
       <Dialog open={timerPopoverOpen} onOpenChange={setTimerPopoverOpen}>
-        <DialogContent className="max-w-[280px] rounded-2xl">
+        <DialogContent className="max-w-[280px] rounded-2xl border-0">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <Icon icon="lucide:timer" className="w-5 h-5 text-primary" />
@@ -2591,7 +2591,7 @@ export default function ChatConversationClient() {
 
       {/* Forward Dialog */}
       <Dialog open={showForwardDialog} onOpenChange={(open) => { setShowForwardDialog(open); if (!open) setForwardMsgId(null); }}>
-        <DialogContent hideClose className="max-w-[340px] rounded-2xl">
+        <DialogContent hideClose className="max-w-[340px] rounded-2xl border-0">
           <DialogHeader className="text-center items-center">
             <DialogTitle className="text-center">Forward Message</DialogTitle>
             <DialogDescription className="text-center text-xs">
@@ -2651,7 +2651,7 @@ export default function ChatConversationClient() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Emoji reactions row */}
-            <div className="flex items-center justify-center gap-1 mb-2 px-2 py-1.5 bg-card border border-border/50 rounded-2xl shadow-xl">
+            <div className="flex items-center justify-center gap-1 mb-2 px-2 py-1.5 bg-card rounded-2xl shadow-xl">
               {REACTION_EMOJIS.map((emoji) => {
                 const activeMsg = messages.find((m) => m.id === reactionPickerMsgId);
                 const isReacted = activeMsg?.reactions?.[emoji.key]?.includes(telegramId || "");
@@ -2668,7 +2668,7 @@ export default function ChatConversationClient() {
             </div>
 
             {/* Action items */}
-            <div className="bg-card border border-border/50 rounded-2xl shadow-xl overflow-hidden py-1">
+            <div className="bg-card rounded-2xl shadow-xl overflow-hidden py-1">
               <button
                 onClick={() => {
                   const msg = messages.find((m) => m.id === reactionPickerMsgId);
@@ -2725,7 +2725,7 @@ export default function ChatConversationClient() {
                         <span className="text-[13px] font-medium">Edit</span>
                       </button>
                     )}
-                    <div className="mx-3 border-t border-border/50" />
+                    <div className="mx-3 h-px bg-muted/50" />
                     <button
                       onClick={() => handleDeleteForMe(reactionPickerMsgId!)}
                       className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-500/10 transition-colors"
@@ -2875,7 +2875,7 @@ export default function ChatConversationClient() {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
               <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={36} height={36} />
             </div>
             <div>
@@ -2963,9 +2963,9 @@ export default function ChatConversationClient() {
                       data-bubble
                       className={`relative transition-all duration-200 ${
                         isOwnMessage
-                          ? "bg-primary/15 border border-primary/20 rounded-2xl rounded-br-md"
-                          : "bg-card border border-border/50 rounded-2xl rounded-bl-md"
-                      } ${reactionPickerMsgId === msg.id ? "ring-2 ring-primary/40 scale-[1.02]" : ""} px-2.5 py-1.5`}
+                          ? "bg-primary/15 rounded-2xl rounded-br-md"
+                          : "bg-card rounded-2xl rounded-bl-md"
+                      } ${reactionPickerMsgId === msg.id ? "scale-[1.02]" : ""} px-2.5 py-1.5`}
                     >
                     {!isOwnMessage && !consecutive && isGroupChat && (
                       <div className="flex items-center gap-1 mb-0.5">
@@ -3135,8 +3135,8 @@ export default function ChatConversationClient() {
                                 onClick={() => toggleReaction(msg.id, emojiKey)}
                                 className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] border transition-colors ${
                                   iReacted
-                                    ? "bg-primary/15 border-primary/30 text-primary"
-                                    : "bg-muted/40 border-border/50 text-muted-foreground"
+                                    ? "bg-primary/15 border-transparent text-primary"
+                                    : "bg-muted/40 border-transparent text-muted-foreground"
                                 }`}
                               >
                                 <Icon icon={emoji.icon} className="w-3.5 h-3.5" />
@@ -3163,7 +3163,7 @@ export default function ChatConversationClient() {
                 {getInitials(typingUsers[0])}
               </AvatarFallback>
             </Avatar>
-            <div className="bg-card border border-border/50 rounded-2xl rounded-bl-md px-4 py-3">
+            <div className="bg-card rounded-2xl rounded-bl-md px-4 py-3">
               {isGroupChat && (
                 <p className="text-[10px] font-semibold text-primary mb-1">
                   {typingUsers.join(", ")}
@@ -3185,7 +3185,7 @@ export default function ChatConversationClient() {
       {showScrollDown && (
         <button
           onClick={() => scrollToBottom(true)}
-          className="absolute bottom-32 right-4 z-40 w-10 h-10 rounded-full bg-card border border-border/50 shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
+          className="absolute bottom-32 right-4 z-40 w-10 h-10 rounded-full bg-card shadow-lg flex items-center justify-center hover:bg-muted transition-colors"
         >
           <Icon icon="lucide:chevron-down" className="w-5 h-5 text-muted-foreground" />
         </button>

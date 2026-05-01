@@ -142,7 +142,7 @@ export default function GroupInfoPage() {
   if (!chatMeta) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center text-center p-6">
-        <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-4 border border-border">
+        <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mb-4">
           <Icon icon="solar:users-group-rounded-bold" className="w-8 h-8 text-muted-foreground" />
         </div>
         <p className="text-muted-foreground text-sm">Group not found</p>
@@ -169,7 +169,7 @@ export default function GroupInfoPage() {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center space-y-3"
         >
-          <Avatar className="h-20 w-20 border-2 border-white/10">
+          <Avatar className="h-20 w-20">
             {chatMeta.isGlobal ? (
               <AvatarImage src="/png/qc-global-logo.png" alt="QC Global" />
             ) : null}
@@ -199,12 +199,12 @@ export default function GroupInfoPage() {
           className="space-y-2"
         >
           {chatMeta.createdBy && (
-            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <div className="bg-white/5 rounded-2xl p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0">
                 <Icon icon="solar:crown-bold" className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Created By</p>
+                <p className="text-[10px] text-white/40 font-bold">Created by</p>
                 <div className="flex items-center gap-1.5">
                   <p className="font-bold text-white text-sm">
                     {chatMeta.createdBy === "system" ? "The Quantum Club Team" : `@${resolvedNames[chatMeta.createdBy] || "Unknown"}`}
@@ -221,12 +221,12 @@ export default function GroupInfoPage() {
           )}
 
           {createdAt && (
-            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <div className="bg-white/5 rounded-2xl p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0">
                 <Icon icon="solar:calendar-bold" className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Created</p>
+                <p className="text-[10px] text-white/40 font-bold">Created</p>
                 <p className="font-bold text-white text-sm">{createdAt}</p>
               </div>
             </div>
@@ -251,7 +251,7 @@ export default function GroupInfoPage() {
               return (
                 <div
                   key={uid}
-                  className={`bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between transition-all active:scale-[0.98]${!isSelf ? " cursor-pointer" : ""}`}
+                  className={`bg-white/5 rounded-2xl p-4 flex items-center justify-between transition-all active:scale-[0.98]${!isSelf ? " cursor-pointer" : ""}`}
                   onClick={() => {
                     if (!isSelf) {
                       setPopoverName(name);
@@ -260,7 +260,7 @@ export default function GroupInfoPage() {
                   }}
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-11 w-11 border border-white/10">
+                    <Avatar className="h-11 w-11">
                       {photo && <AvatarImage src={photo} alt={name} />}
                       <AvatarFallback className={`${getAvatarColor(name)} text-white text-xs font-semibold`}>
                         {getInitials(name)}
@@ -281,7 +281,7 @@ export default function GroupInfoPage() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider font-bold">
+                      <p className="text-[10px] text-white/40 font-bold">
                         {isSelf ? "You" : isCreator ? "Creator" : "Member"}
                       </p>
                     </div>

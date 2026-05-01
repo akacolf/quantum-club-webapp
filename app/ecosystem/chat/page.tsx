@@ -204,10 +204,10 @@ function ChatListItem({
         </Avatar>
         {/* Online indicator dot for DMs */}
         {!chat.isGroup && !chat.isGlobal && !isSelfChat && otherPresence?.isOnline && (
-          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-card" />
+          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500" />
         )}
         {chat.isGroup && !chat.isGlobal && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card border-2 border-background flex items-center justify-center">
+          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card flex items-center justify-center">
             <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
           </div>
         )}
@@ -324,12 +324,12 @@ function QcAiChatListItem({
       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 active:bg-muted/50 transition-colors text-left"
     >
       <div className="relative shrink-0">
-        <Avatar className="h-12 w-12 border border-primary/30">
+        <Avatar className="h-12 w-12">
           <AvatarFallback className="bg-white">
             <Image src="/svg/logo-dark.svg" alt="QC AI" width={22} height={22} />
           </AvatarFallback>
         </Avatar>
-        <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary/90 border-2 border-background flex items-center justify-center">
+          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary/90 flex items-center justify-center">
           <Icon icon="solar:magic-stick-3-bold" className="w-3 h-3 text-primary-foreground" />
         </div>
       </div>
@@ -1047,7 +1047,7 @@ export default function QCChatListPage() {
 
         {/* New Chat / Create Group / Join Group forms */}
         {formMode !== "none" && (
-          <div className="mt-3 p-4 rounded-xl border border-border/60 bg-card/60 space-y-3">
+          <div className="mt-3 p-4 rounded-xl bg-card/60 space-y-3">
             {/* Tabs */}
             <div className="flex gap-1 p-0.5 rounded-lg bg-muted/50">
               {(["dm", "group", "join"] as const).map((mode) => (
@@ -1088,7 +1088,7 @@ export default function QCChatListPage() {
                             if (e.key === "Enter") { e.preventDefault(); handleStartChat(); }
                           }}
                           placeholder="username"
-                          className="h-9 pl-8 rounded-lg bg-background/70 border-border/60 text-sm font-mono"
+                          className="h-9 pl-8 rounded-lg bg-background/70 border-0 text-sm font-mono"
                           disabled={isStartingChat}
                           autoFocus
                         />
@@ -1135,7 +1135,7 @@ export default function QCChatListPage() {
                       }}
                       placeholder="Group name"
                       maxLength={50}
-                      className="h-9 rounded-lg bg-background/70 border-border/60 text-sm"
+                      className="h-9 rounded-lg bg-background/70 border-0 text-sm"
                       disabled={isStartingChat}
                       autoFocus
                     />
@@ -1145,7 +1145,7 @@ export default function QCChatListPage() {
                 {/* Make discoverable toggle */}
                 <groupForm.Field name="isPublic">
                   {(field) => (
-                    <label className="w-full flex items-center justify-between p-2.5 rounded-lg bg-background/40 border border-border/60 hover:bg-background/60 transition-colors cursor-pointer">
+                    <label className="w-full flex items-center justify-between p-2.5 rounded-lg bg-background/40 hover:bg-background/60 transition-colors cursor-pointer">
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                           <Icon icon="solar:global-bold" className="w-3.5 h-3.5 text-primary" />
@@ -1201,7 +1201,7 @@ export default function QCChatListPage() {
                               onChange={(e) => field.handleChange(e.target.value)}
                               placeholder="Short description (optional)"
                               maxLength={200}
-                              className="h-9 rounded-lg bg-background/70 border-border/60 text-sm"
+                              className="h-9 rounded-lg bg-background/70 border-0 text-sm"
                               disabled={isStartingChat}
                             />
                           )}
@@ -1243,7 +1243,7 @@ export default function QCChatListPage() {
                         }}
                         placeholder="Enter join code"
                         maxLength={6}
-                        className="h-9 flex-1 rounded-lg bg-background/70 border-border/60 text-sm font-mono tracking-widest text-center uppercase"
+                        className="h-9 flex-1 rounded-lg bg-background/70 border-0 text-sm font-mono tracking-widest text-center uppercase"
                         disabled={isStartingChat}
                         autoFocus
                       />
@@ -1381,7 +1381,7 @@ export default function QCChatListPage() {
 
             {filteredConversations.length === 0 && !showGlobalChat ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-6">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                   <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={40} height={40} />
                 </div>
                 <div>

@@ -47,7 +47,7 @@ const WalletNavigation = () => {
   const walletAddress = useWalletStore((s) => s.walletAddress);
   const pillRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
-  const prevActiveTab = useRef<string>("home");
+  const prevActiveTab = useRef<string>("");
 
   const getActiveTab = () => {
     // Check for exact match first (wallet home)
@@ -81,8 +81,6 @@ const WalletNavigation = () => {
     const targetX = activeRect.left - navRect.left + 4;
     const targetWidth = activeRect.width - 8;
 
-    if (prevActiveTab.current === activeTab) return;
-
     gsap.to(pill, {
       x: targetX,
       width: targetWidth,
@@ -115,9 +113,10 @@ const WalletNavigation = () => {
     const targetX = activeRect.left - navRect.left + 4;
     const targetWidth = activeRect.width - 8;
 
-    if (prevActiveTab.current === activeTab) {
+    if (!prevActiveTab.current || prevActiveTab.current === activeTab) {
       pill.style.transform = `translateX(${targetX}px)`;
       pill.style.width = `${targetWidth}px`;
+      prevActiveTab.current = activeTab;
     } else {
       animatePill();
     }

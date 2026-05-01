@@ -101,7 +101,7 @@ const NavigationBar = () => {
   const router = useRouter();
   const pillRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
-  const prevActiveTab = useRef<string>("home");
+  const prevActiveTab = useRef<string>("");
 
   useEffect(() => {
     TAB_ROUTES.forEach((route) => {
@@ -131,8 +131,6 @@ const NavigationBar = () => {
 
     const targetX = activeRect.left - navRect.left + 4;
     const targetWidth = activeRect.width - 8;
-    if (prevActiveTab.current === activeTab) return;
-
     gsap.to(pill, {
       x: targetX,
       width: targetWidth,
@@ -168,9 +166,10 @@ const NavigationBar = () => {
     const targetWidth = activeRect.width - 8;
 
     // First render: snap immediately
-    if (prevActiveTab.current === activeTab) {
+    if (!prevActiveTab.current || prevActiveTab.current === activeTab) {
       pill.style.transform = `translateX(${targetX}px)`;
       pill.style.width = `${targetWidth}px`;
+      prevActiveTab.current = activeTab;
     } else {
       animatePill();
     }

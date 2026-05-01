@@ -44,7 +44,7 @@ const EcosystemNavigation = () => {
   const [tradePopoverOpen, setTradePopoverOpen] = useState(false);
   const pillRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
-  const prevActiveTab = useRef<string>("trade");
+  const prevActiveTab = useRef<string>("");
 
   // Subscribe to total unread count across all chats
   useEffect(() => {
@@ -93,8 +93,6 @@ const EcosystemNavigation = () => {
     const targetX = activeRect.left - navRect.left + 4;
     const targetWidth = activeRect.width - 8;
 
-    if (prevActiveTab.current === activeTab) return;
-
     gsap.to(pill, {
       x: targetX,
       width: targetWidth,
@@ -127,9 +125,10 @@ const EcosystemNavigation = () => {
     const targetX = activeRect.left - navRect.left + 4;
     const targetWidth = activeRect.width - 8;
 
-    if (prevActiveTab.current === activeTab) {
+    if (!prevActiveTab.current || prevActiveTab.current === activeTab) {
       pill.style.transform = `translateX(${targetX}px)`;
       pill.style.width = `${targetWidth}px`;
+      prevActiveTab.current = activeTab;
     } else {
       animatePill();
     }
@@ -149,7 +148,7 @@ const EcosystemNavigation = () => {
       >
         <div
           ref={pillRef}
-          className="absolute left-0 top-1 h-[calc(100%-8px)] rounded-full bg-white/10 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] pointer-events-none will-change-transform"
+          className="absolute left-0 top-1 h-[calc(100%-8px)] rounded-full bg-white/10 pointer-events-none will-change-transform"
           aria-hidden
         />
         {navTabs.map((tab) => {
