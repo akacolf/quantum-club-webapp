@@ -207,11 +207,6 @@ function ChatListItem({
         {!chat.isGroup && !chat.isGlobal && !isSelfChat && otherPresence?.isOnline && (
           <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-green-500" />
         )}
-        {chat.isGroup && !chat.isGlobal && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card flex items-center justify-center">
-            <Icon icon="solar:users-group-rounded-bold" className="w-3 h-3 text-muted-foreground" />
-          </div>
-        )}
       </div>
 
       <div className="flex-1 min-w-0">
@@ -1150,9 +1145,7 @@ export default function QCChatListPage() {
                   {(field) => (
                     <label className="w-full flex items-center justify-between p-2.5 rounded-lg bg-background/40 hover:bg-background/60 transition-colors cursor-pointer">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Icon icon="solar:global-bold" className="w-3.5 h-3.5 text-primary" />
-                        </div>
+                        <Icon icon="solar:global-bold" className="h-4 w-4 shrink-0 text-primary" />
                         <div className="min-w-0">
                           <p className="text-[12px] font-semibold text-foreground">Discoverable</p>
                           <p className="text-[10px] text-muted-foreground">Anyone can find &amp; join</p>
@@ -1384,9 +1377,7 @@ export default function QCChatListPage() {
 
             {filteredConversations.length === 0 && !showGlobalChat ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-center px-6">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={40} height={40} />
-                </div>
+                <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={56} height={56} />
                 <div>
                   <p className="text-sm font-medium text-foreground">
                     {searchQuery ? "No chats found" : "No conversations yet"}

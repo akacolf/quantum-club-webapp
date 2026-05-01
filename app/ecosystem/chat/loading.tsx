@@ -1,29 +1,43 @@
+import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default function Loading() {
   return (
-    <div className="min-h-screen pb-24">
-      {/* Header */}
-      <div className="p-4 pt-6">
-        <Skeleton className="h-8 w-20" />
+    <div className="flex h-[calc(100dvh-70px)] flex-col bg-background">
+      <div className="shrink-0 px-4 pb-3 pt-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Image src="/png/qc-chat-logo.png" alt="QC Chat" width={36} height={36} />
+            <div>
+              <div className="flex items-center gap-1.5">
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-3 w-8 bg-yellow-400/20" />
+              </div>
+              <Skeleton className="mt-1 h-3 w-20" />
+            </div>
+          </div>
+          <Skeleton className="h-9 w-9 rounded-full" />
+        </div>
+
+        <Skeleton className="h-9 w-full rounded-xl bg-secondary" />
+        <div className="mt-3 grid h-10 grid-cols-2 rounded-xl bg-secondary p-1">
+          <Skeleton className="h-full rounded-lg bg-primary/15" />
+          <Skeleton className="h-full rounded-lg bg-transparent" />
+        </div>
       </div>
 
-      {/* Chat List */}
-      <div className="px-4 space-y-2">
-        {[...Array(6)].map((_, i) => (
-          <Card key={i} className="bg-white/5 border-white/5">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Skeleton className="w-12 h-12 rounded-full shrink-0" />
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex items-center justify-between">
-                  <Skeleton className="h-4 w-28" />
-                  <Skeleton className="h-3 w-10" />
-                </div>
-                <Skeleton className="h-3 w-3/4" />
+      <div className="flex-1 overflow-hidden">
+        {[...Array(8)].map((_, index) => (
+          <div key={index} className="flex items-center gap-3 px-4 py-3">
+            <Skeleton className="h-12 w-12 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-3">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-8" />
               </div>
-            </CardContent>
-          </Card>
+              <Skeleton className="mt-2 h-3 w-2/3" />
+            </div>
+          </div>
         ))}
       </div>
     </div>
