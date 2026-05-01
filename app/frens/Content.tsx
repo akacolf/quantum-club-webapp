@@ -225,6 +225,13 @@ const FrensContent = () => {
                 </div>
 
                 <div className="pt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-amber-400">Earn 2%</div>
+                      <div className="text-sm text-neutral-400 font-medium">From their invites</div>
+                    </div>
+                  </div>
+
                   {/* Pending Rewards Section */}
                   <div className="mt-4 p-3 bg-white/5 rounded-lg">
                     <div className="flex items-center justify-between">
@@ -247,6 +254,9 @@ const FrensContent = () => {
                     </div>
                   </div>
 
+                  <p className="text-xs text-neutral-500 mt-3 leading-relaxed">
+                    When your invited friends invite others, you earn 2% of their earnings.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -287,10 +297,20 @@ const FrensContent = () => {
                                           unoptimized
                                         />
                                       ) : (
-                                        <Icon icon="lucide:user" className="w-5 h-5 text-neutral-400" />
+                                        <span className="text-sm font-bold text-neutral-300">
+                                          {referral.username ? referral.username.charAt(0).toUpperCase() : "?"}
+                                        </span>
                                       )}
                                     </div>
-                                    <div className="font-medium text-sm text-neutral-200">{referral.username}</div>
+                                    <div>
+                                      <div className="font-medium text-sm text-neutral-200">{referral.username}</div>
+                                      {(referral.referralCount ?? 0) > 0 && (
+                                        <div className="flex items-center gap-1 mt-0.5">
+                                          <Icon icon="radix-icons:people" className="w-3 h-3 text-neutral-500" />
+                                          <span className="text-xs text-neutral-500">{referral.referralCount}</span>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                   <div className="flex items-center px-3 py-1.5">
                                     <span className="font-bold text-sm text-green-400">

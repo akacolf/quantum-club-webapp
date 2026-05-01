@@ -472,15 +472,14 @@ export default function SendNftPage() {
 
                     {step === "success" && (
                         <div key="success"
-                            className="text-center py-12"
+                            className="fixed inset-0 z-50 flex flex-col items-center justify-center space-y-6 bg-background px-4"
                         >
-                            <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
-                                <Icon icon="lucide:check" className="w-10 h-10 text-green-500" />
+                            <Icon icon="lucide:check" className="w-20 h-20 text-green-500" />
+                            <div className="text-center space-y-2">
+                                <h2 className="text-2xl font-bold text-white">NFT sent!</h2>
+                                <p className="text-gray-400">Your NFT has been transferred</p>
                             </div>
-                            <h2 className="text-2xl font-bold text-white mb-2">NFT Sent!</h2>
-                            <p className="text-gray-400 mb-8">Your NFT has been transferred</p>
-
-                            <div className="space-y-3">
+                            <div className="w-full space-y-3">
                                 {lastTxHash && (
                                     <Button
                                         variant="outline"
@@ -488,14 +487,14 @@ export default function SendNftPage() {
                                         className="w-full h-12 bg-card border-border text-foreground hover:bg-muted rounded-xl"
                                     >
                                         <Icon icon="lucide:external-link" className="w-4 h-4 mr-2" />
-                                        View on Explorer
+                                        View on explorer
                                     </Button>
                                 )}
                                 <Button
                                     className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold"
                                     asChild
                                 >
-                                    <Link href="/wallet">Back to Wallet</Link>
+                                    <Link href="/wallet">Back to wallet</Link>
                                 </Button>
                             </div>
                         </div>
