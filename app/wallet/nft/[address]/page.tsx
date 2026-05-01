@@ -422,7 +422,7 @@ export default function NftDetailPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => nft.collectionAddress && router.push(`/wallet/marketplace/collection/${encodeURIComponent(nft.collectionAddress)}`)}
-                                className="h-auto p-0 text-sm text-primary hover:text-primary/80 hover:bg-transparent transition-colors mt-1"
+                                className="h-auto p-0 text-sm text-primary hover:text-primary/80 hover:bg-transparent transition-colors mt-1 whitespace-normal break-words text-left"
                             >
                                 {nft.collectionName}
                             </Button>
