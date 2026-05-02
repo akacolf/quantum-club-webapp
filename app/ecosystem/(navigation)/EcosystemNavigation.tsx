@@ -230,7 +230,7 @@ const EcosystemNavigation = () => {
                     <button
                       id={`ecosystem-nav-${tab.id}`}
                       data-tab-id={tab.id}
-                      className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10"
+                      className="group relative flex flex-col items-center justify-center gap-1 h-full w-full z-10 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 [-webkit-tap-highlight-color:transparent]"
                       onContextMenu={(e) => e.preventDefault()}
                     >
                       {tabContent}
@@ -245,7 +245,7 @@ const EcosystemNavigation = () => {
                     <Link
                       href="/ecosystem/trade"
                       onClick={() => setTradePopoverOpen(false)}
-                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${isOnLaunchpad ? "bg-white/5" : "hover:bg-white/10"}`}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 [-webkit-tap-highlight-color:transparent] ${isOnLaunchpad ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
                       <Icon icon="mynaui:rocket-solid" className="w-5 h-5 shrink-0 text-primary" />
                       <div className="flex-1 text-left">
@@ -259,9 +259,9 @@ const EcosystemNavigation = () => {
                     <Link
                       href="/ecosystem/trade/spot"
                       onClick={() => setTradePopoverOpen(false)}
-                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 [-webkit-tap-highlight-color:transparent] ${isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
-                      <Icon icon="solar:chart-2-bold" className="w-5 h-5 shrink-0 text-green-400" />
+                      <Icon icon="solar:chart-2-bold" className="w-5 h-5 shrink-0 text-primary" />
                       <div className="flex-1 text-left">
                         <p className="text-sm font-semibold text-white">Spot</p>
                         <p className="text-[10px] text-muted-foreground">Trade tokens</p>
@@ -273,9 +273,9 @@ const EcosystemNavigation = () => {
                     <Link
                       href="/ecosystem/trade/stocks"
                       onClick={() => setTradePopoverOpen(false)}
-                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${isOnStocks ? "bg-white/5" : "hover:bg-white/10"}`}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 [-webkit-tap-highlight-color:transparent] ${isOnStocks ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
-                      <Icon icon="solar:graph-up-bold" className="w-5 h-5 shrink-0 text-blue-400" />
+                      <Icon icon="solar:graph-up-bold" className="w-5 h-5 shrink-0 text-primary" />
                       <div className="flex-1 text-left">
                         <p className="text-sm font-semibold text-white">xStocks</p>
                         <p className="text-[10px] text-muted-foreground">Tokenized equities</p>
