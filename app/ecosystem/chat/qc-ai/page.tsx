@@ -201,8 +201,8 @@ export default function QcAiChatPage() {
                 earning QNTM, or how the ecosystem works.
               </p>
             </div>
-            <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto scrollbar-hide mt-2">
-              <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-1">
+            <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto overscroll-x-contain scrollbar-hide mt-2">
+              <div className="flex w-max gap-2.5 pl-[5vw] pr-[5vw] pb-1">
               {SUGGESTED_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}

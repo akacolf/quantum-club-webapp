@@ -11,11 +11,13 @@ service firebase.storage {
                        || request.resource.contentType == 'application/octet-stream');
     }
 
-    // Chat files (images, documents): authenticated users can upload/read
+    // Chat files (images, documents): authenticated users can upload/read.
+    // Cap at 11 MiB to allow ~10 MB raw + encryption envelope overhead
+    // (the client UI rejects raw files over 10 MB - 256 bytes).
     match /chat-files/{chatId}/{messageId}/{filename} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
-                   && request.resource.size < 10 * 1024 * 1024;
+                   && request.resource.size < 11 * 1024 * 1024;
     }
 
     // Profile photos: public read (avatars are broadcast), owner-only write.

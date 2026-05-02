@@ -55,32 +55,78 @@ export function TokenMention({ symbol }: TokenMentionProps) {
     );
 }
 
-/**
- * Split a message into text / mention segments for rendering.
- * Mentions are `$SYMBOL` where SYMBOL is 2-10 alphanumeric chars starting
- * with a letter (so "$1" doesn't match, but "$TON" and "$QNTM" do).
- */
 export type MessageSegment =
     | { type: "text"; content: string }
-    | { type: "mention"; symbol: string };
+    | { type: "mention"; symbol: string }
+    | { type: "link"; href: string; label: string };
 
 const MENTION_REGEX = /\$([A-Za-z][A-Za-z0-9]{1,9})\b/g;
+// http(s) URL or bare www.* — terminated by whitespace. Trailing punctuation is
+// trimmed below so things like "see https://x.com." don't keep the dot in the link.
+const LINK_REGEX = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi;
+const TRAILING_PUNCT = /[)\].,;:!?'"]+$/;
 
+function safeUrl(raw: string): string | null {
+    try {
+        const candidate = raw.startsWith("http") ? raw : `https://${raw}`;
+        const u = new URL(candidate);
+        if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+        return u.toString();
+    } catch {
+        return null;
+    }
+}
+
+function splitLinks(text: string): MessageSegment[] {
+    const out: MessageSegment[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    LINK_REGEX.lastIndex = 0;
+    while ((match = LINK_REGEX.exec(text)) !== null) {
+        let raw = match[0];
+        const trail = raw.match(TRAILING_PUNCT)?.[0] ?? "";
+        if (trail) raw = raw.slice(0, raw.length - trail.length);
+        const href = safeUrl(raw);
+        const start = match.index;
+        if (start > lastIndex) {
+            out.push({ type: "text", content: text.slice(lastIndex, start) });
+        }
+        if (href) {
+            out.push({ type: "link", href, label: raw });
+        } else {
+            out.push({ type: "text", content: raw });
+        }
+        lastIndex = start + raw.length;
+        if (trail) {
+            out.push({ type: "text", content: trail });
+            lastIndex += trail.length;
+        }
+    }
+    if (lastIndex < text.length) {
+        out.push({ type: "text", content: text.slice(lastIndex) });
+    }
+    return out;
+}
+
+/**
+ * Split a message into text / mention / link segments for rendering.
+ * Mentions are `$SYMBOL` (2–10 alphanumeric, letter-leading). Links are
+ * http(s) URLs or bare `www.*` runs.
+ */
 export function parseMessageSegments(text: string): MessageSegment[] {
     const segments: MessageSegment[] = [];
     let lastIndex = 0;
     let match: RegExpExecArray | null;
-    // Reset regex state since the pattern has the /g flag
     MENTION_REGEX.lastIndex = 0;
     while ((match = MENTION_REGEX.exec(text)) !== null) {
         if (match.index > lastIndex) {
-            segments.push({ type: "text", content: text.slice(lastIndex, match.index) });
+            segments.push(...splitLinks(text.slice(lastIndex, match.index)));
         }
         segments.push({ type: "mention", symbol: match[1] });
         lastIndex = match.index + match[0].length;
     }
     if (lastIndex < text.length) {
-        segments.push({ type: "text", content: text.slice(lastIndex) });
+        segments.push(...splitLinks(text.slice(lastIndex)));
     }
     return segments;
 }
