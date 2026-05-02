@@ -7,7 +7,6 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -633,7 +632,7 @@ export default function AIChatDrawer() {
 
                             {/* Content - History View or Chat View */}
                             {viewMode === "history" ? (
-                                <ScrollArea className="flex-1 p-4">
+                                <div className="flex-1 overflow-y-auto p-4">
                                     <div className="space-y-2">
                                         {sessions.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center h-[50vh] text-center">
@@ -678,13 +677,13 @@ export default function AIChatDrawer() {
                                             ))
                                         )}
                                     </div>
-                                </ScrollArea>
+                                </div>
                             ) : (
                                 /* Messages */
-                                <ScrollArea className="flex-1 p-4">
+                                <div className="flex-1 overflow-y-auto p-4">
                                     <div className="space-y-4">
-                                        {visibleMessages.length === 0 && !currentSessionId ? (
-                                            <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
+                                        {visibleMessages.length === 0 ? (
+                                            <div className="flex flex-col items-center pt-8 text-center px-4">
                                                 <Avatar className="h-16 w-16 mb-4">
                                                     <AvatarFallback className="bg-card border border-border">
                                                         <Image
@@ -702,47 +701,14 @@ export default function AIChatDrawer() {
                                                 <p className="text-sm text-muted-foreground mb-6">
                                                     Ask about crypto, TON, or Quantum Club
                                                 </p>
-                                                <div className="flex flex-wrap gap-2 justify-center">
+                                                <div className="flex flex-col gap-2 w-full">
                                                     {suggestedPrompts.map((prompt) => (
                                                         <Button
                                                             key={prompt}
                                                             variant="outline"
                                                             size="sm"
                                                             onClick={() => handlePromptClick(prompt)}
-                                                            className="rounded-full"
-                                                        >
-                                                            {prompt}
-                                                        </Button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ) : visibleMessages.length === 0 ? (
-                                            <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
-                                                <Avatar className="h-16 w-16 mb-4">
-                                                    <AvatarFallback className="bg-card border border-border">
-                                                        <Image
-                                                            src="/svg/logo-white.svg"
-                                                            alt="Quantum Club AI"
-                                                            width={32}
-                                                            height={32}
-                                                            priority
-                                                        />
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <h3 className="text-lg font-semibold text-foreground mb-2">
-                                                    How can I help?
-                                                </h3>
-                                                <p className="text-sm text-muted-foreground mb-6">
-                                                    Ask about crypto, TON, or Quantum Club
-                                                </p>
-                                                <div className="flex flex-wrap gap-2 justify-center">
-                                                    {suggestedPrompts.map((prompt) => (
-                                                        <Button
-                                                            key={prompt}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handlePromptClick(prompt)}
-                                                            className="rounded-full"
+                                                            className="rounded-full w-full"
                                                         >
                                                             {prompt}
                                                         </Button>
@@ -773,7 +739,7 @@ export default function AIChatDrawer() {
 
                                         <div ref={messagesEndRef} />
                                     </div>
-                                </ScrollArea>
+                                </div>
                             )}
 
                             {/* Input - Only show in chat view */}

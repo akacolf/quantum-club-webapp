@@ -33,17 +33,9 @@ const SANCTIONED_COUNTRIES = [
   "CU", // Cuba
   "IR", // Iran
   "KP", // North Korea
-  "SY", // Syria
   "RU", // Russia (due to financial sanctions)
   "BY", // Belarus
   "MM", // Myanmar
-  "VE", // Venezuela (partial sanctions)
-  "ZW", // Zimbabwe
-  "SD", // Sudan
-  "CF", // Central African Republic
-  "LY", // Libya
-  "SO", // Somalia
-  "YE", // Yemen
 ];
 
 // Regions within sanctioned countries (Crimea, Donetsk, Luhansk)

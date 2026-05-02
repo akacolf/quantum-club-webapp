@@ -2,6 +2,7 @@
 
 import { useState, use } from "react";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice, useSpotTokenMarket, useSpotTokenDyor } from "@/app/(hooks)/queries/use-spot-trading";
@@ -17,7 +18,9 @@ import SpotTradingPanel from "../(components)/SpotTradingPanel";
 export default function SpotTokenDetailPage({ params }: { params: Promise<{ address: string }> }) {
     const { address } = use(params);
     const decodedAddress = decodeURIComponent(address);
-    useTelegramBackButton("/ecosystem/trade/spot");
+    const searchParams = useSearchParams();
+    const backTo = searchParams.get("from") ?? "/ecosystem/trade/spot";
+    useTelegramBackButton(backTo);
 
     const { tonPrice } = useWallet();
     const { data: tokens, isLoading: isLoadingTokens } = useSpotTokens();

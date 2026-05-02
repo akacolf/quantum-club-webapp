@@ -277,7 +277,7 @@ const EcosystemNavigation = () => {
                     >
                       <Icon icon="solar:graph-up-bold" className="w-5 h-5 shrink-0 text-blue-400" />
                       <div className="flex-1 text-left">
-                        <p className="text-sm font-semibold text-white">Stocks</p>
+                        <p className="text-sm font-semibold text-white">xStocks</p>
                         <p className="text-[10px] text-muted-foreground">Tokenized equities</p>
                       </div>
                       {isOnStocks && (

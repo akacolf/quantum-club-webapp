@@ -6,10 +6,10 @@ import { Icon } from "@iconify/react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import { useSpotTokens } from "@/app/(hooks)/queries/use-spot-trading";
+import { useXStocksTokens } from "@/app/(hooks)/queries/use-spot-trading";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import SpotTokenCard from "../spot/(components)/SpotTokenCard";
-import { isXStockSymbol, underlyingTicker, XSTOCKS_ACK_LOCAL_KEY } from "@/lib/xstocks";
+import { underlyingTicker, XSTOCKS_ACK_LOCAL_KEY } from "@/lib/xstocks";
 import { StocksComplianceGate } from "./(components)/StocksComplianceGate";
 
 const subscribeAck = (cb: () => void) => {
@@ -34,7 +34,7 @@ export default function StocksPage() {
     const persistedAck = useSyncExternalStore(subscribeAck, getAckSnapshot, getAckServerSnapshot);
     const acknowledged = persistedAck === null ? null : persistedAck || localAck;
 
-    const { data: tokens, isLoading } = useSpotTokens();
+    const { data: tokens, isLoading } = useXStocksTokens();
     const [{ q: searchQuery }, setParams] = useQueryStates(
         { q: parseAsString.withDefault("") },
         { history: "replace" },
@@ -50,11 +50,11 @@ export default function StocksPage() {
         return <StocksComplianceGate onAcknowledge={() => setLocalAck(true)} />;
     }
 
-    const xstocks = (tokens ?? []).filter((t) => isXStockSymbol(t.symbol));
     const filtered = (() => {
-        if (!debouncedQuery) return xstocks;
+        const all = tokens ?? [];
+        if (!debouncedQuery) return all;
         const q = debouncedQuery.toLowerCase();
-        return xstocks.filter(
+        return all.filter(
             (t) =>
                 t.symbol.toLowerCase().includes(q) ||
                 t.displayName.toLowerCase().includes(q) ||
@@ -63,15 +63,15 @@ export default function StocksPage() {
     })();
 
     return (
-        <div className="min-h-screen bg-background pb-24">
-            <div
-                className="px-4 pt-3 pb-4 bg-card/50 backdrop-blur-sm sticky top-0 z-10"
-                style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
-            >
+        <div
+            className="min-h-screen bg-background pb-24"
+            style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
+        >
+            <div className="px-4 pt-3 pb-2">
                 <div className="flex items-center gap-3 mb-3">
                     <Icon icon="solar:graph-up-bold" className="w-7 h-7 text-primary" />
                     <div className="flex-1 min-w-0">
-                        <h1 className="text-lg font-semibold text-foreground leading-tight">Stocks</h1>
+                        <h1 className="text-lg font-semibold text-foreground leading-tight">xStocks</h1>
                         <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
                             Tokenized equities via STON.fi
                         </p>
@@ -93,7 +93,7 @@ export default function StocksPage() {
                 </div>
             </div>
 
-            <div className="px-3 pt-3">
+            <div className="px-3 pt-1">
                 <div className="rounded-xl bg-muted/40 p-3 mb-3 flex gap-2.5">
                     <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -109,7 +109,7 @@ export default function StocksPage() {
                 ) : (
                     <div className="space-y-2">
                         {filtered.map((token, i) => (
-                            <SpotTokenCard key={token.contractAddress} token={token} index={i} />
+                            <SpotTokenCard key={token.contractAddress} token={token} index={i} backTo="/ecosystem/trade/stocks" />
                         ))}
                     </div>
                 )}
