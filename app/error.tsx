@@ -17,24 +17,22 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
       </div>
 
       <div className="relative z-10 flex flex-col items-center text-center space-y-6 max-w-md w-full">
-        <div className="w-24 h-24 bg-red-500/10 rounded-3xl flex items-center justify-center border border-red-500/20 shadow-[0_0_30px_-10px_rgba(239,68,68,0.3)]">
-          <Icon icon="lucide:alert-triangle" className="w-12 h-12 text-red-500" />
-        </div>
-        
+        <Icon icon="lucide:alert-triangle" className="w-16 h-16 text-red-500" />
+
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-white">Something went wrong!</h1>
+          <h1 className="text-3xl font-bold text-white">Something went wrong</h1>
           <p className="text-gray-400 text-sm leading-relaxed">
             We encountered an unexpected error. <br />
             Please try refreshing the page.
           </p>
         </div>
 
-        <Button 
+        <Button
           onClick={() => reset()}
           className="w-full bg-white text-black hover:bg-gray-200 font-medium h-12 rounded-xl transition-all duration-200"
         >
           <Icon icon="lucide:refresh-cw" className="w-4 h-4 mr-2" />
-          Try Again
+          Try again
         </Button>
       </div>
     </div>

@@ -157,7 +157,7 @@ export default function QcAiChatPage() {
     <div className="fixed inset-0 z-[41] flex flex-col">
       {/* Header — native Telegram back button handles navigation */}
       <div
-        className="flex items-center gap-3 px-4 py-3 bg-card/80 backdrop-blur-sm shrink-0"
+        className="flex items-center gap-3 px-4 pb-4 pt-3 bg-card/80 backdrop-blur-sm shrink-0"
         style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
       >
         <Avatar className="h-10 w-10 shrink-0">
@@ -201,8 +201,8 @@ export default function QcAiChatPage() {
                 earning QNTM, or how the ecosystem works.
               </p>
             </div>
-            <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto overscroll-x-contain scrollbar-hide mt-2">
-              <div className="flex w-max gap-2.5 pl-[5vw] pr-[5vw] pb-1">
+            <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto overscroll-x-none scrollbar-hide mt-2">
+              <div className="flex w-max gap-2.5 pl-[5vw] pr-3 pb-1">
               {SUGGESTED_PROMPTS.map((prompt) => (
                 <button
                   key={prompt}

@@ -3118,7 +3118,7 @@ export default function ChatConversationClient() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="text-primary underline-offset-2 hover:underline break-all"
+                                    className="text-primary underline underline-offset-2 break-all"
                                   >
                                     {seg.label}
                                   </a>

@@ -188,6 +188,8 @@ const EcosystemNavigation = () => {
           if (tab.id === "trade") {
             const isOnTradePage = pathname.startsWith("/ecosystem/trade");
             const isOnSpot = pathname.startsWith("/ecosystem/trade/spot");
+            const isOnStocks = pathname.startsWith("/ecosystem/trade/stocks");
+            const isOnLaunchpad = isOnTradePage && !isOnSpot && !isOnStocks;
 
             const tabContent = (
               <>
@@ -243,14 +245,14 @@ const EcosystemNavigation = () => {
                     <Link
                       href="/ecosystem/trade"
                       onClick={() => setTradePopoverOpen(false)}
-                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${!isOnSpot ? "bg-white/5" : "hover:bg-white/10"}`}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${isOnLaunchpad ? "bg-white/5" : "hover:bg-white/10"}`}
                     >
                       <Icon icon="mynaui:rocket-solid" className="w-5 h-5 shrink-0 text-primary" />
                       <div className="flex-1 text-left">
                         <p className="whitespace-nowrap text-sm font-semibold text-white">QC RocketStart</p>
                         <p className="text-[10px] text-muted-foreground">Launchpad</p>
                       </div>
-                      {!isOnSpot && (
+                      {isOnLaunchpad && (
                         <Icon icon="lucide:check" className="w-4 h-4 text-primary" />
                       )}
                     </Link>
@@ -265,6 +267,20 @@ const EcosystemNavigation = () => {
                         <p className="text-[10px] text-muted-foreground">Trade tokens</p>
                       </div>
                       {isOnSpot && (
+                        <Icon icon="lucide:check" className="w-4 h-4 text-white" />
+                      )}
+                    </Link>
+                    <Link
+                      href="/ecosystem/trade/stocks"
+                      onClick={() => setTradePopoverOpen(false)}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-colors ${isOnStocks ? "bg-white/5" : "hover:bg-white/10"}`}
+                    >
+                      <Icon icon="solar:graph-up-bold" className="w-5 h-5 shrink-0 text-blue-400" />
+                      <div className="flex-1 text-left">
+                        <p className="text-sm font-semibold text-white">Stocks</p>
+                        <p className="text-[10px] text-muted-foreground">Tokenized equities</p>
+                      </div>
+                      {isOnStocks && (
                         <Icon icon="lucide:check" className="w-4 h-4 text-white" />
                       )}
                     </Link>
