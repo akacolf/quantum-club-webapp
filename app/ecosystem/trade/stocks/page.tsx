@@ -63,34 +63,26 @@ export default function StocksPage() {
     })();
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/95 pb-32">
+        <div className="min-h-screen bg-background pb-32">
             <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-white/5 pb-3">
                 <div className="px-4 pt-4">
                     <div className="flex items-center gap-2 mb-3">
-                        <Icon icon="solar:graph-up-bold" className="w-5 h-5 text-blue-400" />
+                        <Icon icon="solar:graph-up-bold" className="w-5 h-5 text-primary" />
                         <h1 className="text-xl font-bold tracking-tight text-white">xStocks</h1>
                     </div>
 
-                    <div className="relative group">
+                    <div className="relative">
                         <Icon
-                            icon="solar:magnifer-linear"
-                            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-white transition-colors z-10"
+                            icon="lucide:search"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
                         />
                         <Input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search stocks…"
-                            className="pl-10 h-11 bg-white/5 border-white/5 text-white placeholder:text-muted-foreground focus:bg-white/10 focus:border-white/20 transition-all rounded-xl backdrop-blur-sm"
+                            className="pl-9 h-10 rounded-full bg-secondary border-0 text-sm placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:outline-none"
                         />
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery("")}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white p-1 rounded-full hover:bg-white/10"
-                            >
-                                <Icon icon="solar:close-circle-bold" className="w-4 h-4" />
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>
@@ -101,11 +93,9 @@ export default function StocksPage() {
                 ) : filtered.length === 0 ? (
                     <EmptyState query={debouncedQuery} />
                 ) : (
-                    <div className="space-y-2">
-                        {filtered.map((token, i) => (
-                            <SpotTokenCard key={token.contractAddress} token={token} index={i} backTo="/ecosystem/trade/stocks" />
-                        ))}
-                    </div>
+                    filtered.map((token, i) => (
+                        <SpotTokenCard key={token.contractAddress} token={token} index={i} backTo="/ecosystem/trade/stocks" />
+                    ))
                 )}
             </div>
         </div>
