@@ -64,7 +64,7 @@ export default function StocksPage() {
 
     return (
         <div className="min-h-screen bg-background pb-24">
-            <div className="px-3">
+            <div className="px-4">
                 <div className="flex items-center gap-3 mb-3">
                     <Icon icon="solar:graph-up-bold" className="w-7 h-7 text-primary" />
                     <h1 className="text-lg font-semibold text-foreground leading-tight">xStocks</h1>
@@ -85,7 +85,7 @@ export default function StocksPage() {
                 </div>
             </div>
 
-            <div className="px-3 pt-3">
+            <div className="px-4 pt-3">
                 {isLoading ? (
                     <StocksSkeleton />
                 ) : filtered.length === 0 ? (
