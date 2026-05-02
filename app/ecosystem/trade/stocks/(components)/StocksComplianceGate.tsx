@@ -64,7 +64,7 @@ export function StocksComplianceGate({ onAcknowledge }: Props) {
                 <GateItem
                     icon="solar:scale-bold"
                     title="Not investment advice"
-                    body="Quantum Club does not issue these tokens, custody the underlying shares, or recommend trading them. We only surface them from the STON.fi network."
+                    body="Quantum Club does not issue these tokens, custody the underlying shares, or recommend trading them."
                 />
             </ul>
 

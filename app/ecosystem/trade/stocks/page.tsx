@@ -34,14 +34,6 @@ export default function StocksPage() {
     const persistedAck = useSyncExternalStore(subscribeAck, getAckSnapshot, getAckServerSnapshot);
     const acknowledged = persistedAck === null ? null : persistedAck || localAck;
 
-    const resetNotice = () => {
-        try {
-            localStorage.removeItem(XSTOCKS_ACK_LOCAL_KEY);
-            window.dispatchEvent(new StorageEvent("storage", { key: XSTOCKS_ACK_LOCAL_KEY }));
-        } catch {}
-        setLocalAck(false);
-    };
-
     const { data: tokens, isLoading } = useXStocksTokens();
     const [{ q: searchQuery }, setParams] = useQueryStates(
         { q: parseAsString.withDefault("") },
@@ -94,14 +86,6 @@ export default function StocksPage() {
             </div>
 
             <div className="px-3 pt-3">
-                <div className="rounded-xl bg-muted/40 p-3 mb-3 flex gap-2.5">
-                    <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        Tokenized stocks track equity prices but are not real shares. Trading carries
-                        custodian, bridge, and market risk.
-                    </p>
-                </div>
-
                 {isLoading ? (
                     <StocksSkeleton />
                 ) : filtered.length === 0 ? (
@@ -113,14 +97,6 @@ export default function StocksPage() {
                         ))}
                     </div>
                 )}
-
-                <button
-                    type="button"
-                    onClick={resetNotice}
-                    className="w-full mt-6 text-[11px] text-muted-foreground/70 underline-offset-2 hover:underline"
-                >
-                    Show compliance notice again
-                </button>
             </div>
         </div>
     );
