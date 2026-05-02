@@ -82,7 +82,7 @@ export function useSpotTokens() {
         queryKey: ["spot-tokens"],
         queryFn: async () => {
             const assets = await fetchSwappableAssets();
-            const jettons = assets.filter((a) => a.kind === "Jetton");
+            const jettons = assets.filter((a) => a.kind === "Jetton" && !isXStockSymbol(a.symbol));
 
             // Batch fetch rates from TonAPI (supports up to 100 tokens per request)
             const BATCH = 100;
@@ -184,7 +184,7 @@ export function useSpotTokensByMarketCap(enabled = true) {
         queryKey: ["spot-tokens", "market-cap"],
         queryFn: async () => {
             const assets = await fetchSwappableAssets();
-            const jettons = assets.filter((a) => a.kind === "Jetton");
+            const jettons = assets.filter((a) => a.kind === "Jetton" && !isXStockSymbol(a.symbol));
 
             const BATCH = 50;
             const enriched: SpotToken[] = [];
