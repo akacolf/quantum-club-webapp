@@ -1471,7 +1471,10 @@ export default function ChatConversationClient() {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
+    // 10 MB limit minus a small headroom for encryption envelope overhead
+    // (version + wrapped key + iv + GCM tag ≈ 89 bytes). Storage rules also
+    // enforce < 10 MB on the encrypted blob, so reject pre-encryption.
+    if (file.size > 10 * 1024 * 1024 - 256) {
       toast.error("File too large. Maximum size is 10 MB.");
       return;
     }
@@ -1509,7 +1512,16 @@ export default function ChatConversationClient() {
         } catch {}
       }
 
-      const fileRef = storageRef(storage, `chat-files/${chatId}/${msgId}/${file.name}.enc`);
+      // Sanitize the filename used in the storage path. Firebase Storage
+      // rejects paths with `#`, `[`, `]`, `?`, `/`, control chars, or empty
+      // segments — and an empty/Unicode-only name produces `.enc` which some
+      // mobile WebKit builds refuse. The original name still rides along
+      // (encrypted) in the message doc as `encName`, so display is unaffected.
+      const safeName = (file.name || "file")
+        .replace(/[^A-Za-z0-9._-]+/g, "_")
+        .replace(/^\.+/, "")
+        .slice(0, 80) || "file";
+      const fileRef = storageRef(storage, `chat-files/${chatId}/${msgId}/${safeName}.enc`);
 
       // Upload with retry
       let uploadAttempts = 0;
@@ -1588,12 +1600,16 @@ export default function ChatConversationClient() {
 
       scrollToBottom(true);
     } catch (error: any) {
-      console.error("Failed to send file:", error);
+      console.error("Failed to send file:", error?.code, error?.message, error);
       const msg = error?.code === "storage/unauthorized"
         ? "Upload denied. Please re-open the app to refresh your session."
-        : error?.code === "storage/retry-limit-exceeded" || error?.message?.includes("network")
-          ? "Network error. Check your connection and try again."
-          : "Failed to send file";
+        : error?.code === "storage/quota-exceeded"
+          ? "Storage quota reached. Try again later."
+          : error?.code === "storage/invalid-argument"
+            ? "Invalid file. Try a different file."
+            : error?.code === "storage/retry-limit-exceeded" || error?.message?.includes("network")
+              ? "Network error. Check your connection and try again."
+              : "Failed to send file";
       toast.error(msg);
     } finally {
       setIsSendingFile(false);
@@ -3093,8 +3109,19 @@ export default function ChatConversationClient() {
                             : parseMessageSegments(displayText).map((seg, i) =>
                                 seg.type === "text" ? (
                                   <span key={i}>{seg.content}</span>
-                                ) : (
+                                ) : seg.type === "mention" ? (
                                   <TokenMention key={i} symbol={seg.symbol} />
+                                ) : (
+                                  <a
+                                    key={i}
+                                    href={seg.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-primary underline underline-offset-2 break-all"
+                                  >
+                                    {seg.label}
+                                  </a>
                                 ),
                               )}
                         </span>
@@ -3245,7 +3272,7 @@ export default function ChatConversationClient() {
 
       {/* Message Input */}
       <div
-        className="border-t border-border/50 bg-card/50 backdrop-blur-sm px-3 py-2.5 shrink-0"
+        className="bg-card/50 backdrop-blur-sm px-3 py-2.5 shrink-0"
         style={{ paddingBottom: "max(0.625rem, var(--tg-safe-area-inset-bottom, 0px))" }}
       >
         {!telegramId ? (
@@ -3310,7 +3337,7 @@ export default function ChatConversationClient() {
               onKeyDown={handleKeyDown}
               placeholder={editingMsg ? "Edit message..." : replyTo ? "Reply..." : "Type a message..."}
               maxLength={500}
-              className="flex-1 rounded-full px-4 py-2.5 h-auto bg-background border-border/50 text-base placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-primary/40"
+              className="flex-1 rounded-full px-4 py-2.5 h-auto bg-background border-0 text-base placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:outline-none"
             />
             {newMessage.trim() || editingMsg ? (
               <Button

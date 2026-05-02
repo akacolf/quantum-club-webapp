@@ -14,13 +14,17 @@ interface SpotTokenCardProps {
     showBalance?: number;
     showValue?: number;
     isTransparent?: boolean;
+    backTo?: string;
 }
 
-export default function SpotTokenCard({ token, index, userBalance, showBalance, showValue, isTransparent }: SpotTokenCardProps) {
+export default function SpotTokenCard({ token, index, userBalance, showBalance, showValue, isTransparent, backTo }: SpotTokenCardProps) {
     const priceUsd = token.priceUsd;
     const change = token.priceChange24h;
     const mcap = token.marketCapUsd;
     const isPositive = (change ?? 0) >= 0;
+    const href = backTo
+        ? { pathname: `/ecosystem/trade/spot/${encodeURIComponent(token.contractAddress)}` as const, query: { from: backTo } }
+        : (`/ecosystem/trade/spot/${encodeURIComponent(token.contractAddress)}` as const);
 
     return (
         <motion.div
@@ -28,7 +32,7 @@ export default function SpotTokenCard({ token, index, userBalance, showBalance, 
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: Math.min(index * 0.03, 0.3) }}
         >
-            <Link href={`/ecosystem/trade/spot/${encodeURIComponent(token.contractAddress)}`} prefetch={true}>
+            <Link href={href} prefetch={true}>
                 <Card className={`transition-all cursor-pointer overflow-hidden group relative ${isTransparent ? 'bg-transparent border-0 shadow-none hover:bg-white/5' : 'bg-white/5 backdrop-blur-xl border border-white/5 hover:border-white/10 shadow-md hover:shadow-lg hover:bg-white/10'}`}>
                     <CardContent className={isTransparent ? 'p-2' : 'p-3'}>
                         <div className="flex gap-3 items-center">

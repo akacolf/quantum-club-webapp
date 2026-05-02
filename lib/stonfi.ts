@@ -48,6 +48,34 @@ export function createStonApiClient(): StonApiClient {
     return new StonApiClient();
 }
 
+// Fetch all assets including low-liquidity ones — used for xStocks where STON.fi
+// lists them with lower liquidity tags than the main swap UI requires
+export async function fetchAllAssets(): Promise<SwapAsset[]> {
+    const client = createStonApiClient();
+    try {
+        const condition = [
+            AssetTag.LiquidityVeryHigh,
+            AssetTag.LiquidityHigh,
+            AssetTag.LiquidityMedium,
+            AssetTag.LiquidityLow,
+        ].join(" | ");
+        const assets = await client.queryAssets({ condition });
+        return assets.map((asset) => ({
+            contractAddress: asset.contractAddress,
+            kind: asset.kind === "Ton" ? "Ton" as const : "Jetton" as const,
+            symbol: asset.meta?.symbol || "???",
+            displayName: asset.meta?.displayName || asset.meta?.symbol || "Unknown",
+            imageUrl: asset.meta?.imageUrl,
+            decimals: asset.meta?.decimals ?? 9,
+            dexPriceUsd: asset.dexPriceUsd ?? undefined,
+            tags: asset.tags ?? [],
+        }));
+    } catch (error) {
+        console.error("Failed to fetch all assets:", error);
+        return [];
+    }
+}
+
 // Fetch swappable assets from STON.fi
 export async function fetchSwappableAssets(): Promise<SwapAsset[]> {
     const client = createStonApiClient();

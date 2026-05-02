@@ -7,7 +7,6 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -174,81 +173,6 @@ function ChatInputForm({
     );
 }
 
-// Dynamic suggested prompts based on current page
-function getContextualPrompts(pathname: string): string[] {
-    if (pathname.match(/\/ecosystem\/trade\/[^/]+/) || pathname.match(/\/trade\/[^/]+/)) {
-        return [
-            "How does the bonding curve work?",
-            "When does a token graduate?",
-            "What are the trading fees?",
-            "How do I read token metrics?",
-        ];
-    }
-    if (pathname.includes("/trade/create")) {
-        return [
-            "How much does it cost to launch?",
-            "What happens after I create a token?",
-            "How does graduation work?",
-            "Tips for a successful launch",
-        ];
-    }
-    if (pathname.startsWith("/ecosystem/trade") || pathname.startsWith("/trade")) {
-        return [
-            "How does token trading work?",
-            "What are graduated tokens?",
-            "How to spot good tokens?",
-            "What fees do I pay?",
-        ];
-    }
-    if (pathname.startsWith("/wallet/staking")) {
-        return [
-            "How does TON staking work?",
-            "What APY can I expect?",
-            "Normal vs instant unstake?",
-            "What are liquid staking tokens?",
-        ];
-    }
-    if (pathname.startsWith("/wallet")) {
-        return [
-            "How do I send TON?",
-            "What chains are supported?",
-            "How to keep my wallet secure?",
-            "What are gas fees on TON?",
-        ];
-    }
-    if (pathname.startsWith("/earn")) {
-        return [
-            "How do I maximize QNTM earnings?",
-            "How do daily streaks work?",
-            "What is Solve-to-Earn?",
-            "What tasks give the most QNTM?",
-        ];
-    }
-    if (pathname.startsWith("/frens")) {
-        return [
-            "How do referral rewards work?",
-            "What's the 0.1% trade fee?",
-            "How do I share my invite link?",
-            "What are referral milestones?",
-        ];
-    }
-    if (pathname.startsWith("/leaderboard")) {
-        return [
-            "How is the leaderboard ranked?",
-            "How do I climb the rankings?",
-            "What counts toward my score?",
-            "How often does it update?",
-        ];
-    }
-    // Default prompts
-    return [
-        "What can I do in Quantum Club?",
-        "How do I earn QNTM?",
-        "How does token trading work?",
-        "What ranks can I unlock?",
-    ];
-}
-
 const CHAT_STORAGE_KEY = "qc_ai_chat_sessions";
 
 interface ChatSession {
@@ -335,7 +259,6 @@ export default function AIChatDrawer() {
     });
 
     const isLoading = status === "submitted" || status === "streaming";
-    const suggestedPrompts = getContextualPrompts(pathname);
 
     // Load chat sessions from localStorage on mount
     useEffect(() => {
@@ -480,10 +403,6 @@ export default function AIChatDrawer() {
         );
 
         sendMessage({ text: messageText });
-    }
-
-    function handlePromptClick(prompt: string) {
-        handleSendMessage(prompt);
     }
 
     // Filter out assistant messages with no text content (empty streaming placeholder)
@@ -633,7 +552,7 @@ export default function AIChatDrawer() {
 
                             {/* Content - History View or Chat View */}
                             {viewMode === "history" ? (
-                                <ScrollArea className="flex-1 p-4">
+                                <div className="flex-1 overflow-y-auto p-4">
                                     <div className="space-y-2">
                                         {sessions.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center h-[50vh] text-center">
@@ -678,13 +597,13 @@ export default function AIChatDrawer() {
                                             ))
                                         )}
                                     </div>
-                                </ScrollArea>
+                                </div>
                             ) : (
                                 /* Messages */
-                                <ScrollArea className="flex-1 p-4">
+                                <div className="flex-1 overflow-y-auto p-4">
                                     <div className="space-y-4">
-                                        {visibleMessages.length === 0 && !currentSessionId ? (
-                                            <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
+                                        {visibleMessages.length === 0 ? (
+                                            <div className="flex flex-col items-center pt-8 text-center px-4">
                                                 <Avatar className="h-16 w-16 mb-4">
                                                     <AvatarFallback className="bg-card border border-border">
                                                         <Image
@@ -699,55 +618,9 @@ export default function AIChatDrawer() {
                                                 <h3 className="text-lg font-semibold text-foreground mb-2">
                                                     How can I help?
                                                 </h3>
-                                                <p className="text-sm text-muted-foreground mb-6">
+                                                <p className="text-sm text-muted-foreground">
                                                     Ask about crypto, TON, or Quantum Club
                                                 </p>
-                                                <div className="flex flex-wrap gap-2 justify-center">
-                                                    {suggestedPrompts.map((prompt) => (
-                                                        <Button
-                                                            key={prompt}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handlePromptClick(prompt)}
-                                                            className="rounded-full"
-                                                        >
-                                                            {prompt}
-                                                        </Button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ) : visibleMessages.length === 0 ? (
-                                            <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
-                                                <Avatar className="h-16 w-16 mb-4">
-                                                    <AvatarFallback className="bg-card border border-border">
-                                                        <Image
-                                                            src="/svg/logo-white.svg"
-                                                            alt="Quantum Club AI"
-                                                            width={32}
-                                                            height={32}
-                                                            priority
-                                                        />
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <h3 className="text-lg font-semibold text-foreground mb-2">
-                                                    How can I help?
-                                                </h3>
-                                                <p className="text-sm text-muted-foreground mb-6">
-                                                    Ask about crypto, TON, or Quantum Club
-                                                </p>
-                                                <div className="flex flex-wrap gap-2 justify-center">
-                                                    {suggestedPrompts.map((prompt) => (
-                                                        <Button
-                                                            key={prompt}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handlePromptClick(prompt)}
-                                                            className="rounded-full"
-                                                        >
-                                                            {prompt}
-                                                        </Button>
-                                                    ))}
-                                                </div>
                                             </div>
                                         ) : (
                                             visibleMessages.map((message) => (
@@ -773,7 +646,7 @@ export default function AIChatDrawer() {
 
                                         <div ref={messagesEndRef} />
                                     </div>
-                                </ScrollArea>
+                                </div>
                             )}
 
                             {/* Input - Only show in chat view */}

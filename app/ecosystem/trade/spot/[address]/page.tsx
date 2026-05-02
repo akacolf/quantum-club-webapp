@@ -2,9 +2,10 @@
 
 import { useState, use } from "react";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice, useSpotTokenMarket, useSpotTokenDyor } from "@/app/(hooks)/queries/use-spot-trading";
+import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice, useSpotTokenMarket, useSpotTokenDyor, useXStocksTokens } from "@/app/(hooks)/queries/use-spot-trading";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import SpotTokenDetail from "../(components)/SpotTokenDetail";
@@ -17,11 +18,19 @@ import SpotTradingPanel from "../(components)/SpotTradingPanel";
 export default function SpotTokenDetailPage({ params }: { params: Promise<{ address: string }> }) {
     const { address } = use(params);
     const decodedAddress = decodeURIComponent(address);
-    useTelegramBackButton("/ecosystem/trade/spot");
+    const searchParams = useSearchParams();
+    const backTo = searchParams.get("from") ?? "/ecosystem/trade/spot";
+    useTelegramBackButton(backTo);
 
     const { tonPrice } = useWallet();
-    const { data: tokens, isLoading: isLoadingTokens } = useSpotTokens();
-    const token = tokens?.find((t) => t.contractAddress === decodedAddress);
+    const fromStocks = backTo.startsWith("/ecosystem/trade/stocks");
+    const { data: tokens, isLoading: isLoadingSwappable } = useSpotTokens();
+    // xStocks include low-liquidity tokens that aren't in the swappable list; fall back to the all-assets list when needed
+    const { data: stockTokens, isLoading: isLoadingStocks } = useXStocksTokens(fromStocks);
+    const swappableMatch = tokens?.find((t) => t.contractAddress === decodedAddress);
+    const stockMatch = stockTokens?.find((t) => t.contractAddress === decodedAddress);
+    const token = swappableMatch ?? stockMatch;
+    const isLoadingTokens = fromStocks ? isLoadingStocks : (isLoadingSwappable && !swappableMatch);
     const { data: detail, isLoading: isLoadingDetail } = useSpotTokenDetail(decodedAddress);
     const { data: priceData } = useSpotTokenPrice(decodedAddress, token?.decimals);
     const { data: market, isLoading: isLoadingMarket } = useSpotTokenMarket(decodedAddress);

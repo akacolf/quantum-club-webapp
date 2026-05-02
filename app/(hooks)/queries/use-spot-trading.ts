@@ -2,7 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { fetchSwappableAssets, createStonApiClient, fromUnits, TON_ADDRESS } from "@/lib/stonfi";
+import { fetchSwappableAssets, fetchAllAssets, createStonApiClient, fromUnits, TON_ADDRESS } from "@/lib/stonfi";
+import { isXStockSymbol } from "@/lib/xstocks";
 import { tonApiGet } from "@/lib/tonapi-client";
 import type { SpotToken } from "@/types/spot-trading";
 
@@ -116,6 +117,57 @@ export function useSpotTokens() {
             }
 
             // Sort by price descending (tokens with price first)
+            return enriched.sort((a, b) => (b.priceUsd ?? 0) - (a.priceUsd ?? 0));
+        },
+        staleTime: 30_000,
+        gcTime: 60_000,
+    });
+}
+
+/**
+ * Fetch xStocks tokens from STON.fi, including low-liquidity assets so all
+ * Backed Finance tokens are visible regardless of pool depth.
+ */
+export function useXStocksTokens(enabled = true) {
+    return useQuery<SpotToken[]>({
+        queryKey: ["xstocks-tokens"],
+        enabled,
+        queryFn: async () => {
+            const assets = await fetchAllAssets();
+            const xstockJettons = assets.filter((a) => a.kind === "Jetton" && isXStockSymbol(a.symbol));
+
+            const BATCH = 100;
+            const enriched: SpotToken[] = [];
+
+            for (let i = 0; i < xstockJettons.length; i += BATCH) {
+                const batch = xstockJettons.slice(i, i + BATCH);
+                const tokenIds = batch.map((j) => j.contractAddress).join(",");
+
+                type XStockRates = { rates: Record<string, { prices: Record<string, number>; diff_24h?: Record<string, string> }> };
+                let rates: XStockRates | null = null;
+                try {
+                    rates = await tonApiGet<XStockRates>(
+                        `/v2/rates?tokens=${encodeURIComponent(tokenIds)}&currencies=usd`
+                    );
+                } catch {
+                    // fall back to STON.fi prices
+                }
+
+                for (const a of batch) {
+                    const rateData = rates?.rates?.[a.contractAddress] ?? rates?.rates?.[a.contractAddress.toUpperCase()];
+                    const priceUsd = rateData?.prices?.USD ?? (a.dexPriceUsd ? parseFloat(a.dexPriceUsd) : undefined);
+                    const changeStr = rateData?.diff_24h?.USD;
+                    const change = changeStr ? parseFloat(changeStr.replace(/−/g, "-").replace(/%/g, "")) : undefined;
+
+                    enriched.push({
+                        ...a,
+                        priceUsd,
+                        priceChange24h: Number.isNaN(change) ? undefined : change,
+                        volume24h: 0,
+                    });
+                }
+            }
+
             return enriched.sort((a, b) => (b.priceUsd ?? 0) - (a.priceUsd ?? 0));
         },
         staleTime: 30_000,

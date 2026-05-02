@@ -24,12 +24,6 @@ function getMessageText(msg: UIMessage): string {
     .join("");
 }
 
-const SUGGESTED_PROMPTS = [
-  "How is the market doing today?",
-  "What is Quantum Club?",
-  "Tell me about QC's ecosystem",
-];
-
 export default function QcAiChatPage() {
   useTelegramBackButton("/ecosystem/chat");
 
@@ -157,7 +151,7 @@ export default function QcAiChatPage() {
     <div className="fixed inset-0 z-[41] flex flex-col">
       {/* Header — native Telegram back button handles navigation */}
       <div
-        className="flex items-center gap-3 px-4 py-3 bg-card/80 backdrop-blur-sm shrink-0"
+        className="flex items-center gap-3 px-4 pb-4 pt-3 bg-card/80 backdrop-blur-sm shrink-0"
         style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
       >
         <Avatar className="h-10 w-10 shrink-0">
@@ -200,20 +194,6 @@ export default function QcAiChatPage() {
                 Ask me anything about Quantum Club — trading, wallet features,
                 earning QNTM, or how the ecosystem works.
               </p>
-            </div>
-            <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto scrollbar-hide mt-2">
-              <div className="flex w-max max-w-none gap-2.5 px-[5vw] pb-1">
-              {SUGGESTED_PROMPTS.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => submitPrompt(prompt)}
-                  className="h-9 shrink-0 rounded-full bg-muted/40 px-4 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                >
-                  {prompt}
-                </button>
-              ))}
-              </div>
             </div>
           </div>
         ) : (
