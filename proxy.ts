@@ -27,67 +27,8 @@ async function isMaintenanceMode(): Promise<boolean> {
   }
 }
 
-// OFAC sanctioned countries (ISO 3166-1 alpha-2 codes)
-// This list should be kept up-to-date with current sanctions
-const SANCTIONED_COUNTRIES = [
-  "CU", // Cuba
-  "IR", // Iran
-  "KP", // North Korea
-  "RU", // Russia (due to financial sanctions)
-  "BY", // Belarus
-  "MM", // Myanmar
-];
-
-// Regions within sanctioned countries (Crimea, Donetsk, Luhansk)
-const SANCTIONED_REGIONS = [
-  "Crimea",
-  "Donetsk",
-  "Luhansk",
-  "Sevastopol",
-];
-
-// Countries where xStocks (tokenized US equities) cannot be offered.
-// Mirrored from lib/xstocks.ts — kept here to avoid pulling client-only deps
-// into the Edge runtime.
-const XSTOCKS_BLOCKED_COUNTRIES = [
-  "US", "GB", "CA", "JP", "AU", "SG", "HK", "KR",
-];
-
-function isFromXStocksBlockedLocation(request: NextRequest): boolean {
-  const country =
-    request.headers.get("x-vercel-ip-country") ||
-    request.headers.get("cf-ipcountry");
-  return !!country && XSTOCKS_BLOCKED_COUNTRIES.includes(country.toUpperCase());
-}
-
-function isFromSanctionedLocation(request: NextRequest): boolean {
-  // Check country from Cloudflare/Vercel headers
-  const country = request.headers.get("x-vercel-ip-country") || 
-                  request.headers.get("cf-ipcountry");
-  
-  if (country && SANCTIONED_COUNTRIES.includes(country.toUpperCase())) {
-    return true;
-  }
-
-  // Check region for partially sanctioned areas
-  const region = request.headers.get("x-vercel-ip-country-region");
-  
-  if (region && SANCTIONED_REGIONS.some(r => 
-    region.toLowerCase().includes(r.toLowerCase())
-  )) {
-    return true;
-  }
-
-  return false;
-}
-
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  // Allow static/status pages without restrictions
-  if (pathname === "/unsupported-region") {
-    return NextResponse.next();
-  }
 
   // Maintenance mode — block ALL routes except /maintenance itself
   const maintenance = await isMaintenanceMode();
@@ -143,20 +84,6 @@ export async function proxy(request: NextRequest) {
   }
   // Note: Token refresh is handled client-side by Firebase SDK + auth.tsx setToken()
 
-  // OFAC sanctioned country check
-  if (isFromSanctionedLocation(request)) {
-    return NextResponse.redirect(new URL("/unsupported-region", request.url));
-  }
-
-  // xStocks tokenized-equity geofence — blocked jurisdictions get bounced
-  // back to the trade landing instead of seeing the page at all
-  if (
-    pathname.startsWith("/ecosystem/trade/stocks") &&
-    isFromXStocksBlockedLocation(request)
-  ) {
-    return NextResponse.redirect(new URL("/ecosystem/trade", request.url));
-  }
-
   // Extend session cookie if present
   if (sessionCookie) {
     try {
@@ -193,6 +120,5 @@ export const config = {
     "/ecosystem/:path*",
     "/wallet/:path*",
     "/user/:path*",
-    "/unsupported-region",
   ],
 };

@@ -128,9 +128,10 @@ export function useSpotTokens() {
  * Fetch xStocks tokens from STON.fi, including low-liquidity assets so all
  * Backed Finance tokens are visible regardless of pool depth.
  */
-export function useXStocksTokens() {
+export function useXStocksTokens(enabled = true) {
     return useQuery<SpotToken[]>({
         queryKey: ["xstocks-tokens"],
+        enabled,
         queryFn: async () => {
             const assets = await fetchAllAssets();
             const xstockJettons = assets.filter((a) => a.kind === "Jetton" && isXStockSymbol(a.symbol));

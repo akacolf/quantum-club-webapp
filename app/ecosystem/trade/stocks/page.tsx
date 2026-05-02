@@ -34,6 +34,14 @@ export default function StocksPage() {
     const persistedAck = useSyncExternalStore(subscribeAck, getAckSnapshot, getAckServerSnapshot);
     const acknowledged = persistedAck === null ? null : persistedAck || localAck;
 
+    const resetNotice = () => {
+        try {
+            localStorage.removeItem(XSTOCKS_ACK_LOCAL_KEY);
+            window.dispatchEvent(new StorageEvent("storage", { key: XSTOCKS_ACK_LOCAL_KEY }));
+        } catch {}
+        setLocalAck(false);
+    };
+
     const { data: tokens, isLoading } = useXStocksTokens();
     const [{ q: searchQuery }, setParams] = useQueryStates(
         { q: parseAsString.withDefault("") },
@@ -67,15 +75,10 @@ export default function StocksPage() {
             className="min-h-screen bg-background pb-24"
             style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
         >
-            <div className="px-4 pt-3 pb-2">
+            <div className="px-3">
                 <div className="flex items-center gap-3 mb-3">
                     <Icon icon="solar:graph-up-bold" className="w-7 h-7 text-primary" />
-                    <div className="flex-1 min-w-0">
-                        <h1 className="text-lg font-semibold text-foreground leading-tight">xStocks</h1>
-                        <p className="text-[11px] text-muted-foreground leading-none mt-0.5">
-                            Tokenized equities via STON.fi
-                        </p>
-                    </div>
+                    <h1 className="text-lg font-semibold text-foreground leading-tight">xStocks</h1>
                 </div>
 
                 <div className="relative">
@@ -88,12 +91,12 @@ export default function StocksPage() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search stocks…"
-                        className="pl-9 h-10 rounded-full bg-background border-0 text-sm placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:outline-none"
+                        className="pl-9 h-10 rounded-full bg-secondary border-0 text-sm placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:outline-none"
                     />
                 </div>
             </div>
 
-            <div className="px-3 pt-1">
+            <div className="px-3 pt-3">
                 <div className="rounded-xl bg-muted/40 p-3 mb-3 flex gap-2.5">
                     <Icon icon="solar:info-circle-bold" className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -113,6 +116,14 @@ export default function StocksPage() {
                         ))}
                     </div>
                 )}
+
+                <button
+                    type="button"
+                    onClick={resetNotice}
+                    className="w-full mt-6 text-[11px] text-muted-foreground/70 underline-offset-2 hover:underline"
+                >
+                    Show compliance notice again
+                </button>
             </div>
         </div>
     );

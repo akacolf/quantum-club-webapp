@@ -173,81 +173,6 @@ function ChatInputForm({
     );
 }
 
-// Dynamic suggested prompts based on current page
-function getContextualPrompts(pathname: string): string[] {
-    if (pathname.match(/\/ecosystem\/trade\/[^/]+/) || pathname.match(/\/trade\/[^/]+/)) {
-        return [
-            "How does the bonding curve work?",
-            "When does a token graduate?",
-            "What are the trading fees?",
-            "How do I read token metrics?",
-        ];
-    }
-    if (pathname.includes("/trade/create")) {
-        return [
-            "How much does it cost to launch?",
-            "What happens after I create a token?",
-            "How does graduation work?",
-            "Tips for a successful launch",
-        ];
-    }
-    if (pathname.startsWith("/ecosystem/trade") || pathname.startsWith("/trade")) {
-        return [
-            "How does token trading work?",
-            "What are graduated tokens?",
-            "How to spot good tokens?",
-            "What fees do I pay?",
-        ];
-    }
-    if (pathname.startsWith("/wallet/staking")) {
-        return [
-            "How does TON staking work?",
-            "What APY can I expect?",
-            "Normal vs instant unstake?",
-            "What are liquid staking tokens?",
-        ];
-    }
-    if (pathname.startsWith("/wallet")) {
-        return [
-            "How do I send TON?",
-            "What chains are supported?",
-            "How to keep my wallet secure?",
-            "What are gas fees on TON?",
-        ];
-    }
-    if (pathname.startsWith("/earn")) {
-        return [
-            "How do I maximize QNTM earnings?",
-            "How do daily streaks work?",
-            "What is Solve-to-Earn?",
-            "What tasks give the most QNTM?",
-        ];
-    }
-    if (pathname.startsWith("/frens")) {
-        return [
-            "How do referral rewards work?",
-            "What's the 0.1% trade fee?",
-            "How do I share my invite link?",
-            "What are referral milestones?",
-        ];
-    }
-    if (pathname.startsWith("/leaderboard")) {
-        return [
-            "How is the leaderboard ranked?",
-            "How do I climb the rankings?",
-            "What counts toward my score?",
-            "How often does it update?",
-        ];
-    }
-    // Default prompts
-    return [
-        "What can I do in Quantum Club?",
-        "How do I earn QNTM?",
-        "How does token trading work?",
-        "What ranks can I unlock?",
-    ];
-}
-
 const CHAT_STORAGE_KEY = "qc_ai_chat_sessions";
 
 interface ChatSession {
@@ -334,7 +259,6 @@ export default function AIChatDrawer() {
     });
 
     const isLoading = status === "submitted" || status === "streaming";
-    const suggestedPrompts = getContextualPrompts(pathname);
 
     // Load chat sessions from localStorage on mount
     useEffect(() => {
@@ -479,10 +403,6 @@ export default function AIChatDrawer() {
         );
 
         sendMessage({ text: messageText });
-    }
-
-    function handlePromptClick(prompt: string) {
-        handleSendMessage(prompt);
     }
 
     // Filter out assistant messages with no text content (empty streaming placeholder)
@@ -698,22 +618,9 @@ export default function AIChatDrawer() {
                                                 <h3 className="text-lg font-semibold text-foreground mb-2">
                                                     How can I help?
                                                 </h3>
-                                                <p className="text-sm text-muted-foreground mb-6">
+                                                <p className="text-sm text-muted-foreground">
                                                     Ask about crypto, TON, or Quantum Club
                                                 </p>
-                                                <div className="flex flex-col gap-2 w-full">
-                                                    {suggestedPrompts.map((prompt) => (
-                                                        <Button
-                                                            key={prompt}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handlePromptClick(prompt)}
-                                                            className="rounded-full w-full"
-                                                        >
-                                                            {prompt}
-                                                        </Button>
-                                                    ))}
-                                                </div>
                                             </div>
                                         ) : (
                                             visibleMessages.map((message) => (

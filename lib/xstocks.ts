@@ -57,20 +57,4 @@ export function underlyingTicker(symbol: string): string {
     return symbol.replace(/x$/, "");
 }
 
-/**
- * Countries where xStocks (tokenized US securities) cannot be offered. Mirrors
- * the typical Backed Finance restricted-jurisdiction list. Used by both the
- * UI gate and the proxy-level geofence.
- */
-export const XSTOCKS_BLOCKED_COUNTRIES = [
-    "US", // United States — securities laws
-    "GB", // United Kingdom — FCA restrictions
-    "CA", // Canada — provincial securities regs
-    "JP", // Japan — FSA restrictions
-    "AU", // Australia — ASIC restrictions
-    "SG", // Singapore — MAS restrictions
-    "HK", // Hong Kong — SFC restrictions
-    "KR", // South Korea — FSC restrictions
-] as const;
-
 export const XSTOCKS_ACK_LOCAL_KEY = "qc_xstocks_acknowledged_at_v1";
