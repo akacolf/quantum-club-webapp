@@ -27,7 +27,10 @@ export function StocksComplianceGate({ onAcknowledge }: Props) {
     }
 
     return (
-        <div className="min-h-screen bg-background px-5 pb-6 space-y-6">
+        <div
+            className="min-h-screen bg-background px-5 pb-6 space-y-6"
+            style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + 1rem)" }}
+        >
             <Icon icon="solar:shield-check-bold" className="w-14 h-14 text-primary" />
 
             <div className="space-y-2">
