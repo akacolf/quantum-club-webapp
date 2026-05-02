@@ -183,9 +183,7 @@ export default function SpotTradingPage() {
                             <TokenListSkeleton />
                         ) : filtered.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                                    <Icon icon="solar:box-minimalistic-bold" className="w-8 h-8 text-muted-foreground" />
-                                </div>
+                                <Icon icon="solar:box-minimalistic-bold" className="w-8 h-8 text-muted-foreground mb-4" />
                                 <p className="text-muted-foreground">
                                     {debouncedQuery
                                         ? `No tokens found for "${debouncedQuery}"`
@@ -260,9 +258,7 @@ export default function SpotTradingPage() {
 
                         {positions.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                                    <Icon icon="solar:wallet-bold" className="w-8 h-8 text-muted-foreground" />
-                                </div>
+                                <Icon icon="solar:wallet-bold" className="w-8 h-8 text-muted-foreground mb-4" />
                                 <p className="text-muted-foreground">No positions yet</p>
                                 <p className="text-xs text-muted-foreground/60 mt-1">Buy tokens to see them here</p>
                             </div>
