@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useSyncExternalStore, use } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSpotTokens, useSpotTokenDetail, useSpotTokenPrice, useSpotTokenMarket, useSpotTokenDyor, useXStocksTokens } from "@/app/(hooks)/queries/use-spot-trading";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { isXStockSymbol, XSTOCKS_ACK_LOCAL_KEY } from "@/lib/xstocks";
+import { StocksComplianceGate } from "../../stocks/(components)/StocksComplianceGate";
 import SpotTokenDetail from "../(components)/SpotTokenDetail";
 const SpotPriceChart = dynamic(() => import("../(components)/SpotPriceChart"), {
     loading: () => <Skeleton className="h-[260px] w-full rounded-xl" />,
     ssr: false,
 });
 import SpotTradingPanel from "../(components)/SpotTradingPanel";
+
+const subscribeAck = (cb: () => void) => {
+    window.addEventListener("storage", cb);
+    return () => window.removeEventListener("storage", cb);
+};
+const getAckSnapshot = (): boolean => {
+    try {
+        return localStorage.getItem(XSTOCKS_ACK_LOCAL_KEY) !== null;
+    } catch {
+        return false;
+    }
+};
+const getAckServerSnapshot = (): null => null;
 
 export default function SpotTokenDetailPage({ params }: { params: Promise<{ address: string }> }) {
     const { address } = use(params);
@@ -23,14 +38,18 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
     useTelegramBackButton(backTo);
 
     const { tonPrice } = useWallet();
-    const fromStocks = backTo.startsWith("/ecosystem/trade/stocks");
     const { data: tokens, isLoading: isLoadingSwappable } = useSpotTokens();
-    // xStocks include low-liquidity tokens that aren't in the swappable list; fall back to the all-assets list when needed
-    const { data: stockTokens, isLoading: isLoadingStocks } = useXStocksTokens(fromStocks);
     const swappableMatch = tokens?.find((t) => t.contractAddress === decodedAddress);
+    // xStocks aren't in the swappable list — always check the xStocks list as fallback
+    const { data: stockTokens, isLoading: isLoadingStocks } = useXStocksTokens(!swappableMatch);
     const stockMatch = stockTokens?.find((t) => t.contractAddress === decodedAddress);
     const token = swappableMatch ?? stockMatch;
-    const isLoadingTokens = fromStocks ? isLoadingStocks : (isLoadingSwappable && !swappableMatch);
+    const isLoadingTokens = isLoadingSwappable || (!swappableMatch && isLoadingStocks);
+
+    const [localAck, setLocalAck] = useState(false);
+    const persistedAck = useSyncExternalStore(subscribeAck, getAckSnapshot, getAckServerSnapshot);
+    const acknowledged = persistedAck === null ? null : persistedAck || localAck;
+    const isStock = token ? isXStockSymbol(token.symbol) : false;
     const { data: detail, isLoading: isLoadingDetail } = useSpotTokenDetail(decodedAddress);
     const { data: priceData } = useSpotTokenPrice(decodedAddress, token?.decimals);
     const { data: market, isLoading: isLoadingMarket } = useSpotTokenMarket(decodedAddress);
@@ -64,6 +83,13 @@ export default function SpotTokenDetailPage({ params }: { params: Promise<{ addr
                 </div>
             </div>
         );
+    }
+
+    if (isStock && acknowledged === null) {
+        return null;
+    }
+    if (isStock && !acknowledged) {
+        return <StocksComplianceGate onAcknowledge={() => setLocalAck(true)} />;
     }
 
     const openTrade = (tab: "buy" | "sell") => {
