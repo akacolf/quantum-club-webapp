@@ -71,10 +71,7 @@ export default function StocksPage() {
     })();
 
     return (
-        <div
-            className="min-h-screen bg-background pb-24"
-            style={{ paddingTop: "calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem)" }}
-        >
+        <div className="min-h-screen bg-background pb-24">
             <div className="px-3">
                 <div className="flex items-center gap-3 mb-3">
                     <Icon icon="solar:graph-up-bold" className="w-7 h-7 text-primary" />

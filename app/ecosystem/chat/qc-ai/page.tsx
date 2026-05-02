@@ -24,12 +24,6 @@ function getMessageText(msg: UIMessage): string {
     .join("");
 }
 
-const SUGGESTED_PROMPTS = [
-  "How is the market doing today?",
-  "What is Quantum Club?",
-  "Tell me about QC's ecosystem",
-];
-
 export default function QcAiChatPage() {
   useTelegramBackButton("/ecosystem/chat");
 
@@ -200,20 +194,6 @@ export default function QcAiChatPage() {
                 Ask me anything about Quantum Club — trading, wallet features,
                 earning QNTM, or how the ecosystem works.
               </p>
-            </div>
-            <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-auto overscroll-x-none scrollbar-hide mt-2">
-              <div className="flex w-max gap-2.5 pl-[5vw] pr-3 pb-1">
-              {SUGGESTED_PROMPTS.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => submitPrompt(prompt)}
-                  className="h-9 shrink-0 rounded-full bg-muted/40 px-4 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                >
-                  {prompt}
-                </button>
-              ))}
-              </div>
             </div>
           </div>
         ) : (
