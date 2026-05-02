@@ -14,7 +14,7 @@ import {
   useSolveToEarnMutation,
   useClaimDailyMutation,
 } from "@/app/(hooks)/queries/use-mining-data";
-import { useSpotTokens, useSpotTokensByMarketCap } from "@/app/(hooks)/queries/use-spot-trading";
+import { useSpotTokens, useSpotTokensByMarketCap, useXStocksTokens } from "@/app/(hooks)/queries/use-spot-trading";
 import { useTrendingTokens, useNewTokens, useGraduatedTokens } from "@/app/(hooks)/queries/use-trading";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { formatPrice } from "@/lib/jetton-operations";
@@ -452,7 +452,12 @@ function setFavorites(ids: string[]) {
 }
 
 // ─── Compact card for RocketStart tokens ──────────────────────────────
-function RocketStartTokenCard({ token, index }: { token: Token; index: number }) {
+function RocketStartTokenCard({ token, index, isFav, onToggleFavorite }: {
+  token: Token;
+  index: number;
+  isFav?: boolean;
+  onToggleFavorite?: (id: string) => void;
+}) {
   const progress = (() => {
     try {
       const mcTon = Number(BigInt(token.tonReserve || token.marketCap || "0")) / 1e9;
@@ -463,7 +468,16 @@ function RocketStartTokenCard({ token, index }: { token: Token; index: number })
   })();
 
   return (
-    <Link href={`/ecosystem/trade/${token.id}`} prefetch={true}>
+    <div className="flex items-center w-full">
+      {onToggleFavorite && (
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(token.id); }}
+          className="w-8 h-8 flex items-center justify-center flex-shrink-0"
+        >
+          <Icon icon="lucide:star" width="16" height="16" className={isFav ? "fill-yellow-400 text-yellow-400" : "text-neutral-600"} />
+        </button>
+      )}
+      <Link href={`/ecosystem/trade/${token.id}`} prefetch={true} className="flex-1 min-w-0">
       <div className="flex gap-3 items-center py-3 cursor-pointer group">
         <div className="relative w-11 h-11 rounded-full overflow-hidden bg-secondary shadow-inner ring-1 ring-white/5 flex-shrink-0">
           {token.image ? (
@@ -503,15 +517,17 @@ function RocketStartTokenCard({ token, index }: { token: Token; index: number })
         </div>
       </div>
     </Link>
+    </div>
   );
 }
 
 // ─── Tab configuration ────────────────────────────────────────────────
-type SpotTab = "spot" | "favorites" | "mc" | "hot" | "new" | "dex";
+type SpotTab = "spot" | "favorites" | "xstocks" | "mc" | "hot" | "new" | "dex";
 
 const TAB_SUBTITLES: Record<SpotTab, string> = {
   spot: "Trade tokens on the go",
   favorites: "Your saved tokens",
+  xstocks: "Tokenized US equities",
   mc: "Top tokens by Market Cap",
   hot: "Most traded right now",
   new: "Recently launched on RocketStart",
@@ -526,6 +542,7 @@ function SpotTokensSection() {
   // Data sources
   const { data: spotTokens, isLoading: spotLoading } = useSpotTokens();
   const { data: marketCapTokens, isLoading: marketCapLoading } = useSpotTokensByMarketCap(activeTab === "mc");
+  const { data: xstocksTokens, isLoading: xstocksLoading } = useXStocksTokens(activeTab === "xstocks" || activeTab === "favorites");
   const trendingQuery = useTrendingTokens();
   const newQuery = useNewTokens();
   const graduatedQuery = useGraduatedTokens();
@@ -534,8 +551,16 @@ function SpotTokensSection() {
   const newTokens = newQuery.data?.pages.flatMap(p => p.tokens) ?? [];
   const graduatedTokens = graduatedQuery.data?.pages.flatMap(p => p.tokens) ?? [];
 
-  // Favorites: filter spot tokens by saved IDs
-  const favoriteTokens = (spotTokens ?? []).filter(t => favoriteIds.includes(t.contractAddress));
+  // Favorites: collect from every source (spot + xstocks for spot-style cards, RocketStart for graduate-style cards)
+  const favoriteSpotTokens = [...(spotTokens ?? []), ...(xstocksTokens ?? [])]
+    .filter(t => favoriteIds.includes(t.contractAddress));
+  const seenRocketIds = new Set<string>();
+  const favoriteRocketTokens = [...trendingTokens, ...newTokens, ...graduatedTokens]
+    .filter(t => {
+      if (!favoriteIds.includes(t.id) || seenRocketIds.has(t.id)) return false;
+      seenRocketIds.add(t.id);
+      return true;
+    });
 
   const toggleFavorite = useCallback((contractAddress: string) => {
     setFavoriteIds(prev => {
@@ -549,7 +574,8 @@ function SpotTokensSection() {
 
   // Determine loading state
   const isLoading = activeTab === "spot" ? spotLoading
-    : activeTab === "favorites" ? spotLoading
+    : activeTab === "favorites" ? (spotLoading && xstocksLoading)
+    : activeTab === "xstocks" ? xstocksLoading
     : activeTab === "mc" ? marketCapLoading
     : activeTab === "hot" ? trendingQuery.isLoading
     : activeTab === "new" ? newQuery.isLoading
@@ -646,19 +672,24 @@ function SpotTokensSection() {
     }
 
     if (activeTab === "favorites") {
-      if (favoriteTokens.length === 0) {
+      const totalFavorites = favoriteSpotTokens.length + favoriteRocketTokens.length;
+      if (totalFavorites === 0) {
         return (
           <div className="text-center py-8">
             <Icon icon="lucide:star" width="28" height="28" className="mx-auto text-neutral-600 mb-2" />
             <p className="text-sm text-neutral-500">No favorites yet</p>
-            <p className="text-[11px] text-neutral-600 mt-1">Switch to Hot and tap the star to save tokens</p>
+            <p className="text-[11px] text-neutral-600 mt-1">Tap the star next to any token to save it</p>
           </div>
         );
       }
+      const combined = [
+        ...favoriteSpotTokens.map((t, i) => ({ kind: "spot" as const, token: t, index: i })),
+        ...favoriteRocketTokens.map((t, i) => ({ kind: "rocket" as const, token: t, index: favoriteSpotTokens.length + i })),
+      ].slice(0, 10);
       return (
         <div className="space-y-3">
-          {favoriteTokens.slice(0, 10).map((token, index) => (
-            <div key={token.contractAddress} className="flex items-center w-full">
+          {combined.map(({ kind, token, index }) => kind === "spot" ? (
+            <div key={`spot-${token.contractAddress}`} className="flex items-center w-full">
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(token.contractAddress); }}
                 className="w-8 h-8 flex items-center justify-center flex-shrink-0"
@@ -669,7 +700,47 @@ function SpotTokensSection() {
                 <SpotTokenCard token={token} index={index} isTransparent={true} />
               </div>
             </div>
+          ) : (
+            <RocketStartTokenCard
+              key={`rocket-${token.id}`}
+              token={token}
+              index={index}
+              isFav
+              onToggleFavorite={toggleFavorite}
+            />
           ))}
+        </div>
+      );
+    }
+
+    if (activeTab === "xstocks") {
+      const xs = xstocksTokens ?? [];
+      if (xs.length === 0) {
+        return (
+          <div className="text-center py-8">
+            <Icon icon="lucide:inbox" width="28" height="28" className="mx-auto text-neutral-600 mb-2" />
+            <p className="text-sm text-neutral-500">No xStocks available</p>
+          </div>
+        );
+      }
+      return (
+        <div className="space-y-3">
+          {xs.slice(0, 10).map((token, index) => {
+            const isFav = favoriteIds.includes(token.contractAddress);
+            return (
+              <div key={token.contractAddress} className="flex items-center w-full">
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(token.contractAddress); }}
+                  className="w-8 h-8 flex items-center justify-center flex-shrink-0"
+                >
+                  <Icon icon="lucide:star" width="16" height="16" className={isFav ? "fill-yellow-400 text-yellow-400" : "text-neutral-600"} />
+                </button>
+                <div className="flex-1 min-w-0">
+                  <SpotTokenCard token={token} index={index} isTransparent={true} backTo="/home" />
+                </div>
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -691,7 +762,13 @@ function SpotTokensSection() {
     return (
       <div className="space-y-3">
         {tokens.slice(0, 10).map((token, index) => (
-          <RocketStartTokenCard key={token.id} token={token} index={index} />
+          <RocketStartTokenCard
+            key={token.id}
+            token={token}
+            index={index}
+            isFav={favoriteIds.includes(token.id)}
+            onToggleFavorite={toggleFavorite}
+          />
         ))}
       </div>
     );
@@ -700,6 +777,7 @@ function SpotTokensSection() {
   // View-all links for each tab
   const viewAllHref = activeTab === "spot" ? "/ecosystem/trade/spot"
     : activeTab === "favorites" ? "/ecosystem/trade/spot"
+    : activeTab === "xstocks" ? "/ecosystem/trade/stocks"
     : activeTab === "mc" ? "/ecosystem/trade/spot"
     : activeTab === "hot" ? "/ecosystem/trade"
     : activeTab === "new" ? "/ecosystem/trade"
@@ -719,6 +797,7 @@ function SpotTokensSection() {
           {([
             { id: "favorites" as SpotTab, label: "Favorites", icon: "lucide:star" },
             { id: "spot" as SpotTab, label: "Spot" },
+            { id: "xstocks" as SpotTab, label: "Stocks" },
             { id: "mc" as SpotTab, label: "MC" },
             { id: "hot" as SpotTab, label: "Hot" },
             { id: "new" as SpotTab, label: "New", dot: true },
