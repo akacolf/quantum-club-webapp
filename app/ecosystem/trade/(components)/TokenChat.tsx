@@ -180,7 +180,7 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
                                             >
                                                 {showAvatar ? (
                                                     <Avatar className={`w-8 h-8 ${getAvatarColor(msg.senderId)}`}>
-                                                        <AvatarFallback className="text-white text-xs">
+                                                        <AvatarFallback className="bg-transparent text-white text-xs">
                                                             {getInitials(msg.senderName)}
                                                         </AvatarFallback>
                                                     </Avatar>
