@@ -108,11 +108,11 @@ const InvitePopup = () => {
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md mb-4 sm:mb-0"
             >
-              <Card className="bg-[#1a1a1a]/95 border-[#333] text-white backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between border-b border-[#333] p-4 space-y-0">
+              <Card className="bg-[#1a1a1a]/95 border-0 text-white backdrop-blur-xl shadow-2xl rounded-2xl overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between p-4 space-y-0">
                   <div className="w-8" /> {/* Spacer for centering */}
                   <CardTitle className="text-lg font-bold text-center">
-                    Invite Friends
+                    Invite frens
                   </CardTitle>
                   <Button
                     variant="ghost"
@@ -134,9 +134,9 @@ const InvitePopup = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-3 my-2">
-                    <div className="flex-1 h-px bg-[#333]" />
+                    <div className="flex-1 h-px bg-white/10" />
                     <span className="text-gray-500 text-sm">or</span>
-                    <div className="flex-1 h-px bg-[#333]" />
+                    <div className="flex-1 h-px bg-white/10" />
                   </div>
 
                   <Button
@@ -151,7 +151,7 @@ const InvitePopup = () => {
                       handleSendInviteLink();
                       closePopup();
                     }}
-                    className="w-full h-14 bg-[#2a2a2a] text-white hover:bg-[#333] border border-[#444] font-bold text-base rounded-xl transition-all active:scale-95"
+                    className="w-full h-14 bg-[#2a2a2a] text-white hover:bg-[#333] border-0 font-bold text-base rounded-xl transition-all active:scale-95"
                   >
                     <Icon icon="lucide:share-2" className="mr-2 h-5 w-5" />
                     Share link

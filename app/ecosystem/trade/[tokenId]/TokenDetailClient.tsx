@@ -690,7 +690,7 @@ export default function TokenDetailClient() {
                                     ) : (
                                         <>
                                             <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
-                                            Create Community
+                                            Create community
                                         </>
                                     )}
                                 </Button>

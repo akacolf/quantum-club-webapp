@@ -128,7 +128,7 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
     };
 
     return (
-        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+        <div className="bg-white/5 rounded-xl overflow-hidden">
             {/* Chat Header */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -136,7 +136,7 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
             >
                 <div className="flex items-center gap-2">
                     <Icon icon="solar:chat-round-dots-bold" className="w-5 h-5 text-primary" />
-                    <span className="font-semibold text-white">{tokenSymbol} Live Chat</span>
+                    <span className="font-semibold text-white">{tokenSymbol} live chat</span>
                     {messages.length > 0 && (
                         <span className="px-2 py-0.5 text-xs bg-primary/20 text-primary rounded-full">
                             {messages.length}
@@ -215,7 +215,7 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
                         </ScrollArea>
 
                         {/* Message Input */}
-                        <div className="p-3 border-t border-white/10">
+                        <div className="p-3">
                             {telegramId ? (
                                 <div className="flex gap-2">
                                     <Input
@@ -224,7 +224,7 @@ export default function TokenChat({ tokenId, tokenSymbol }: TokenChatProps) {
                                         onChange={(e) => setNewMessage(e.target.value)}
                                         onKeyPress={handleKeyPress}
                                         placeholder={`Message ${tokenSymbol} holders...`}
-                                        className="flex-1 bg-white/5 border-white/10 text-white placeholder:text-muted-foreground"
+                                        className="flex-1 bg-white/5 border-0 text-white placeholder:text-muted-foreground"
                                         disabled={isSending}
                                         maxLength={500}
                                     />

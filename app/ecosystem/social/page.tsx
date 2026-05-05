@@ -11,9 +11,7 @@ export default function QCSocialPage() {
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 pb-28">
       <Card className="bg-card border-border max-w-sm w-full">
         <CardContent className="p-8 text-center space-y-5">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-            <Icon icon="solar:global-bold" className="w-8 h-8 text-primary" />
-          </div>
+          <Icon icon="solar:global-bold" className="mx-auto w-12 h-12 text-primary" />
 
           <div className="space-y-2">
             <div className="flex items-center justify-center gap-2">
@@ -35,9 +33,7 @@ export default function QCSocialPage() {
               { icon: "solar:star-bold", text: "Follow top traders & influencers" },
             ].map((feature, i) => (
               <div key={i} className="flex items-center gap-3 text-left">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                  <Icon icon={feature.icon} className="w-4 h-4 text-muted-foreground" />
-                </div>
+                <Icon icon={feature.icon} className="w-5 h-5 text-muted-foreground shrink-0" />
                 <p className="text-xs text-muted-foreground">{feature.text}</p>
               </div>
             ))}
