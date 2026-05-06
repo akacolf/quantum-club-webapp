@@ -116,7 +116,7 @@ export default function SocialFeedPage() {
         <div className="flex items-center gap-3">
           <Link
             href={"/ecosystem/social/pro" as Route}
-            className="text-sm font-semibold text-amber-400 px-2 py-1"
+            className="text-sm font-semibold text-white px-2 py-1"
           >
             Upgrade
           </Link>

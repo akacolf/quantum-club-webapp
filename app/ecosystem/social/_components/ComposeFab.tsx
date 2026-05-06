@@ -11,7 +11,7 @@ export function ComposeFab() {
     <Link
       href={"/ecosystem/social/compose" as Route}
       onClick={() => haptics.medium()}
-      className="fixed bottom-24 right-5 z-30 size-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+      className="fixed bottom-32 right-5 z-30 size-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform"
       aria-label="New post"
     >
       <Icon icon="solar:pen-new-square-bold" className="w-6 h-6" />

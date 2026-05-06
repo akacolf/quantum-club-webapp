@@ -11,7 +11,7 @@ import { Avatar } from "./Avatar";
 import { RichContent } from "./RichContent";
 import { PostActions } from "./PostActions";
 import { formatRelative } from "./format";
-import { VerifiedBadge } from "./VerifiedBadge";
+import { VerifiedBadge, isVerifiedAuthor } from "./VerifiedBadge";
 import { LockedPost } from "./LockedPost";
 import { usePostUnlock } from "@/app/(hooks)/queries/use-social";
 
@@ -74,7 +74,10 @@ export function PostCard({ post, qcId, compact, inThread }: Props) {
               <span className="truncate">
                 {post.authorDisplayName || post.authorHandle}
               </span>
-              {post.authorIsPro && <VerifiedBadge size={14} />}
+              {isVerifiedAuthor({
+                handle: post.authorHandle,
+                isPro: post.authorIsPro,
+              }) && <VerifiedBadge size={14} />}
             </Link>
             <span className="text-muted-foreground truncate">
               @{post.authorHandle}

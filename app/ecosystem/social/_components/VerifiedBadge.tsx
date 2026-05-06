@@ -1,6 +1,7 @@
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import type { SocialProfile } from "@/lib/social-types";
+import { isQcTeamHandle } from "@/lib/qc-team";
 
 /** Whether the user currently has an active QC Pro membership */
 export function isProActive(
@@ -8,6 +9,18 @@ export function isProActive(
 ): boolean {
   if (!profile?.proExpiresAt) return false;
   return profile.proExpiresAt.toMillis() > Date.now();
+}
+
+/**
+ * QC Social verified-badge predicate. True for active Pro members and for
+ * core-team handles (always verified, no Pro subscription required).
+ */
+export function isVerifiedAuthor(args: {
+  handle: string | null | undefined;
+  isPro?: boolean | null | undefined;
+}): boolean {
+  if (args.isPro) return true;
+  return isQcTeamHandle(args.handle);
 }
 
 interface Props {

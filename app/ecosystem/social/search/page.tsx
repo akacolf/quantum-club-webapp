@@ -17,7 +17,7 @@ import { dbfs } from "@/app/(firebase)/client";
 import { Input } from "@/components/ui/input";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { Avatar } from "../_components/Avatar";
-import { VerifiedBadge } from "../_components/VerifiedBadge";
+import { VerifiedBadge, isVerifiedAuthor } from "../_components/VerifiedBadge";
 import { EmptyState } from "../_components/EmptyState";
 import type { SocialProfile } from "@/lib/social-types";
 
@@ -152,7 +152,9 @@ export default function SocialSearchPage() {
                     <p className="font-semibold text-sm truncate">
                       {hit.displayName || hit.handle}
                     </p>
-                    {hit.isPro && <VerifiedBadge />}
+                    {isVerifiedAuthor({ handle: hit.handle, isPro: hit.isPro }) && (
+                      <VerifiedBadge />
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
                     @{hit.handle}
