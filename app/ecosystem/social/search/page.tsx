@@ -94,7 +94,7 @@ export default function SocialSearchPage() {
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur px-4 pt-4 pb-3">
         <div className="relative">
           <Icon
-            icon="solar:magnifer-linear"
+            icon="lucide:search"
             className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"
           />
           <Input
@@ -114,7 +114,7 @@ export default function SocialSearchPage() {
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               aria-label="Clear"
             >
-              <Icon icon="solar:close-circle-bold" className="w-5 h-5" />
+              <Icon icon="lucide:x" className="w-5 h-5" />
             </button>
           )}
         </div>
@@ -122,19 +122,19 @@ export default function SocialSearchPage() {
 
       {q.trim().length < 2 ? (
         <EmptyState
-          icon="solar:magnifer-linear"
+          icon="iconoir:search"
           title="Search QC Social"
           description="Type a handle or display name to find people."
         />
       ) : loading && hits === null ? (
         <EmptyState
-          icon="solar:magnifer-linear"
+          icon="iconoir:search"
           title="Searching…"
           description={`Looking for @${q.trim().replace(/^@+/, "")}`}
         />
       ) : hits && hits.length === 0 ? (
         <EmptyState
-          icon="solar:user-cross-rounded-linear"
+          icon="lucide:user-x"
           title="No matches"
           description={`No one found for "${q.trim()}".`}
         />

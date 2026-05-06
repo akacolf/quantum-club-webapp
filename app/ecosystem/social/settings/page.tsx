@@ -80,14 +80,14 @@ export default function SocialSettingsPage() {
         <div className="min-h-screen flex items-center justify-center pb-28 px-6 text-center">
           <div className="space-y-4 max-w-xs">
             <Icon
-              icon="solar:user-id-linear"
-              className="w-14 h-14 text-muted-foreground mx-auto"
+              icon="lucide:user-cog"
+              className="w-12 h-12 text-muted-foreground mx-auto"
             />
             <div>
               <p className="font-semibold">Set up your QC profile first</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Pick a QC username and add a photo. Your social profile will
-                use them automatically.
+                Pick a QC username and add a photo. Your QC Social profile
+                will use them automatically.
               </p>
             </div>
             <Link href={"/home/profile" as Route}>

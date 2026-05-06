@@ -125,7 +125,7 @@ export default function SocialFeedPage() {
             className="p-1 -mr-1"
             aria-label="Search"
           >
-            <Icon icon="solar:magnifer-linear" className="w-6 h-6" />
+            <Icon icon="lucide:search" className="w-6 h-6" />
           </Link>
         </div>
       </header>
