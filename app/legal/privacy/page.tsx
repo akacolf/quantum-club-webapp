@@ -22,9 +22,7 @@ export default function PrivacyPolicyPage() {
         >
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center ring-1 ring-primary/20">
-              <Icon icon="solar:shield-check-bold" className="w-7 h-7 text-primary" />
-            </div>
+            <Icon icon="solar:shield-check-bold" className="mx-auto w-10 h-10 text-primary" />
             <h1 className="text-2xl font-bold">Privacy Policy</h1>
             <p className="text-muted-foreground text-sm">Last updated: February 23, 2026</p>
           </div>

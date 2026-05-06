@@ -100,7 +100,7 @@ function TokenCard({ token, index, showRank = true }: { token: Token; index: num
                     <div className="flex gap-4 items-center">
                         {/* Token Image - Sleek with Rank */}
                         <div
-                            className="relative w-16 h-16 rounded-2xl overflow-hidden bg-[#222] shadow-inner ring-1 ring-white/5 group-hover:ring-white/10 transition-all flex-shrink-0"
+                            className="relative w-16 h-16 rounded-2xl overflow-hidden bg-[#222] shadow-inner transition-all flex-shrink-0"
                             style={{ viewTransitionName: `token-img-${token.id}` }}
                         >
                             {token.image ? (
@@ -263,7 +263,7 @@ function PositionCard({ position, index }: { position: HolderPosition; index: nu
                 <Card className="bg-white/5 backdrop-blur-xl border-0 transition-all cursor-pointer overflow-hidden group shadow-md hover:shadow-lg hover:bg-white/10">
                     <CardContent className="p-3">
                         <div className="flex gap-3 items-center">
-                            <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-[#222] ring-1 ring-white/5 flex-shrink-0">
+                            <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-[#222] flex-shrink-0">
                                 {token.image ? (
                                     <TokenImageFill src={token.image} alt={token.name} />
                                 ) : (

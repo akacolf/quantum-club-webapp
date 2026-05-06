@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useQueryState, parseAsStringLiteral } from "nuqs";
 import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
+import Link from "next/link";
+import type { Route } from "next";
 import { Icon } from "@iconify/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -417,6 +419,13 @@ export default function TokenDetailClient() {
                                     >
                                         <Icon icon="solar:link-round-bold" className="w-3.5 h-3.5" />
                                     </a>
+                                    <Link
+                                        href={`/ecosystem/social/compose?token=${tokenId}` as Route}
+                                        aria-label="Share to QC Social"
+                                        className="text-muted-foreground hover:text-white transition-colors"
+                                    >
+                                        <Icon icon="solar:hashtag-square-bold" className="w-3.5 h-3.5" />
+                                    </Link>
                                 </>
                             )}
                         </div>
@@ -690,7 +699,7 @@ export default function TokenDetailClient() {
                                     ) : (
                                         <>
                                             <Icon icon="solar:add-circle-bold" className="w-4 h-4 mr-2" />
-                                            Create Community
+                                            Create community
                                         </>
                                     )}
                                 </Button>

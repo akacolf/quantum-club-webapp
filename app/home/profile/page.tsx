@@ -629,7 +629,7 @@ export default function ProfilePage() {
                         <span className="text-xs font-medium">Community</span>
                     </a>
                     <Link
-                        href="/legal/terms"
+                        href="/legal/terms?back=/home/profile"
                         className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#111] border-none hover:bg-[#222] transition-colors group"
                     >
                         <div className="mb-2 flex h-10 w-10 items-center justify-center transition-colors">
@@ -638,7 +638,7 @@ export default function ProfilePage() {
                         <span className="text-xs font-medium">Terms of service</span>
                     </Link>
                     <Link
-                        href="/legal/privacy"
+                        href="/legal/privacy?back=/home/profile"
                         className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#111] border-none hover:bg-[#222] transition-colors group"
                     >
                         <div className="mb-2 flex h-10 w-10 items-center justify-center transition-colors">

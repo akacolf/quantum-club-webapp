@@ -2,6 +2,8 @@
 
 import { Icon } from "@iconify/react";
 import Image from "next/image";
+import Link from "next/link";
+import type { Route } from "next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,8 +18,10 @@ import {
 import { useUserProfile } from "@/app/(hooks)/queries/use-user-profile";
 import { useQcUsernameQuery } from "@/app/(hooks)/queries/use-qc-username";
 import { useUserRank } from "@/app/(hooks)/queries/use-user-rank";
+import { useSocialProfile } from "@/app/(hooks)/queries/use-social";
 import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 import { isQcTeamMember } from "@/lib/qc-team";
+import { VerifiedBadge, isProActive } from "@/app/ecosystem/social/_components/VerifiedBadge";
 import { toast } from "sonner";
 
 function getInitials(name: string): string {
@@ -81,6 +85,10 @@ export default function UserProfilePopover({
   // Rank from userRanks/{userId} (per-user document, authed read allowed)
   const { data: rank, isLoading: rankLoading } = useUserRank(open ? userId : null);
 
+  // Social profile lookup — surfaces a "View on QC Social" link when present
+  const { data: socialProfile } = useSocialProfile(open ? userId : null);
+  const socialIsPro = isProActive(socialProfile);
+
   const displayName =
     profile?.displayName ||
     usernameData?.username ||
@@ -135,6 +143,7 @@ export default function UserProfilePopover({
               ) : (
                 <h2 className="text-lg font-bold text-foreground">@{displayName}</h2>
               )}
+              {socialIsPro && <VerifiedBadge size={16} />}
               {isTeam && (
                 <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-bold rounded gap-0.5">
                   <Image src="/svg/logo-white.svg" alt="QC" width={10} height={10} />
@@ -183,6 +192,18 @@ export default function UserProfilePopover({
           ) : usernameLoading ? (
             <Skeleton className="h-11 w-full rounded-xl" />
           ) : null}
+
+          {/* QC Social link — appears when this user has claimed a handle */}
+          {socialProfile && (
+            <Link
+              href={`/ecosystem/social/${socialProfile.handle}` as Route}
+              onClick={() => onOpenChange(false)}
+              className="w-full h-11 rounded-full font-semibold bg-secondary text-secondary-foreground flex items-center justify-center gap-1.5"
+            >
+              <Icon icon="solar:hashtag-square-bold" className="w-4 h-4" />
+              View on QC Social
+            </Link>
+          )}
 
           {/* Send TON action */}
           {!isSelf && walletAddress && (

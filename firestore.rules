@@ -295,5 +295,90 @@ service cloud.firestore {
         && request.resource.data.requesterQcId == request.auth.uid;
       allow update, delete: if false; // Server-only moderation
     }
+
+    // QC Social — two-way social feed (profiles, posts, follows, likes).
+    // All mutations run via server actions using the Admin SDK. Clients can
+    // only read public-facing data and inspect their own per-user records
+    // (likes, followers/following entries).
+    match /socialProfiles/{profileQcId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Server-only
+
+      // Posts (top-level + replies + reposts) by this profile.
+      match /posts/{postId} {
+        allow read: if request.auth != null;
+        allow write: if false; // Server-only
+
+        // Per-user like doc. Each user can read their own like for
+        // "did I like this" — others cannot enumerate likers from clients.
+        // Aggregate counts live in the post's reactions map.
+        match /likes/{likerQcId} {
+          allow read: if request.auth != null
+            && request.auth.uid == likerQcId;
+          allow write: if false; // Server-only (transactional)
+        }
+
+        // Per-reader unlock receipts for gated posts. Reader can read their
+        // own receipt to know if access is granted; the post author can
+        // enumerate readers who paid. Writes are server-only.
+        match /unlocks/{readerQcId} {
+          allow read: if request.auth != null
+            && (request.auth.uid == readerQcId
+                || request.auth.uid == profileQcId);
+          allow write: if false; // Server-only (after on-chain verification)
+        }
+      }
+
+      // Followers list — each follower has a doc here. Each follower can
+      // read their own membership; the profile owner can list followers
+      // (for a follower-list view). Writes are server-only.
+      match /followers/{followerQcId} {
+        allow read: if request.auth != null
+          && (request.auth.uid == followerQcId
+              || request.auth.uid == profileQcId);
+        allow write: if false;
+      }
+    }
+
+    // Social handle → qcId lookup. Public read for handle resolution,
+    // server-only write (created at claim time).
+    match /socialHandles/{handle} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // QC Pro and per-post unlock payment ledger. Each payer can read their
+    // own pending records to track confirmation status; everything is written
+    // server-side after on-chain verification.
+    match /subscriptionPayments/{paymentId} {
+      allow read: if request.auth != null
+        && resource.data.payerQcId == request.auth.uid;
+      allow write: if false; // Server-only
+    }
+
+    // Creator earnings ledger — accrued from gated-post unlocks. Only the
+    // creator can read their own balance; events are scoped under their own
+    // doc for audit. Writes are server-only (transactional with the unlock
+    // verification).
+    match /creatorEarnings/{creatorQcId} {
+      allow read: if request.auth != null
+        && request.auth.uid == creatorQcId;
+      allow write: if false; // Server-only
+
+      match /events/{eventId} {
+        allow read: if request.auth != null
+          && request.auth.uid == creatorQcId;
+        allow write: if false;
+      }
+    }
+
+    // Creator payout requests — created by the creator (server action), then
+    // processed offline by an admin tool. Creator can read their own request
+    // to see status; writes are server-only.
+    match /creatorPayoutRequests/{requestId} {
+      allow read: if request.auth != null
+        && resource.data.creatorQcId == request.auth.uid;
+      allow write: if false; // Server-only
+    }
   }
 }

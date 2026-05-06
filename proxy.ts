@@ -19,7 +19,7 @@ async function isMaintenanceMode(): Promise<boolean> {
     const res = await fetch(FIRESTORE_SETTINGS_URL);
     const data = await res.json();
     const maintenance = data.fields?.maintenance_mode?.booleanValue === true;
-    maintenanceCache = { value: maintenance, expiry: Date.now() + 30_000 };
+    maintenanceCache = { value: maintenance, expiry: Date.now() + 300_000 };
     return maintenance;
   } catch {
     // If Firestore is unreachable, don't block users

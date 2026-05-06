@@ -293,11 +293,23 @@ export const useWalletStore = create<WalletStore>()((set, get) => ({
             bounceable: false,
             testOnly: newValue,
           });
-          set({ walletAddress: newAddress });
+          const { storedWallets: currentStored, walletAddress: oldAddress } = get();
+          const updatedStored = currentStored.map((w) =>
+            w.isActive || w.address === oldAddress
+              ? { ...w, address: newAddress, isActive: true }
+              : w
+          );
+          set({ walletAddress: newAddress, storedWallets: updatedStored });
           localStorage.setItem(
             `quantum_wallet_address_${_deps.telegramId}`,
             newAddress
           );
+          if (updatedStored.length > 0) {
+            localStorage.setItem(
+              `quantum_wallets_${_deps.telegramId}`,
+              JSON.stringify(updatedStored)
+            );
+          }
         } catch (error) {
           console.error("Failed to re-derive address:", error);
         }

@@ -479,7 +479,7 @@ function RocketStartTokenCard({ token, index, isFav, onToggleFavorite }: {
       )}
       <Link href={`/ecosystem/trade/${token.id}`} prefetch={true} className="flex-1 min-w-0">
       <div className="flex gap-3 items-center py-3 cursor-pointer group">
-        <div className="relative w-11 h-11 rounded-full overflow-hidden bg-secondary shadow-inner ring-1 ring-white/5 flex-shrink-0">
+        <div className="relative w-11 h-11 rounded-full overflow-hidden bg-secondary shadow-inner flex-shrink-0">
           {token.image ? (
             <TokenImageFill src={token.image} alt={token.name} className="object-cover" />
           ) : (

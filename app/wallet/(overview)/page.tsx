@@ -786,10 +786,23 @@ export default function WalletPage() {
                         ))}
                       </div>
                       <DropdownMenuSeparator className="bg-secondary" />
-                      {(storedWallets.length > 0
-                        ? storedWallets
-                        : [{ address: walletAddress, name: "Wallet", isActive: true }]
-                      ).map((wallet) => (
+                      {(() => {
+                        // On testnet, the active wallet's address is the only
+                        // one that is correctly testnet-formatted — other
+                        // imported wallets still hold their mainnet addresses.
+                        // Hide them so users don't accidentally pick a wallet
+                        // that won't show testnet balances.
+                        const visible =
+                          storedWallets.length > 0
+                            ? isTestnet
+                              ? storedWallets.filter(
+                                  (w) =>
+                                    w.address === walletAddress || w.isActive,
+                                )
+                              : storedWallets
+                            : [{ address: walletAddress, name: "Wallet", isActive: true }];
+                        return visible;
+                      })().map((wallet) => (
                         <DropdownMenuItem
                           key={wallet.address}
                           onClick={() => switchWallet(wallet.address)}

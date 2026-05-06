@@ -64,7 +64,7 @@ Route groups (parenthesized, don't affect URLs) organize shared code:
 
 ### Middleware
 `proxy.ts` (exported as Next.js middleware config) handles:
-- OFAC sanctioned country blocking on protected routes
+- Maintenance mode redirect (cached Firestore lookup)
 - Session cookie validation and auto-renewal
 
 ### Key Route Pages

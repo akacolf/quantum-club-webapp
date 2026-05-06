@@ -40,7 +40,7 @@ function resolveTelegramId(userData: Record<string, unknown>): string | null {
 
 function formatQcDisplayName(value: string, fallback: string) {
   const normalized = value.replace(/^@+/, "").trim();
-  return normalized ? `@${normalized}` : fallback;
+  return normalized || fallback;
 }
 
 export const sendChatNotification = authActionClient

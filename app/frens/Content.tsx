@@ -151,12 +151,10 @@ const FrensContent = () => {
         {(dataError || listError) ? (
           <div className="p-4 space-y-6">
             <h1 className="text-3xl font-bold text-white">Frens</h1>
-            <Card className="bg-red-500/10 text-white">
-              <CardContent className="p-5 flex flex-col items-center gap-3 text-center">
-                <Icon icon="lucide:wifi-off" className="w-10 h-10 text-red-400" />
-                <p className="text-sm text-neutral-300">Failed to load referrals. Pull down to retry.</p>
-              </CardContent>
-            </Card>
+            <div className="p-5 flex flex-col items-center gap-3 text-center">
+              <Icon icon="lucide:wifi-off" className="w-10 h-10 text-red-400" />
+              <p className="text-sm text-neutral-300">Failed to load referrals.</p>
+            </div>
           </div>
         ) : !loading ? (
           <div className="p-4 space-y-6">
