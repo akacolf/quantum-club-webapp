@@ -22,7 +22,7 @@ import type {
 } from "@/lib/social-types";
 import type { SocialReaction } from "@/lib/validations";
 import { rankFeed } from "@/lib/social-rank";
-import type { AffinityCounts } from "@/lib/social-affinity";
+import type { AffinityCounts } from "@/lib/social-affinity-shared";
 
 const FEED_PAGE_SIZE = 50;
 const POSTS_PAGE_SIZE = 30;

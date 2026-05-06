@@ -17,7 +17,7 @@ import type { SocialPost } from "@/lib/social-types";
 import {
   affinityScoreFromCounts,
   type AffinityCounts,
-} from "@/lib/social-affinity";
+} from "@/lib/social-affinity-shared";
 import {
   cosineSim,
   MIN_INTERACTIONS_FOR_TASTE,
