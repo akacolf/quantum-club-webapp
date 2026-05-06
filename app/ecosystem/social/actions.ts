@@ -1,9 +1,11 @@
 "use server";
 
+import { after } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { authWithQcIdClient } from "@/lib/safe-action";
 import { firestore } from "@/app/(firebase)/server";
 import { bumpAffinity } from "@/lib/social-affinity";
+import { embedAndStorePost, mixIntoTaste } from "@/lib/social-embedding";
 import {
   claimSocialHandleSchema,
   deleteSocialPostSchema,
@@ -230,6 +232,20 @@ export const publishSocialPost = authWithQcIdClient
         await bumpAffinity(qcId, parentAuthorForAffinity, "reply");
       }
 
+      // Fire-and-forget post-response work: embed the new post for ranking,
+      // and on replies fold the parent's embedding into the replier's taste
+      // vector. Both run after the response so the user-visible publish path
+      // stays fast; failures are swallowed inside the helpers.
+      const trimmedContent = content.trim();
+      const replyParentAuthor = parentAuthorForAffinity;
+      const replyParentPostId = parentPostId;
+      after(async () => {
+        await embedAndStorePost(qcId, postRef.id, trimmedContent);
+        if (replyParentAuthor && replyParentPostId) {
+          await mixIntoTaste(qcId, replyParentAuthor, replyParentPostId);
+        }
+      });
+
       return { success: true, postId: postRef.id };
     },
   );
@@ -429,6 +445,9 @@ export const likeSocialPost = authWithQcIdClient
 
       if (result.liked && authorQcId !== qcId) {
         await bumpAffinity(qcId, authorQcId, "like");
+        after(async () => {
+          await mixIntoTaste(qcId, authorQcId, postId);
+        });
       }
 
       return { success: true, ...result };

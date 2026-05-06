@@ -69,6 +69,12 @@ export interface SocialPost {
   gated: boolean;
   /** Unlock price in TON (full units, not nanoTON). Null when not gated. */
   unlockPriceTon: number | null;
+  /**
+   * Phase-3 semantic ranking — Gemini text embedding of `content`, 768 dims,
+   * stamped after publish via a fire-and-forget `after()` task. Absent on
+   * older posts and on posts that failed to embed (best-effort).
+   */
+  embedding?: number[];
 }
 
 /**
