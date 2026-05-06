@@ -9,6 +9,8 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import dynamic from "next/dynamic";
 import trophyAnimationData from "@/public/lottie/trophy-lottie.json";
+import { isQcTeamHandle } from "@/lib/qc-team";
+import { VerifiedBadge } from "@/app/ecosystem/social/_components/VerifiedBadge";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
@@ -75,12 +77,15 @@ export default function LeaderboardList({ fetchNextPage, hasNextPage, isFetching
                                                 <Image src={logoWhite} alt="logo" height={24} width={24} className="opacity-80" />
                                             </div>
                                             <div>
-                                                <div className={`font-bold text-sm ${index === 0 ? 'text-yellow-500' :
+                                                <div className={`font-bold text-sm flex items-center gap-1 ${index === 0 ? 'text-yellow-500' :
                                                     index === 1 ? 'text-gray-300' :
                                                         index === 2 ? 'text-orange-400' :
                                                             'text-white'
                                                     }`}>
-                                                    {item.username}
+                                                    <span>{item.username}</span>
+                                                    {(isQcTeamHandle(item.qcUsername) || isQcTeamHandle(item.username)) && (
+                                                        <VerifiedBadge size={14} tone="team" />
+                                                    )}
                                                 </div>
                                                 <div className="font-medium text-xs text-neutral-500">
                                                     {Number(item.QuantAmount).toLocaleString("en-US", { maximumFractionDigits: 0 })} QNTM

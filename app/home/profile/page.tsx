@@ -43,6 +43,12 @@ import {
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { APP_VERSION } from "@/lib/version";
+import {
+  VerifiedBadge,
+  isProActive,
+  getVerificationKind,
+} from "@/app/ecosystem/social/_components/VerifiedBadge";
+import { useSocialProfile } from "@/app/(hooks)/queries/use-social";
 
 export default function ProfilePage() {
     useTelegramBackButton("/home");
@@ -96,6 +102,15 @@ export default function ProfilePage() {
     const { unlocked, locked } = resolveAchievements(resolvedStats, serverAwardedIds);
 
     const displayName = qcUsername || username || tgUser?.username || tgUser?.first_name || "Quantum User";
+
+    // Verified badge — team handles get a white check, Pro subscribers a
+    // primary-blue check. Falls back to nothing for everyone else.
+    const qcId = authContext?.currentUser?.uid ?? null;
+    const { data: socialProfile } = useSocialProfile(qcId);
+    const verificationKind = getVerificationKind({
+      handle: qcUsername,
+      isPro: isProActive(socialProfile),
+    });
 
     let initials = "";
     if (displayName && displayName !== "Quantum User") {
@@ -319,15 +334,22 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="text-center w-full max-w-xs mx-auto">
-                        <h1 className="text-2xl font-bold text-white leading-tight">
-                            <span className="text-neutral-400 font-normal">
-                                {photoUrl ? "Looking good, " : "Hi, "}
+                        <h1 className="text-2xl font-bold text-white leading-tight inline-flex items-center justify-center gap-1.5">
+                            <span>
+                              <span className="text-neutral-400 font-normal">
+                                  {photoUrl ? "Looking good, " : "Hi, "}
+                              </span>
+                              {displayName}!
                             </span>
-                            {displayName}!
+                            {verificationKind && (
+                              <VerifiedBadge size={20} tone={verificationKind} />
+                            )}
                         </h1>
-                        
+
                         {qcUsername ? (
-                            <p className="text-sm text-primary font-medium mt-0.5">@{qcUsername}</p>
+                            <p className="text-sm text-primary font-medium mt-0.5 inline-flex items-center justify-center gap-1">
+                              @{qcUsername}
+                            </p>
                         ) : (
                             <button
                                 onClick={() => setShowUsernameForm(!showUsernameForm)}

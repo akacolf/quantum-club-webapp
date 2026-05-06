@@ -8,7 +8,7 @@ import type { SocialProfile } from "@/lib/social-types";
 import { Avatar } from "./Avatar";
 import { FollowButton } from "./FollowButton";
 import { formatCount } from "./format";
-import { VerifiedBadge, isProActive, isVerifiedAuthor } from "./VerifiedBadge";
+import { VerifiedBadge, isProActive, getVerificationKind } from "./VerifiedBadge";
 
 interface Props {
   profile: SocialProfile;
@@ -58,10 +58,13 @@ export function ProfileHeader({ profile, qcId }: Props) {
         <div className="mt-2">
           <h1 className="text-xl font-bold leading-tight flex items-center gap-1.5">
             <span>{profile.displayName}</span>
-            {isVerifiedAuthor({
-              handle: profile.handle,
-              isPro: isProActive(profile),
-            }) && <VerifiedBadge size={18} />}
+            {(() => {
+              const kind = getVerificationKind({
+                handle: profile.handle,
+                isPro: isProActive(profile),
+              });
+              return kind ? <VerifiedBadge size={18} tone={kind} /> : null;
+            })()}
           </h1>
           <p className="text-sm text-muted-foreground">@{profile.handle}</p>
         </div>

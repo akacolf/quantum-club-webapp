@@ -40,6 +40,7 @@ export const getLeaderboardData = authActionClient
         const allValues = valuesSnapshot.docs.map((rankDoc) => ({
             id: rankDoc.id,
             username: rankDoc.data().username,
+            qcUsername: (rankDoc.data().qcUsername as string | null | undefined) ?? null,
             QuantAmount: Math.round(Number(rankDoc.data().QuantAmount || 0)),
         }));
 

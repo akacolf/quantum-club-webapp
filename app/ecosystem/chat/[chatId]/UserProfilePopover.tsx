@@ -21,7 +21,11 @@ import { useUserRank } from "@/app/(hooks)/queries/use-user-rank";
 import { useSocialProfile } from "@/app/(hooks)/queries/use-social";
 import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
 import { isQcTeamMember } from "@/lib/qc-team";
-import { VerifiedBadge, isProActive } from "@/app/ecosystem/social/_components/VerifiedBadge";
+import {
+  VerifiedBadge,
+  isProActive,
+  getVerificationKind,
+} from "@/app/ecosystem/social/_components/VerifiedBadge";
 import { toast } from "sonner";
 
 function getInitials(name: string): string {
@@ -143,7 +147,13 @@ export default function UserProfilePopover({
               ) : (
                 <h2 className="text-lg font-bold text-foreground">@{displayName}</h2>
               )}
-              {socialIsPro && <VerifiedBadge size={16} />}
+              {(() => {
+                const kind = getVerificationKind({
+                  handle: displayName,
+                  isPro: socialIsPro,
+                });
+                return kind ? <VerifiedBadge size={16} tone={kind} /> : null;
+              })()}
               {isTeam && (
                 <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-bold rounded gap-0.5">
                   <Image src="/svg/logo-white.svg" alt="QC" width={10} height={10} />

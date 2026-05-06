@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { Icon } from "@iconify/react";
 import { parseAsStringEnum, useQueryState } from "nuqs";
+import { useDrag } from "@use-gesture/react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -14,11 +16,13 @@ import {
   useSocialProfile,
 } from "@/app/(hooks)/queries/use-social";
 import { SOCIAL_FEED_TABS, type SocialFeedTab } from "@/lib/validations";
+import { haptics } from "@/lib/haptics";
 import { FeedTabs } from "./_components/FeedTabs";
 import { PostFeed } from "./_components/PostFeed";
 import { EmptyState } from "./_components/EmptyState";
 import { ComposeFab } from "./_components/ComposeFab";
 import { useEnsureSocialProfile } from "./_components/use-ensure-profile";
+import { isProActive } from "./_components/VerifiedBadge";
 
 export default function SocialFeedPage() {
   useTelegramBackButton("/home");
@@ -44,6 +48,28 @@ export default function SocialFeedPage() {
   const { missingQcUsername } = useEnsureSocialProfile(
     !authLoading && currentUser ? qcId : null,
     myProfile,
+  );
+
+  const isPro = isProActive(myProfile);
+
+  // Swipe-to-switch between feed tabs. Distance threshold dominates over
+  // velocity so a deliberate horizontal drag wins, while a vertical scroll
+  // never accidentally triggers a tab change.
+  const swipeRef = useRef<HTMLDivElement>(null);
+  useDrag(
+    ({ swipe: [sx], movement: [mx, my], last }) => {
+      if (!last) return;
+      const horizontal = sx !== 0 || (Math.abs(mx) > 60 && Math.abs(mx) > Math.abs(my));
+      if (!horizontal) return;
+      const dir = sx !== 0 ? sx : Math.sign(mx);
+      const idx = SOCIAL_FEED_TABS.indexOf(tab);
+      const next = SOCIAL_FEED_TABS[idx - dir];
+      if (next && next !== tab) {
+        haptics.light();
+        setTab(next);
+      }
+    },
+    { target: swipeRef, axis: "lock", filterTaps: true, eventOptions: { passive: true } },
   );
 
   const renderTab = () => {
@@ -102,7 +128,7 @@ export default function SocialFeedPage() {
           <EmptyState
             icon="solar:stars-bold-duotone"
             title="Your feed is loading"
-            description="The for-you mix gets smarter as you follow more people."
+            description="Follow more people to see your personalized feed."
           />
         }
       />
@@ -118,7 +144,7 @@ export default function SocialFeedPage() {
             href={"/ecosystem/social/pro" as Route}
             className="text-sm font-semibold text-white px-2 py-1"
           >
-            Upgrade
+            {isPro ? "Pro" : "Upgrade"}
           </Link>
           <Link
             href={"/ecosystem/social/search" as Route}
@@ -151,7 +177,9 @@ export default function SocialFeedPage() {
         </div>
       )}
 
-      {renderTab()}
+      <div ref={swipeRef} className="touch-pan-y">
+        {renderTab()}
+      </div>
 
       {myProfile && <ComposeFab />}
     </div>

@@ -11,35 +11,56 @@ export function isProActive(
   return profile.proExpiresAt.toMillis() > Date.now();
 }
 
+export type VerificationKind = "team" | "pro";
+
 /**
- * QC Social verified-badge predicate. True for active Pro members and for
- * core-team handles (always verified, no Pro subscription required).
+ * Returns which kind of verified badge (if any) a user is entitled to.
+ * Team always wins over Pro so a team member who *also* subscribed still
+ * displays as team.
  */
+export function getVerificationKind(args: {
+  handle: string | null | undefined;
+  isPro?: boolean | null | undefined;
+}): VerificationKind | null {
+  if (isQcTeamHandle(args.handle)) return "team";
+  if (args.isPro) return "pro";
+  return null;
+}
+
+/** Boolean shorthand of {@link getVerificationKind}. */
 export function isVerifiedAuthor(args: {
   handle: string | null | undefined;
   isPro?: boolean | null | undefined;
 }): boolean {
-  if (args.isPro) return true;
-  return isQcTeamHandle(args.handle);
+  return getVerificationKind(args) !== null;
 }
 
 interface Props {
   size?: number;
   className?: string;
+  /**
+   * `"team"` renders a white checkmark (QC core team), `"pro"` renders a
+   * primary-blue checkmark (Pro subscribers). Defaults to `"pro"`.
+   */
+  tone?: VerificationKind;
 }
 
 /**
- * Pure-icon QC Pro verified badge — used wherever a Pro user's name is
- * rendered (profile header, leaderboard, chat). Pure icon by design system.
+ * Verified-badge icon. Pure icon by design system. Color differentiates
+ * team (white) from Pro subscribers (primary blue).
  */
-export function VerifiedBadge({ size = 16, className }: Props) {
+export function VerifiedBadge({ size = 16, className, tone = "pro" }: Props) {
   return (
     <Icon
       icon="solar:verified-check-bold"
       width={size}
       height={size}
-      className={cn("text-primary shrink-0", className)}
-      aria-label="QC Pro"
+      className={cn(
+        tone === "team" ? "text-white" : "text-primary",
+        "shrink-0",
+        className,
+      )}
+      aria-label={tone === "team" ? "QC team" : "QC Pro"}
     />
   );
 }

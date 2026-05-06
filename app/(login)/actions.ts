@@ -193,11 +193,19 @@ export const checkUserRank = authWithQcIdClient
 
     const rank = userRank.data().count + 1;
     const userRankRef = firestore.collection("userRanks").doc(qcId);
+
+    // Denormalize qcUsername onto the rank doc so the leaderboard list can
+    // surface a verified badge for team members without a second lookup.
+    const userSnap = await firestore.doc(`user/${qcId}`).get();
+    const qcUsername =
+      (userSnap.data()?.qcUsername as string | undefined) ?? null;
+
     await userRankRef.set({
       userId: qcId,
       rank,
       QuantAmount,
       username: userName,
+      qcUsername,
     }, { merge: true });
 
     return { rank };
