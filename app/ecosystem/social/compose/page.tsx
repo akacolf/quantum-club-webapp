@@ -13,6 +13,7 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { haptics } from "@/lib/haptics";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { useNow } from "@/app/(hooks)/useNow";
 import {
   useSocialPost,
   useSocialProfile,
@@ -43,10 +44,10 @@ export default function SocialComposerPage() {
   const { data: parentPost } = useSocialPost(parentAuthorQcId, parentPostId);
 
   const [submitting, setSubmitting] = useState(false);
+  const now = useNow();
 
   const isPro =
-    profile?.proExpiresAt != null &&
-    profile.proExpiresAt.toMillis() > Date.now();
+    profile?.proExpiresAt != null && profile.proExpiresAt.toMillis() > now;
 
   const form = useForm({
     defaultValues: {
