@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import { useForm } from "@tanstack/react-form";
@@ -23,8 +24,9 @@ import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useSocialProfile } from "@/app/(hooks)/queries/use-social";
 import { editSocialProfileFormSchema } from "@/lib/validations";
-import { ensureSocialProfile, updateSocialProfile } from "../actions";
+import { updateSocialProfile } from "../actions";
 import { CreatorEarnings } from "../_components/CreatorEarnings";
+import { useEnsureSocialProfile } from "../_components/use-ensure-profile";
 
 export default function SocialSettingsPage() {
   useTelegramBackButton("/ecosystem/social");
@@ -35,15 +37,7 @@ export default function SocialSettingsPage() {
   const { data: profile } = useSocialProfile(qcId);
 
   // Auto-onboard when settings is opened directly without a profile yet.
-  const ensuredRef = useRef(false);
-  useEffect(() => {
-    if (ensuredRef.current) return;
-    if (!qcId || profile !== null) return;
-    ensuredRef.current = true;
-    ensureSocialProfile({}).catch(() => {
-      ensuredRef.current = false;
-    });
-  }, [qcId, profile]);
+  const { missingQcUsername } = useEnsureSocialProfile(qcId, profile);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -81,6 +75,28 @@ export default function SocialSettingsPage() {
   });
 
   if (currentUser && profile === null) {
+    if (missingQcUsername) {
+      return (
+        <div className="min-h-screen flex items-center justify-center pb-28 px-6 text-center">
+          <div className="space-y-4 max-w-xs">
+            <Icon
+              icon="solar:user-id-linear"
+              className="w-14 h-14 text-muted-foreground mx-auto"
+            />
+            <div>
+              <p className="font-semibold">Set up your QC profile first</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Pick a QC username and add a photo. Your social profile will
+                use them automatically.
+              </p>
+            </div>
+            <Link href={"/home/profile" as Route}>
+              <Button className="rounded-full">Open profile</Button>
+            </Link>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 pb-28 text-center">
         <ButtonLoader size="md" />

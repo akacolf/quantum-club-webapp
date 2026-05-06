@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { Icon } from "@iconify/react";
@@ -19,7 +18,7 @@ import { FeedTabs } from "./_components/FeedTabs";
 import { PostFeed } from "./_components/PostFeed";
 import { EmptyState } from "./_components/EmptyState";
 import { ComposeFab } from "./_components/ComposeFab";
-import { ensureSocialProfile } from "./actions";
+import { useEnsureSocialProfile } from "./_components/use-ensure-profile";
 
 export default function SocialFeedPage() {
   useTelegramBackButton("/home");
@@ -42,16 +41,10 @@ export default function SocialFeedPage() {
   // Auto-onboard once auth is settled and we've confirmed the user has no
   // social profile yet. Server-side action mints a profile from their existing
   // QC username + profile photo so they don't have to claim a handle.
-  const ensuredRef = useRef(false);
-  useEffect(() => {
-    if (ensuredRef.current) return;
-    if (authLoading || !currentUser || myProfile !== null) return;
-    ensuredRef.current = true;
-    ensureSocialProfile({}).catch((err) => {
-      console.error("[social] auto-onboard failed:", err);
-      ensuredRef.current = false;
-    });
-  }, [authLoading, currentUser, myProfile]);
+  const { missingQcUsername } = useEnsureSocialProfile(
+    !authLoading && currentUser ? qcId : null,
+    myProfile,
+  );
 
   const renderTab = () => {
     if (tab === "discover") {
@@ -138,6 +131,25 @@ export default function SocialFeedPage() {
       </header>
 
       <FeedTabs tab={tab} onChange={setTab} />
+
+      {missingQcUsername && (
+        <div className="px-4 py-3 bg-secondary/40">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-semibold">Set up your QC profile</p>
+              <p className="text-xs text-muted-foreground">
+                Pick a QC username and add a photo so people can find you on
+                QC Social.
+              </p>
+            </div>
+            <Link href={"/home/profile" as Route}>
+              <Button size="sm" className="rounded-full">
+                Set up
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {renderTab()}
 
