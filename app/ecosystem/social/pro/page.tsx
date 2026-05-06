@@ -15,6 +15,7 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { useNow } from "@/app/(hooks)/useNow";
 import {
   useSocialProfile,
   useProAutoRenew,
@@ -71,9 +72,9 @@ export default function QcProPage() {
     recipient: string;
   } | null>(null);
 
+  const now = useNow();
   const proExpiresAt = profile?.proExpiresAt ?? null;
-  const isPro =
-    proExpiresAt != null && proExpiresAt.toMillis() > Date.now();
+  const isPro = proExpiresAt != null && proExpiresAt.toMillis() > now;
   const expiresLabel = isPro
     ? new Date(proExpiresAt!.toMillis()).toLocaleDateString(undefined, {
         year: "numeric",
@@ -84,7 +85,7 @@ export default function QcProPage() {
   const daysUntilExpiry =
     isPro && proExpiresAt
       ? Math.ceil(
-          (proExpiresAt.toMillis() - Date.now()) / (24 * 60 * 60 * 1000),
+          (proExpiresAt.toMillis() - now) / (24 * 60 * 60 * 1000),
         )
       : null;
   const showRenewalNudge = daysUntilExpiry !== null && daysUntilExpiry <= 3;
