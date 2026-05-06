@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse, connection } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
-import { Address, internal, SendMode, beginCell, toNano } from "@ton/core";
+import { Address, internal, SendMode, toNano } from "@ton/core";
 import {
   WalletContractV3R2,
   WalletContractV4,
@@ -105,10 +105,6 @@ export async function GET(request: NextRequest) {
           internal({
             to: Address.parse(destination),
             value: toNano(amountTon.toFixed(9)),
-            body: beginCell()
-              .storeUint(0, 32)
-              .storeStringTail("QC Social payout")
-              .endCell(),
             bounce: false,
           }),
         ],
