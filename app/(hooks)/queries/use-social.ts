@@ -52,6 +52,8 @@ function docToProfile(
     followingCount: (data.followingCount as number) ?? 0,
     postCount: (data.postCount as number) ?? 0,
     subscriptionEnabled: (data.subscriptionEnabled as boolean) ?? false,
+    proExpiresAt:
+      (data.proExpiresAt as SocialProfile["proExpiresAt"]) ?? null,
   };
 }
 
@@ -62,6 +64,7 @@ function docToPost(id: string, data: Record<string, unknown>): SocialPost {
     authorHandle: (data.authorHandle as string) ?? "",
     authorDisplayName: (data.authorDisplayName as string) ?? "",
     authorAvatar: (data.authorAvatar as string | null) ?? null,
+    authorIsPro: (data.authorIsPro as boolean) ?? false,
     content: (data.content as string) ?? "",
     media: (data.media as string[]) ?? [],
     parentAuthorQcId: (data.parentAuthorQcId as string | null) ?? null,
@@ -77,6 +80,7 @@ function docToPost(id: string, data: Record<string, unknown>): SocialPost {
     createdAt: (data.createdAt as SocialPost["createdAt"]) ?? null,
     editedAt: (data.editedAt as SocialPost["editedAt"]) ?? null,
     gated: (data.gated as boolean) ?? false,
+    unlockPriceTon: (data.unlockPriceTon as number | null) ?? null,
   };
 }
 
@@ -575,6 +579,42 @@ export function useFollowers(qcId: string | null) {
     queryKey,
     queryFn: () => [],
     enabled: !!qcId,
+    staleTime: Infinity,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// usePostUnlock — live presence check on the unlock receipt for the current
+// reader against a single gated post. Returns true once the unlock doc lands.
+// ---------------------------------------------------------------------------
+
+export function usePostUnlock(
+  authorQcId: string | null,
+  postId: string | null,
+  readerQcId: string | null,
+) {
+  const queryClient = useQueryClient();
+  const queryKey = ["social", "postUnlock", authorQcId, postId, readerQcId];
+
+  useEffect(() => {
+    if (!authorQcId || !postId || !readerQcId) return;
+    const unsub = onSnapshot(
+      doc(
+        dbfs,
+        `socialProfiles/${authorQcId}/posts/${postId}/unlocks/${readerQcId}`,
+      ),
+      (snap) => {
+        queryClient.setQueryData(queryKey, snap.exists());
+      },
+      (err) => console.error("[usePostUnlock] listener error:", err),
+    );
+    return () => unsub();
+  }, [authorQcId, postId, readerQcId]);
+
+  return useQuery<boolean>({
+    queryKey,
+    queryFn: () => false,
+    enabled: !!authorQcId && !!postId && !!readerQcId,
     staleTime: Infinity,
   });
 }

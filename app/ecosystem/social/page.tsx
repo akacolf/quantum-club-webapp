@@ -105,13 +105,25 @@ export default function SocialFeedPage() {
     <div className="min-h-screen bg-background pb-28">
       <header className="px-4 pt-4 pb-3 flex items-center justify-between">
         <h1 className="text-2xl font-bold">QC Social</h1>
-        <Link
-          href={"/ecosystem/social/search" as Route}
-          className="p-1 -mr-1"
-          aria-label="Search"
-        >
-          <Icon icon="solar:magnifer-linear" className="w-6 h-6" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href={"/ecosystem/social/pro" as Route}
+            className="p-1"
+            aria-label="QC Pro"
+          >
+            <Icon
+              icon="solar:crown-bold"
+              className="w-6 h-6 text-amber-400"
+            />
+          </Link>
+          <Link
+            href={"/ecosystem/social/search" as Route}
+            className="p-1 -mr-1"
+            aria-label="Search"
+          >
+            <Icon icon="solar:magnifer-linear" className="w-6 h-6" />
+          </Link>
+        </div>
       </header>
 
       <FeedTabs tab={tab} onChange={setTab} />

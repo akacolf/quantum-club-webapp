@@ -27,6 +27,11 @@ export interface SocialProfile {
    * require a schema migration.
    */
   subscriptionEnabled: boolean;
+  /**
+   * QC Pro membership expiry. When `> now`, the user has the verified badge
+   * and can publish gated posts. Null means never subscribed.
+   */
+  proExpiresAt: Timestamp | null;
 }
 
 /**
@@ -41,6 +46,8 @@ export interface SocialPost {
   authorHandle: string;
   authorDisplayName: string;
   authorAvatar: string | null;
+  /** Snapshotted at write time — author had QC Pro when this post was published */
+  authorIsPro: boolean;
   content: string;
   media: string[];
   parentAuthorQcId: string | null;
@@ -56,10 +63,44 @@ export interface SocialPost {
   createdAt: Timestamp | null;
   editedAt: Timestamp | null;
   /**
-   * Phase-2 monetization placeholder. When true the body is hidden for
-   * non-subscribers. Always false in v1.
+   * When true, the post body is locked behind a per-post unlock fee paid in
+   * TON. Only QC Pro members can publish gated posts.
    */
   gated: boolean;
+  /** Unlock price in TON (full units, not nanoTON). Null when not gated. */
+  unlockPriceTon: number | null;
+}
+
+/**
+ * Receipt that a reader has paid to unlock a gated post. Lives at
+ * `socialProfiles/{authorQcId}/posts/{postId}/unlocks/{readerQcId}`.
+ */
+export interface SocialPostUnlock {
+  readerQcId: string;
+  amountTon: number;
+  txHash: string;
+  unlockedAt: Timestamp | null;
+}
+
+/**
+ * Payment ledger for both Pro subscriptions and gated post unlocks.
+ * Lives at `subscriptionPayments/{paymentId}`.
+ */
+export interface SubscriptionPayment {
+  id: string;
+  payerQcId: string;
+  kind: "pro" | "unlock";
+  amountTon: number;
+  amountUsd: number;
+  /** For unlock payments: target post coords */
+  targetAuthorQcId: string | null;
+  targetPostId: string | null;
+  /** Memo string the user must include so we can match the tx */
+  memo: string;
+  status: "pending" | "verified" | "expired";
+  txHash: string | null;
+  createdAt: Timestamp | null;
+  verifiedAt: Timestamp | null;
 }
 
 export interface SocialFollowing {

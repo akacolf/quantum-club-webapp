@@ -11,4 +11,4 @@
  * - PATCH: Bug fixes, small improvements
  */
 
-export const APP_VERSION = "3.6.0";
+export const APP_VERSION = "3.7.0";

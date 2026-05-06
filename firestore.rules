@@ -317,6 +317,16 @@ service cloud.firestore {
             && request.auth.uid == likerQcId;
           allow write: if false; // Server-only (transactional)
         }
+
+        // Per-reader unlock receipts for gated posts. Reader can read their
+        // own receipt to know if access is granted; the post author can
+        // enumerate readers who paid. Writes are server-only.
+        match /unlocks/{readerQcId} {
+          allow read: if request.auth != null
+            && (request.auth.uid == readerQcId
+                || request.auth.uid == profileQcId);
+          allow write: if false; // Server-only (after on-chain verification)
+        }
       }
 
       // Followers list — each follower has a doc here. Each follower can
@@ -335,6 +345,15 @@ service cloud.firestore {
     match /socialHandles/{handle} {
       allow read: if true;
       allow write: if false;
+    }
+
+    // QC Pro and per-post unlock payment ledger. Each payer can read their
+    // own pending records to track confirmation status; everything is written
+    // server-side after on-chain verification.
+    match /subscriptionPayments/{paymentId} {
+      allow read: if request.auth != null
+        && resource.data.payerQcId == request.auth.uid;
+      allow write: if false; // Server-only
     }
   }
 }

@@ -517,6 +517,14 @@ export const publishSocialPostSchema = z
     parentPostId: z.string().min(1).nullable(),
     /** Token attachment — links the post to a tradable token. Future: trade card render */
     attachedTokenId: z.string().min(1).nullable(),
+    /** When true, locks the body behind a per-post unlock fee. Pro-only. */
+    gated: z.boolean(),
+    /** TON unlock price (whole TON). Required when gated=true. */
+    unlockPriceTon: z
+      .number()
+      .min(0.1, "Minimum is 0.1 TON")
+      .max(1000, "Maximum is 1000 TON")
+      .nullable(),
   })
   .refine(
     (d) => d.content.trim().length > 0 || d.media.length > 0,
@@ -527,6 +535,14 @@ export const publishSocialPostSchema = z
       (d.parentAuthorQcId === null && d.parentPostId === null) ||
       (d.parentAuthorQcId !== null && d.parentPostId !== null),
     { message: "Reply requires both parent author and parent post id" },
+  )
+  .refine(
+    (d) => !d.gated || (d.unlockPriceTon !== null && d.unlockPriceTon > 0),
+    { message: "Gated posts need an unlock price" },
+  )
+  .refine(
+    (d) => !d.gated || d.parentPostId === null,
+    { message: "Replies cannot be gated" },
   );
 export type PublishSocialPostFormData = z.infer<typeof publishSocialPostSchema>;
 
@@ -575,3 +591,32 @@ export type SocialFeedTab = (typeof SOCIAL_FEED_TABS)[number];
 /** Profile tabs (nuqs) */
 export const SOCIAL_PROFILE_TABS = ["posts", "replies", "media"] as const;
 export type SocialProfileTab = (typeof SOCIAL_PROFILE_TABS)[number];
+
+// ---- QC Pro subscription + per-post unlock payments ----
+
+/** Monthly Pro price, in USD. TON amount is derived at quote time. */
+export const QC_PRO_USD_PRICE = 20;
+/** Pro membership duration once verified, in days */
+export const QC_PRO_DURATION_DAYS = 30;
+
+export const confirmPaymentSchema = z.object({
+  paymentId: z.string().min(1),
+  txHash: z.string().min(1),
+});
+export type ConfirmPaymentFormData = z.infer<typeof confirmPaymentSchema>;
+
+export const quotePostUnlockSchema = z.object({
+  authorQcId: z.string().min(1),
+  postId: z.string().min(1),
+});
+export type QuotePostUnlockFormData = z.infer<typeof quotePostUnlockSchema>;
+
+export const setPostGateSchema = z
+  .object({
+    postId: z.string().min(1),
+    priceTon: z.number().min(0.1).max(1000).nullable(),
+  })
+  .refine((d) => d.priceTon === null || d.priceTon > 0, {
+    message: "Price must be greater than 0",
+  });
+export type SetPostGateFormData = z.infer<typeof setPostGateSchema>;

@@ -27,6 +27,7 @@ interface ProfileSnapshot {
   handle: string;
   displayName: string;
   avatar: string | null;
+  isPro: boolean;
 }
 
 async function loadProfileSnapshot(qcId: string): Promise<ProfileSnapshot> {
@@ -35,11 +36,16 @@ async function loadProfileSnapshot(qcId: string): Promise<ProfileSnapshot> {
     throw new Error("Set up your social profile first");
   }
   const data = snap.data() ?? {};
+  const proExpiresAt = data.proExpiresAt as
+    | { toMillis(): number }
+    | null
+    | undefined;
   return {
     qcId,
     handle: (data.handle as string) ?? "",
     displayName: (data.displayName as string) ?? "",
     avatar: (data.avatar as string | null) ?? null,
+    isPro: proExpiresAt != null && proExpiresAt.toMillis() > Date.now(),
   };
 }
 
@@ -88,6 +94,7 @@ export const claimSocialHandle = authWithQcIdClient
           followingCount: 0,
           postCount: 0,
           subscriptionEnabled: false,
+          proExpiresAt: null,
         });
       });
 
@@ -144,10 +151,28 @@ export const publishSocialPost = authWithQcIdClient
         parentAuthorQcId,
         parentPostId,
         attachedTokenId,
+        gated,
+        unlockPriceTon,
       },
       ctx: { qcId },
     }) => {
       const author = await loadProfileSnapshot(qcId);
+
+      // Creator-license check: only QC Pro members can publish gated posts.
+      if (gated) {
+        const profileSnap = await firestore
+          .doc(`socialProfiles/${qcId}`)
+          .get();
+        const proExpiresAt = profileSnap.get("proExpiresAt") as
+          | { toMillis(): number }
+          | null
+          | undefined;
+        const isPro =
+          proExpiresAt != null && proExpiresAt.toMillis() > Date.now();
+        if (!isPro) {
+          throw new Error("QC Pro is required to publish gated posts");
+        }
+      }
 
       const profileRef = firestore.doc(`socialProfiles/${qcId}`);
       const postRef = profileRef.collection("posts").doc();
@@ -176,6 +201,7 @@ export const publishSocialPost = authWithQcIdClient
           authorHandle: author.handle,
           authorDisplayName: author.displayName,
           authorAvatar: author.avatar,
+          authorIsPro: author.isPro,
           content: content.trim(),
           media,
           parentAuthorQcId,
@@ -189,7 +215,8 @@ export const publishSocialPost = authWithQcIdClient
           viewCount: 0,
           createdAt: now,
           editedAt: null,
-          gated: false,
+          gated: gated && unlockPriceTon !== null && unlockPriceTon > 0,
+          unlockPriceTon: gated ? unlockPriceTon : null,
         });
         tx.update(profileRef, { postCount: FieldValue.increment(1) });
       });
@@ -450,6 +477,7 @@ export const repostSocialPost = authWithQcIdClient
           authorHandle: author.handle,
           authorDisplayName: author.displayName,
           authorAvatar: author.avatar,
+          authorIsPro: author.isPro,
           content: comment.trim(),
           media: [],
           parentAuthorQcId: null,
@@ -464,6 +492,7 @@ export const repostSocialPost = authWithQcIdClient
           createdAt: now,
           editedAt: null,
           gated: false,
+          unlockPriceTon: null,
         });
         tx.update(originalRef, { repostCount: FieldValue.increment(1) });
         tx.update(meRef, { postCount: FieldValue.increment(1) });

@@ -1,7 +1,22 @@
 import { dbfs } from "@/app/(firebase)/client";
-import { doc, runTransaction } from "firebase/firestore";
+import { doc, getDoc, runTransaction } from "firebase/firestore";
 
 const RATE_LIMIT_PER_DAY = 50;
+const RATE_LIMIT_PER_DAY_PRO = 250;
+
+async function isProUser(userId: string): Promise<boolean> {
+    try {
+        const profileSnap = await getDoc(doc(dbfs, `socialProfiles/${userId}`));
+        if (!profileSnap.exists()) return false;
+        const proExpiresAt = profileSnap.data()?.proExpiresAt as
+            | { toMillis(): number }
+            | null
+            | undefined;
+        return proExpiresAt != null && proExpiresAt.toMillis() > Date.now();
+    } catch {
+        return false;
+    }
+}
 
 interface RateLimitResult {
     allowed: boolean;
@@ -24,6 +39,10 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
     const tomorrow = new Date(today);
     tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
 
+    const limit = (await isProUser(userId))
+        ? RATE_LIMIT_PER_DAY_PRO
+        : RATE_LIMIT_PER_DAY;
+
     try {
         const rateLimitRef = doc(dbfs, `user/${userId}/aiUsage/daily`);
 
@@ -37,7 +56,7 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
                     date: todayStr,
                     lastUsed: new Date().toISOString(),
                 });
-                return { allowed: true, remaining: RATE_LIMIT_PER_DAY - 1 };
+                return { allowed: true, remaining: limit - 1 };
             }
 
             const data = rateLimitDoc.data();
@@ -49,11 +68,11 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
                     date: todayStr,
                     lastUsed: new Date().toISOString(),
                 });
-                return { allowed: true, remaining: RATE_LIMIT_PER_DAY - 1 };
+                return { allowed: true, remaining: limit - 1 };
             }
 
-            // Same day — check limit
-            if (data.count >= RATE_LIMIT_PER_DAY) {
+            // Same day — check limit (uses Pro-aware ceiling resolved above)
+            if (data.count >= limit) {
                 return { allowed: false, remaining: 0 };
             }
 
@@ -62,14 +81,14 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
                 count: data.count + 1,
                 lastUsed: new Date().toISOString(),
             });
-            return { allowed: true, remaining: RATE_LIMIT_PER_DAY - data.count - 1 };
+            return { allowed: true, remaining: limit - data.count - 1 };
         });
 
         if (!result.allowed) {
             return {
                 ...result,
                 resetAt: tomorrow,
-                error: `Daily limit of ${RATE_LIMIT_PER_DAY} messages reached. Resets at midnight UTC.`,
+                error: `Daily limit of ${limit} messages reached. Resets at midnight UTC.`,
             };
         }
 
@@ -79,7 +98,7 @@ export async function checkRateLimit(userId: string): Promise<RateLimitResult> {
         // Fail open: allow the request on error to avoid falsely blocking users
         return {
             allowed: true,
-            remaining: RATE_LIMIT_PER_DAY,
+            remaining: limit,
             resetAt: tomorrow,
         };
     }

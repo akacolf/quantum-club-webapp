@@ -11,6 +11,9 @@ import { Avatar } from "./Avatar";
 import { RichContent } from "./RichContent";
 import { PostActions } from "./PostActions";
 import { formatRelative } from "./format";
+import { VerifiedBadge } from "./VerifiedBadge";
+import { LockedPost } from "./LockedPost";
+import { usePostUnlock } from "@/app/(hooks)/queries/use-social";
 
 interface Props {
   post: SocialPost;
@@ -27,6 +30,15 @@ export function PostCard({ post, qcId, compact, inThread }: Props) {
   const postHref =
     `/ecosystem/social/${post.authorHandle}/${post.id}` as Route;
   const isRepost = post.repostOfPostId !== null;
+
+  const isOwner = qcId !== null && qcId === post.authorQcId;
+  const { data: hasUnlocked } = usePostUnlock(
+    post.gated ? post.authorQcId : null,
+    post.gated ? post.id : null,
+    post.gated ? qcId : null,
+  );
+  const showLocked =
+    post.gated && !isOwner && !hasUnlocked;
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (inThread) return;
@@ -56,10 +68,13 @@ export function PostCard({ post, qcId, compact, inThread }: Props) {
             <Link
               href={profileHref}
               onClick={(e) => e.stopPropagation()}
-              className="font-semibold truncate"
+              className="font-semibold truncate inline-flex items-center gap-1"
               prefetch={false}
             >
-              {post.authorDisplayName || post.authorHandle}
+              <span className="truncate">
+                {post.authorDisplayName || post.authorHandle}
+              </span>
+              {post.authorIsPro && <VerifiedBadge size={14} />}
             </Link>
             <span className="text-muted-foreground truncate">
               @{post.authorHandle}
@@ -80,13 +95,19 @@ export function PostCard({ post, qcId, compact, inThread }: Props) {
             </div>
           )}
 
-          {post.content && (
+          {showLocked ? (
+            <LockedPost
+              authorQcId={post.authorQcId}
+              postId={post.id}
+              priceTon={post.unlockPriceTon ?? 0}
+            />
+          ) : post.content ? (
             <div className="mt-1">
               <RichContent content={post.content} />
             </div>
-          )}
+          ) : null}
 
-          {post.media.length > 0 && (
+          {!showLocked && post.media.length > 0 && (
             <div
               className={cn(
                 "mt-2 grid gap-1 rounded-2xl overflow-hidden",

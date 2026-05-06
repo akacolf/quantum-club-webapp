@@ -7,6 +7,7 @@ import { useForm, useStore } from "@tanstack/react-form";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { haptics } from "@/lib/haptics";
@@ -43,6 +44,10 @@ export default function SocialComposerPage() {
 
   const [submitting, setSubmitting] = useState(false);
 
+  const isPro =
+    profile?.proExpiresAt != null &&
+    profile.proExpiresAt.toMillis() > Date.now();
+
   const form = useForm({
     defaultValues: {
       content: "",
@@ -50,6 +55,8 @@ export default function SocialComposerPage() {
       parentAuthorQcId,
       parentPostId,
       attachedTokenId: tokenId,
+      gated: false,
+      unlockPriceTon: null as number | null,
     },
     validators: { onSubmit: publishSocialPostSchema },
     onSubmit: async ({ value }) => {
@@ -199,6 +206,67 @@ export default function SocialComposerPage() {
             <span className="text-foreground font-mono">{tokenId.slice(0, 10)}…</span>
           </span>
         </div>
+      )}
+
+      {!parentPostId && isPro && (
+        <form.Field name="gated">
+          {(gatedField) => (
+            <form.Field name="unlockPriceTon">
+              {(priceField) => (
+                <div className="mx-4 mb-3 rounded-2xl bg-secondary/40 px-3 py-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !gatedField.state.value;
+                      gatedField.handleChange(next);
+                      if (!next) priceField.handleChange(null);
+                      else if (priceField.state.value === null)
+                        priceField.handleChange(1);
+                    }}
+                    className="w-full flex items-center justify-between text-sm"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Icon
+                        icon="solar:lock-keyhole-minimalistic-bold"
+                        className={
+                          gatedField.state.value
+                            ? "w-4 h-4 text-primary"
+                            : "w-4 h-4 text-muted-foreground"
+                        }
+                      />
+                      <span className="font-semibold">Lock this post</span>
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {gatedField.state.value ? "On" : "Off"}
+                    </span>
+                  </button>
+                  {gatedField.state.value && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        value={priceField.state.value ?? ""}
+                        onChange={(e) =>
+                          priceField.handleChange(
+                            e.target.value === ""
+                              ? null
+                              : Number(e.target.value),
+                          )
+                        }
+                        placeholder="Unlock price"
+                        className="flex-1"
+                      />
+                      <span className="text-sm font-semibold text-muted-foreground">
+                        TON
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </form.Field>
+          )}
+        </form.Field>
       )}
 
       <div className="px-4 flex items-center justify-between">
