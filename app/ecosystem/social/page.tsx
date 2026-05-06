@@ -10,6 +10,7 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import {
   useDiscoverFeed,
   useFollowingFeed,
+  useForYouFeed,
   useSocialProfile,
 } from "@/app/(hooks)/queries/use-social";
 import { SOCIAL_FEED_TABS, type SocialFeedTab } from "@/lib/validations";
@@ -34,6 +35,7 @@ export default function SocialFeedPage() {
 
   const discover = useDiscoverFeed();
   const followingFeed = useFollowingFeed(qcId);
+  const forYouFeed = useForYouFeed(qcId);
 
   const needsOnboarding =
     !authLoading && currentUser && myProfile === null;
@@ -88,7 +90,7 @@ export default function SocialFeedPage() {
     }
     return (
       <PostFeed
-        posts={discover.data}
+        posts={forYouFeed.isLoading ? undefined : forYouFeed.posts}
         qcId={qcId}
         emptyState={
           <EmptyState

@@ -21,6 +21,7 @@ import type {
   SocialProfile,
 } from "@/lib/social-types";
 import type { SocialReaction } from "@/lib/validations";
+import { rankFeed } from "@/lib/social-rank";
 
 const FEED_PAGE_SIZE = 50;
 const POSTS_PAGE_SIZE = 30;
@@ -462,6 +463,34 @@ export function useFollowingFeed(qcId: string | null) {
 
   const isLoading = queries.some((q) => q.isLoading);
   return { posts: merged, isLoading };
+}
+
+// ---------------------------------------------------------------------------
+// useForYouFeed — phase-1 heuristic ranker. Pools discover + following posts,
+// scores by engagement + recency + follow-affinity, applies a diversity pass.
+// Pure client-side; no server signals yet (phase 2 will introduce them).
+// ---------------------------------------------------------------------------
+
+export function useForYouFeed(qcId: string | null) {
+  const { data: discover = [] } = useDiscoverFeed();
+  const { posts: followingPosts, isLoading: followingLoading } =
+    useFollowingFeed(qcId);
+  const { data: following = [] } = useFollowingList(qcId);
+
+  const followedQcIds = new Set(following.map((f) => f.targetQcId));
+  // Pool the candidates — discover already covers everyone, but pulling
+  // following posts in raises their visibility for the affinity score and
+  // ensures we have a deeper supply for the diversity pass.
+  const pool = [...discover, ...followingPosts];
+  const ranked = rankFeed(pool, {
+    followedQcIds,
+    selfQcId: qcId,
+  });
+
+  return {
+    posts: ranked.slice(0, FEED_PAGE_SIZE),
+    isLoading: followingLoading && discover.length === 0,
+  };
 }
 
 // ---------------------------------------------------------------------------
