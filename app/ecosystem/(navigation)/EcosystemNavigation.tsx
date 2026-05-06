@@ -31,7 +31,6 @@ const navTabs = [
     label: "QC Social",
     icon: "tabler:social",
     iconClassName: "[&>svg]:stroke-[1.5]",
-    comingSoon: true,
   },
 ];
 

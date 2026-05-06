@@ -423,3 +423,155 @@ export const updateBroadcastSchema = z
 /** Broadcast discovery tab (for nuqs) */
 export const BROADCAST_TABS = ["explore", "following"] as const;
 export type BroadcastTab = (typeof BROADCAST_TABS)[number];
+
+// ---- QC Social (X/Twitter-style two-way social feed) ----
+
+export const SOCIAL_HANDLE_MIN = 3;
+export const SOCIAL_HANDLE_MAX = 20;
+export const SOCIAL_HANDLE_REGEX = /^[a-z0-9][a-z0-9_]*[a-z0-9]$/;
+export const SOCIAL_DISPLAY_NAME_MAX = 40;
+export const SOCIAL_BIO_MAX = 200;
+export const SOCIAL_POST_CONTENT_MAX = 500;
+export const SOCIAL_LINK_MAX = 100;
+
+export const SOCIAL_REACTIONS = ["🔥", "❤️", "👍", "😂", "🚀", "💯"] as const;
+export type SocialReaction = (typeof SOCIAL_REACTIONS)[number];
+
+export const socialHandleSchema = z
+  .string()
+  .min(SOCIAL_HANDLE_MIN, `Handle must be at least ${SOCIAL_HANDLE_MIN} characters`)
+  .max(SOCIAL_HANDLE_MAX, `Handle must be ${SOCIAL_HANDLE_MAX} characters or less`)
+  .regex(
+    SOCIAL_HANDLE_REGEX,
+    "Lowercase letters, numbers, and underscores only (no leading/trailing underscores)",
+  )
+  .refine((val) => !RESERVED_USERNAMES.includes(val), {
+    message: "This handle is reserved",
+  });
+
+/** Onboarding — claim a handle and set up the profile */
+export const claimSocialHandleSchema = z.object({
+  handle: socialHandleSchema,
+  displayName: z
+    .string()
+    .min(1, "Display name is required")
+    .max(SOCIAL_DISPLAY_NAME_MAX, `Name must be ${SOCIAL_DISPLAY_NAME_MAX} characters or less`),
+  bio: z
+    .string()
+    .max(SOCIAL_BIO_MAX, `Bio must be ${SOCIAL_BIO_MAX} characters or less`),
+});
+export type ClaimSocialHandleFormData = z.infer<typeof claimSocialHandleSchema>;
+
+/** Profile updates — handle is immutable post-claim, but everything else can change */
+export const updateSocialProfileSchema = z
+  .object({
+    displayName: z
+      .string()
+      .min(1)
+      .max(SOCIAL_DISPLAY_NAME_MAX, `Name must be ${SOCIAL_DISPLAY_NAME_MAX} characters or less`)
+      .optional(),
+    bio: z
+      .string()
+      .max(SOCIAL_BIO_MAX, `Bio must be ${SOCIAL_BIO_MAX} characters or less`)
+      .optional(),
+    avatar: z.string().url().nullable().optional(),
+    banner: z.string().url().nullable().optional(),
+    website: z
+      .string()
+      .max(SOCIAL_LINK_MAX, `Link must be ${SOCIAL_LINK_MAX} characters or less`)
+      .nullable()
+      .optional(),
+  })
+  .refine(
+    (d) =>
+      d.displayName !== undefined ||
+      d.bio !== undefined ||
+      d.avatar !== undefined ||
+      d.banner !== undefined ||
+      d.website !== undefined,
+    { message: "No changes provided" },
+  );
+export type UpdateSocialProfileFormData = z.infer<typeof updateSocialProfileSchema>;
+
+/** Form-shape schema for the edit-profile UI (all required strings, server normalizes empties) */
+export const editSocialProfileFormSchema = z.object({
+  displayName: z
+    .string()
+    .min(1, "Display name is required")
+    .max(SOCIAL_DISPLAY_NAME_MAX, `Name must be ${SOCIAL_DISPLAY_NAME_MAX} characters or less`),
+  bio: z
+    .string()
+    .max(SOCIAL_BIO_MAX, `Bio must be ${SOCIAL_BIO_MAX} characters or less`),
+  website: z
+    .string()
+    .max(SOCIAL_LINK_MAX, `Link must be ${SOCIAL_LINK_MAX} characters or less`),
+});
+export type EditSocialProfileFormData = z.infer<typeof editSocialProfileFormSchema>;
+
+/** Compose a post (top-level or reply via parentPostId) */
+export const publishSocialPostSchema = z
+  .object({
+    content: z.string().max(SOCIAL_POST_CONTENT_MAX, "Post is too long"),
+    media: z.array(z.string().url()).max(4, "Up to 4 images per post"),
+    parentAuthorQcId: z.string().min(1).nullable(),
+    parentPostId: z.string().min(1).nullable(),
+    /** Token attachment — links the post to a tradable token. Future: trade card render */
+    attachedTokenId: z.string().min(1).nullable(),
+  })
+  .refine(
+    (d) => d.content.trim().length > 0 || d.media.length > 0,
+    { message: "Write something or attach media" },
+  )
+  .refine(
+    (d) =>
+      (d.parentAuthorQcId === null && d.parentPostId === null) ||
+      (d.parentAuthorQcId !== null && d.parentPostId !== null),
+    { message: "Reply requires both parent author and parent post id" },
+  );
+export type PublishSocialPostFormData = z.infer<typeof publishSocialPostSchema>;
+
+export const editSocialPostSchema = z.object({
+  authorQcId: z.string().min(1),
+  postId: z.string().min(1),
+  content: z
+    .string()
+    .min(1, "Content is required")
+    .max(SOCIAL_POST_CONTENT_MAX, "Post is too long"),
+});
+
+export const deleteSocialPostSchema = z.object({
+  authorQcId: z.string().min(1),
+  postId: z.string().min(1),
+});
+
+export const followSocialUserSchema = z.object({
+  targetQcId: z.string().min(1),
+});
+
+export const likeSocialPostSchema = z.object({
+  authorQcId: z.string().min(1),
+  postId: z.string().min(1),
+  emoji: z.enum(SOCIAL_REACTIONS),
+});
+
+export const unlikeSocialPostSchema = z.object({
+  authorQcId: z.string().min(1),
+  postId: z.string().min(1),
+});
+
+export const repostSocialPostSchema = z.object({
+  authorQcId: z.string().min(1),
+  postId: z.string().min(1),
+  /** Optional commentary added on top of the repost ("quote post") */
+  comment: z
+    .string()
+    .max(SOCIAL_POST_CONTENT_MAX, "Comment is too long"),
+});
+
+/** Feed tabs (nuqs) */
+export const SOCIAL_FEED_TABS = ["forYou", "following", "discover"] as const;
+export type SocialFeedTab = (typeof SOCIAL_FEED_TABS)[number];
+
+/** Profile tabs (nuqs) */
+export const SOCIAL_PROFILE_TABS = ["posts", "replies", "media"] as const;
+export type SocialProfileTab = (typeof SOCIAL_PROFILE_TABS)[number];

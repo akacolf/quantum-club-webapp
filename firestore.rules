@@ -295,5 +295,46 @@ service cloud.firestore {
         && request.resource.data.requesterQcId == request.auth.uid;
       allow update, delete: if false; // Server-only moderation
     }
+
+    // QC Social — two-way social feed (profiles, posts, follows, likes).
+    // All mutations run via server actions using the Admin SDK. Clients can
+    // only read public-facing data and inspect their own per-user records
+    // (likes, followers/following entries).
+    match /socialProfiles/{profileQcId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Server-only
+
+      // Posts (top-level + replies + reposts) by this profile.
+      match /posts/{postId} {
+        allow read: if request.auth != null;
+        allow write: if false; // Server-only
+
+        // Per-user like doc. Each user can read their own like for
+        // "did I like this" — others cannot enumerate likers from clients.
+        // Aggregate counts live in the post's reactions map.
+        match /likes/{likerQcId} {
+          allow read: if request.auth != null
+            && request.auth.uid == likerQcId;
+          allow write: if false; // Server-only (transactional)
+        }
+      }
+
+      // Followers list — each follower has a doc here. Each follower can
+      // read their own membership; the profile owner can list followers
+      // (for a follower-list view). Writes are server-only.
+      match /followers/{followerQcId} {
+        allow read: if request.auth != null
+          && (request.auth.uid == followerQcId
+              || request.auth.uid == profileQcId);
+        allow write: if false;
+      }
+    }
+
+    // Social handle → qcId lookup. Public read for handle resolution,
+    // server-only write (created at claim time).
+    match /socialHandles/{handle} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }

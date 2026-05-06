@@ -1,45 +1,142 @@
 "use client";
 
+import Link from "next/link";
+import type { Route } from "next";
 import { Icon } from "@iconify/react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { parseAsStringEnum, useQueryState } from "nuqs";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import {
+  useDiscoverFeed,
+  useFollowingFeed,
+  useSocialProfile,
+} from "@/app/(hooks)/queries/use-social";
+import { SOCIAL_FEED_TABS, type SocialFeedTab } from "@/lib/validations";
+import { FeedTabs } from "./_components/FeedTabs";
+import { PostFeed } from "./_components/PostFeed";
+import { EmptyState } from "./_components/EmptyState";
+import { ComposeFab } from "./_components/ComposeFab";
 
-export default function QCSocialPage() {
+export default function SocialFeedPage() {
   useTelegramBackButton("/home");
+  const { currentUser, authLoading } = useAuth();
+  const qcId = currentUser?.uid ?? null;
+
+  const { data: myProfile } = useSocialProfile(qcId);
+
+  const [tab, setTab] = useQueryState<SocialFeedTab>(
+    "tab",
+    parseAsStringEnum<SocialFeedTab>([...SOCIAL_FEED_TABS])
+      .withDefault("forYou")
+      .withOptions({ history: "replace" }),
+  );
+
+  const discover = useDiscoverFeed();
+  const followingFeed = useFollowingFeed(qcId);
+
+  const needsOnboarding =
+    !authLoading && currentUser && myProfile === null;
+
+  const renderTab = () => {
+    if (tab === "discover") {
+      return (
+        <PostFeed
+          posts={discover.data}
+          qcId={qcId}
+          emptyState={
+            <EmptyState
+              icon="solar:compass-linear"
+              title="Nothing here yet"
+              description="Be the first — write the first post on QC Social."
+              action={
+                <Link href={"/ecosystem/social/compose" as Route}>
+                  <Button size="sm" className="rounded-full">
+                    Write a post
+                  </Button>
+                </Link>
+              }
+            />
+          }
+        />
+      );
+    }
+    if (tab === "following") {
+      return (
+        <PostFeed
+          posts={followingFeed.isLoading ? undefined : followingFeed.posts}
+          qcId={qcId}
+          emptyState={
+            <EmptyState
+              icon="solar:users-group-rounded-linear"
+              title="Nothing from your follows yet"
+              description="Follow some people on the discover tab and their posts will land here."
+              action={
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="rounded-full"
+                  onClick={() => setTab("discover")}
+                >
+                  Open discover
+                </Button>
+              }
+            />
+          }
+        />
+      );
+    }
+    return (
+      <PostFeed
+        posts={discover.data}
+        qcId={qcId}
+        emptyState={
+          <EmptyState
+            icon="solar:stars-bold-duotone"
+            title="Your feed is loading"
+            description="The for-you mix gets smarter as you follow more people."
+          />
+        }
+      />
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 pb-28">
-      <Card className="bg-card border-border max-w-sm w-full">
-        <CardContent className="p-8 text-center space-y-5">
-          <Icon icon="solar:global-bold" className="mx-auto w-12 h-12 text-primary" />
+    <div className="min-h-screen bg-background pb-28">
+      <header className="px-4 pt-4 pb-3 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Social</h1>
+        <Link
+          href={"/ecosystem/social/search" as Route}
+          className="size-9 rounded-full bg-secondary flex items-center justify-center"
+          aria-label="Search"
+        >
+          <Icon icon="solar:magnifer-linear" className="w-5 h-5" />
+        </Link>
+      </header>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-center gap-2">
-              <h1 className="text-xl font-bold">QC Social</h1>
-              <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">
-                Coming Soon
-              </Badge>
+      <FeedTabs tab={tab} onChange={setTab} />
+
+      {needsOnboarding && (
+        <div className="px-4 py-3 bg-secondary/40">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-semibold">Claim your handle</p>
+              <p className="text-xs text-muted-foreground">
+                Set a username so people can find you and you can post.
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              A decentralized social experience built for the Quantum Club ecosystem.
-              Share updates, follow traders, and connect with the community.
-            </p>
+            <Link href={"/ecosystem/social/onboarding" as Route}>
+              <Button size="sm" className="rounded-full">
+                Get started
+              </Button>
+            </Link>
           </div>
+        </div>
+      )}
 
-          <div className="space-y-3 pt-2">
-            {[
-              { icon: "solar:user-circle-bold", text: "Customizable profiles & feeds" },
-              { icon: "solar:chart-bold", text: "Share trades & portfolio insights" },
-              { icon: "solar:star-bold", text: "Follow top traders & influencers" },
-            ].map((feature, i) => (
-              <div key={i} className="flex items-center gap-3 text-left">
-                <Icon icon={feature.icon} className="w-5 h-5 text-muted-foreground shrink-0" />
-                <p className="text-xs text-muted-foreground">{feature.text}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {renderTab()}
+
+      {myProfile && <ComposeFab />}
     </div>
   );
 }
