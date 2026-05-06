@@ -20,6 +20,7 @@ import {
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { haptics } from "@/lib/haptics";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
+import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useHandleAvailability } from "@/app/(hooks)/queries/use-social";
 import { claimSocialHandleSchema } from "@/lib/validations";
 import { claimSocialHandle } from "../actions";
@@ -27,10 +28,24 @@ import { claimSocialHandle } from "../actions";
 export default function SocialOnboardingPage() {
   useTelegramBackButton("/ecosystem/social");
   const router = useRouter();
+  const { qcUsername } = useUserContext();
   const [submitting, setSubmitting] = useState(false);
 
+  // Prefill from the user's existing QC username so onboarding is one tap for
+  // most users. We sanitize to the social handle alphabet (lowercase + _ only)
+  // and trim trailing/leading underscores so it passes validation.
+  const prefilledHandle = (qcUsername ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 20);
+
   const form = useForm({
-    defaultValues: { handle: "", displayName: "", bio: "" },
+    defaultValues: {
+      handle: prefilledHandle,
+      displayName: qcUsername ?? "",
+      bio: "",
+    },
     validators: { onSubmit: claimSocialHandleSchema },
     onSubmit: async ({ value }) => {
       setSubmitting(true);

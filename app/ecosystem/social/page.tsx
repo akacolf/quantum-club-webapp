@@ -104,13 +104,13 @@ export default function SocialFeedPage() {
   return (
     <div className="min-h-screen bg-background pb-28">
       <header className="px-4 pt-4 pb-3 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Social</h1>
+        <h1 className="text-2xl font-bold">QC Social</h1>
         <Link
           href={"/ecosystem/social/search" as Route}
-          className="size-9 rounded-full bg-secondary flex items-center justify-center"
+          className="p-1 -mr-1"
           aria-label="Search"
         >
-          <Icon icon="solar:magnifer-linear" className="w-5 h-5" />
+          <Icon icon="solar:magnifer-linear" className="w-6 h-6" />
         </Link>
       </header>
 
