@@ -22,6 +22,7 @@ import type {
 } from "@/lib/social-types";
 import type { SocialReaction } from "@/lib/validations";
 import { rankFeed } from "@/lib/social-rank";
+import type { AffinityCounts } from "@/lib/social-affinity";
 
 const FEED_PAGE_SIZE = 50;
 const POSTS_PAGE_SIZE = 30;
@@ -466,9 +467,54 @@ export function useFollowingFeed(qcId: string | null) {
 }
 
 // ---------------------------------------------------------------------------
-// useForYouFeed — phase-1 heuristic ranker. Pools discover + following posts,
-// scores by engagement + recency + follow-affinity, applies a diversity pass.
-// Pure client-side; no server signals yet (phase 2 will introduce them).
+// useAffinityScores — phase-2 personalization signal. Live snapshot of the
+// viewer's per-author engagement counters at user/{qcId}/socialAffinity/*.
+// These counters are bumped server-side on likes/replies/follows/unlocks
+// plus debounced view pings.
+// ---------------------------------------------------------------------------
+
+export function useAffinityScores(qcId: string | null) {
+  const queryClient = useQueryClient();
+  const queryKey = ["social", "affinity", qcId];
+
+  useEffect(() => {
+    if (!qcId) return;
+    const q = collection(dbfs, "user", qcId, "socialAffinity");
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        const map = new Map<string, Partial<AffinityCounts>>();
+        snapshot.docs.forEach((d) => {
+          const data = d.data();
+          map.set(d.id, {
+            likes: (data.likes as number) ?? 0,
+            replies: (data.replies as number) ?? 0,
+            unlocks: (data.unlocks as number) ?? 0,
+            follows: (data.follows as number) ?? 0,
+            profileViews: (data.profileViews as number) ?? 0,
+            postViews: (data.postViews as number) ?? 0,
+          });
+        });
+        queryClient.setQueryData(queryKey, map);
+      },
+      (err) => console.error("[useAffinityScores] listener error:", err),
+    );
+    return () => unsub();
+  }, [qcId]);
+
+  return useQuery<Map<string, Partial<AffinityCounts>>>({
+    queryKey,
+    queryFn: () => new Map(),
+    enabled: !!qcId,
+    staleTime: Infinity,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// useForYouFeed — for-you ranker. Pools discover + following posts, scores
+// by engagement + recency + follow-affinity + per-author affinity (phase 2),
+// applies a diversity pass. Affinity is folded in once the live snapshot
+// lands; the feed re-ranks automatically as new engagement events post.
 // ---------------------------------------------------------------------------
 
 export function useForYouFeed(qcId: string | null) {
@@ -476,15 +522,14 @@ export function useForYouFeed(qcId: string | null) {
   const { posts: followingPosts, isLoading: followingLoading } =
     useFollowingFeed(qcId);
   const { data: following = [] } = useFollowingList(qcId);
+  const { data: affinityByAuthor } = useAffinityScores(qcId);
 
   const followedQcIds = new Set(following.map((f) => f.targetQcId));
-  // Pool the candidates — discover already covers everyone, but pulling
-  // following posts in raises their visibility for the affinity score and
-  // ensures we have a deeper supply for the diversity pass.
   const pool = [...discover, ...followingPosts];
   const ranked = rankFeed(pool, {
     followedQcIds,
     selfQcId: qcId,
+    affinityByAuthor,
   });
 
   return {
@@ -607,6 +652,102 @@ export function useFollowers(qcId: string | null) {
   return useQuery<string[]>({
     queryKey,
     queryFn: () => [],
+    enabled: !!qcId,
+    staleTime: Infinity,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// useCreatorEarnings — live snapshot of the creator's accrued unlock revenue
+// at creatorEarnings/{qcId}. Returns null when nothing has been earned yet.
+// ---------------------------------------------------------------------------
+
+export interface CreatorEarnings {
+  totalEarnedTon: number;
+  pendingTon: number;
+  paidOutTon: number;
+  lastEarnedAtMs: number | null;
+}
+
+export function useCreatorEarnings(qcId: string | null) {
+  const queryClient = useQueryClient();
+  const queryKey = ["social", "creatorEarnings", qcId];
+
+  useEffect(() => {
+    if (!qcId) return;
+    const unsub = onSnapshot(
+      doc(dbfs, "creatorEarnings", qcId),
+      (snap) => {
+        if (!snap.exists()) {
+          queryClient.setQueryData(queryKey, null);
+          return;
+        }
+        const data = snap.data();
+        const last = data.lastEarnedAt as
+          | { toMillis(): number }
+          | null
+          | undefined;
+        queryClient.setQueryData(queryKey, {
+          totalEarnedTon: (data.totalEarnedTon as number) ?? 0,
+          pendingTon: (data.pendingTon as number) ?? 0,
+          paidOutTon: (data.paidOutTon as number) ?? 0,
+          lastEarnedAtMs: last?.toMillis?.() ?? null,
+        });
+      },
+      (err) => console.error("[useCreatorEarnings] listener error:", err),
+    );
+    return () => unsub();
+  }, [qcId]);
+
+  return useQuery<CreatorEarnings | null>({
+    queryKey,
+    queryFn: () => null,
+    enabled: !!qcId,
+    staleTime: Infinity,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// useProAutoRenew — live snapshot of the user's auto-renew preference and
+// last attempt timestamp from the private user/{qcId} doc. Other Pro fields
+// (proExpiresAt, proTelegramId) live here too but are only read server-side
+// by the cron — the client uses socialProfile.proExpiresAt instead.
+// ---------------------------------------------------------------------------
+
+export function useProAutoRenew(qcId: string | null) {
+  const queryClient = useQueryClient();
+  const queryKey = ["social", "proAutoRenew", qcId];
+
+  useEffect(() => {
+    if (!qcId) return;
+    const unsub = onSnapshot(
+      doc(dbfs, "user", qcId),
+      (snap) => {
+        if (!snap.exists()) {
+          queryClient.setQueryData(queryKey, {
+            autoRenew: false,
+            lastAttemptMs: null,
+          });
+          return;
+        }
+        const data = snap.data();
+        const last = data.lastAutoRenewAttemptAt as
+          | { toMillis(): number }
+          | null
+          | undefined;
+        queryClient.setQueryData(queryKey, {
+          autoRenew: (data.autoRenew as boolean) ?? false,
+          lastAttemptMs: last?.toMillis?.() ?? null,
+        });
+      },
+      (err) => console.error("[useProAutoRenew] listener error:", err),
+    );
+    return () => unsub();
+  }, [qcId]);
+
+  return useQuery<{ autoRenew: boolean; lastAttemptMs: number | null }>({
+    queryKey,
+    queryFn: () => ({ autoRenew: false, lastAttemptMs: null }),
     enabled: !!qcId,
     staleTime: Infinity,
   });

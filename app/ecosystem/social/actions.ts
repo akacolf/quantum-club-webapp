@@ -3,6 +3,7 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { authWithQcIdClient } from "@/lib/safe-action";
 import { firestore } from "@/app/(firebase)/server";
+import { bumpAffinity } from "@/lib/social-affinity";
 import {
   claimSocialHandleSchema,
   deleteSocialPostSchema,
@@ -185,12 +186,16 @@ export const publishSocialPost = authWithQcIdClient
         : null;
 
       const now = FieldValue.serverTimestamp();
+      let parentAuthorForAffinity: string | null = null;
       await firestore.runTransaction(async (tx) => {
         if (parentPostRef) {
           const parentSnap = await tx.get(parentPostRef);
           if (!parentSnap.exists) {
             throw new Error("Parent post no longer exists");
           }
+          parentAuthorForAffinity =
+            (parentSnap.get("authorQcId") as string | undefined) ??
+            parentAuthorQcId;
           tx.update(parentPostRef, {
             replyCount: FieldValue.increment(1),
           });
@@ -220,6 +225,10 @@ export const publishSocialPost = authWithQcIdClient
         });
         tx.update(profileRef, { postCount: FieldValue.increment(1) });
       });
+
+      if (parentAuthorForAffinity) {
+        await bumpAffinity(qcId, parentAuthorForAffinity, "reply");
+      }
 
       return { success: true, postId: postRef.id };
     },
@@ -334,6 +343,7 @@ export const followSocialUser = authWithQcIdClient
       tx.update(meRef, { followingCount: FieldValue.increment(1) });
     });
 
+    await bumpAffinity(qcId, targetQcId, "follow");
     return { success: true };
   });
 
@@ -357,6 +367,7 @@ export const unfollowSocialUser = authWithQcIdClient
       tx.update(meRef, { followingCount: FieldValue.increment(-1) });
     });
 
+    await bumpAffinity(qcId, targetQcId, "unfollow");
     return { success: true };
   });
 
@@ -415,6 +426,10 @@ export const likeSocialPost = authWithQcIdClient
         });
         return { liked: true as const, emoji };
       });
+
+      if (result.liked && authorQcId !== qcId) {
+        await bumpAffinity(qcId, authorQcId, "like");
+      }
 
       return { success: true, ...result };
     },

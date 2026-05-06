@@ -598,6 +598,14 @@ export type SocialProfileTab = (typeof SOCIAL_PROFILE_TABS)[number];
 export const QC_PRO_USD_PRICE = 20;
 /** Pro membership duration once verified, in days */
 export const QC_PRO_DURATION_DAYS = 30;
+/**
+ * Per-post unlock revshare. Creator gets the lion's share; platform takes a
+ * cut to cover infra + on-chain payout fees. Sums must equal 1.
+ */
+export const CREATOR_REVSHARE = 0.8;
+export const PLATFORM_REVSHARE = 0.2;
+/** Minimum payout amount before a creator can request a withdrawal */
+export const PAYOUT_MIN_TON = 1;
 
 export const confirmPaymentSchema = z.object({
   paymentId: z.string().min(1),

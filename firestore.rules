@@ -355,5 +355,30 @@ service cloud.firestore {
         && resource.data.payerQcId == request.auth.uid;
       allow write: if false; // Server-only
     }
+
+    // Creator earnings ledger — accrued from gated-post unlocks. Only the
+    // creator can read their own balance; events are scoped under their own
+    // doc for audit. Writes are server-only (transactional with the unlock
+    // verification).
+    match /creatorEarnings/{creatorQcId} {
+      allow read: if request.auth != null
+        && request.auth.uid == creatorQcId;
+      allow write: if false; // Server-only
+
+      match /events/{eventId} {
+        allow read: if request.auth != null
+          && request.auth.uid == creatorQcId;
+        allow write: if false;
+      }
+    }
+
+    // Creator payout requests — created by the creator (server action), then
+    // processed offline by an admin tool. Creator can read their own request
+    // to see status; writes are server-only.
+    match /creatorPayoutRequests/{requestId} {
+      allow read: if request.auth != null
+        && resource.data.creatorQcId == request.auth.uid;
+      allow write: if false; // Server-only
+    }
   }
 }

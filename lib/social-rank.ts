@@ -1,22 +1,31 @@
 /**
- * Phase-1 for-you ranker — pure heuristic, runs client-side over the
- * discover + following candidate pool. No per-user signals yet; phase 2
- * will introduce a Cloud Function that recomputes affinity from like/reply/
- * profile-view events and folds it in here.
+ * For-you ranker. Heuristic + affinity-aware: phase 1 (engagement, recency,
+ * follow boost, diversity pass) is now augmented with phase-2 per-(reader,
+ * author) affinity counters fed in from `lib/social-affinity.ts`.
  *
  * Score recipe:
- *   score = engagement(log-scaled) + recency_decay + affinity_boost
- *   then apply a diversity penalty over the sorted output so consecutive
- *   posts from the same author are pushed apart.
+ *   score = engagement(log-scaled)
+ *         + recency_decay
+ *         + follow_boost
+ *         + affinity_boost(reader → author)
+ *         - self_penalty
+ * then apply a diversity penalty over the sorted output so consecutive
+ * posts from the same author are pushed apart.
  */
 
 import type { SocialPost } from "@/lib/social-types";
+import {
+  affinityScoreFromCounts,
+  type AffinityCounts,
+} from "@/lib/social-affinity";
 
 interface RankContext {
-  /** qcIds the viewer follows — used for affinity boost */
+  /** qcIds the viewer follows — used for follow boost */
   followedQcIds: Set<string>;
   /** Viewer's own qcId — small self-author penalty so own posts don't pin top */
   selfQcId: string | null;
+  /** Per-author affinity counters for the viewer (phase 2). Optional. */
+  affinityByAuthor?: Map<string, Partial<AffinityCounts>>;
   /** Reference time (ms). Defaults to Date.now(); injectable for tests. */
   now?: number;
 }
@@ -25,11 +34,16 @@ const RECENCY_HALF_LIFE_HOURS = 6;
 const FOLLOW_BOOST = 1.5;
 const SELF_PENALTY = 0.5;
 const POST_AGE_MAX_DAYS = 7;
+/**
+ * Multiplier on the affinity score (already log-scaled). Tuned so a power
+ * engager with strong history (~10 likes + 1 unlock) gets roughly the same
+ * boost as a follow — they shouldn't dominate the feed entirely.
+ */
+const AFFINITY_BOOST_SCALE = 1.2;
 
 function recencyScore(createdAtMs: number, nowMs: number): number {
   const ageHours = Math.max(0, (nowMs - createdAtMs) / 3_600_000);
   if (ageHours > POST_AGE_MAX_DAYS * 24) return 0;
-  // Exponential decay with the configured half-life.
   return Math.pow(0.5, ageHours / RECENCY_HALF_LIFE_HOURS) * 3;
 }
 
@@ -55,6 +69,12 @@ export function scorePost(post: SocialPost, ctx: RankContext): number {
   if (ctx.selfQcId && post.authorQcId === ctx.selfQcId) {
     score -= SELF_PENALTY;
   }
+
+  const affinity = ctx.affinityByAuthor?.get(post.authorQcId);
+  if (affinity) {
+    score += affinityScoreFromCounts(affinity) * AFFINITY_BOOST_SCALE;
+  }
+
   return score;
 }
 
@@ -80,8 +100,6 @@ export function rankFeed(
     .map((p) => ({ post: p, score: scorePost(p, ctx) }))
     .sort((a, b) => b.score - a.score);
 
-  // Diversity pass: if the next post has the same author as the previous
-  // accepted post, swap it with the closest later candidate that doesn't.
   const ordered: SocialPost[] = [];
   const queue = scored.slice();
   while (queue.length) {

@@ -25,6 +25,7 @@ import { useSocialProfile } from "@/app/(hooks)/queries/use-social";
 import { editSocialProfileFormSchema } from "@/lib/validations";
 import { updateSocialProfile } from "../actions";
 import { EmptyState } from "../_components/EmptyState";
+import { CreatorEarnings } from "../_components/CreatorEarnings";
 
 export default function SocialSettingsPage() {
   useTelegramBackButton("/ecosystem/social");
@@ -184,6 +185,10 @@ export default function SocialSettingsPage() {
           </Button>
         </FieldGroup>
       </form>
+
+      <div className="mt-8">
+        <CreatorEarnings qcId={qcId} />
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { parseAsStringEnum, useQueryState } from "nuqs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +11,7 @@ import {
   useUserPosts,
   useUserReplies,
 } from "@/app/(hooks)/queries/use-social";
+import { recordSocialProfileView } from "../affinity-actions";
 import {
   SOCIAL_PROFILE_TABS,
   type SocialProfileTab,
@@ -40,6 +41,20 @@ export default function SocialProfilePage({
   const { data: profile } = useSocialProfileByHandle(handle);
   const posts = useUserPosts(profile?.id ?? null);
   const replies = useUserReplies(profile?.id ?? null);
+
+  // Fire one profile-view affinity bump per profile per mount, after the
+  // viewer has settled on the page for ~1.5s. Prevents accidental bumps from
+  // tap-throughs and quick back-nav.
+  const viewedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!profile?.id || !qcId || qcId === profile.id) return;
+    if (viewedRef.current === profile.id) return;
+    const t = setTimeout(() => {
+      viewedRef.current = profile.id;
+      recordSocialProfileView({ authorQcId: profile.id }).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [profile?.id, qcId]);
 
   const [tab, setTab] = useQueryState<SocialProfileTab>(
     "view",

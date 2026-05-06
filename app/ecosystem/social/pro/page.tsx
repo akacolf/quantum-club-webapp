@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import {
   BiometricAuth,
   useBiometricAuth,
@@ -14,14 +15,22 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
-import { useSocialProfile } from "@/app/(hooks)/queries/use-social";
+import {
+  useSocialProfile,
+  useProAutoRenew,
+} from "@/app/(hooks)/queries/use-social";
 import { sendTonFromUserWallet } from "@/lib/user-wallet-send";
 import { haptics } from "@/lib/haptics";
 import { QC_PRO_USD_PRICE } from "@/lib/validations";
 import {
   quoteProSubscription,
   confirmProPayment,
+  setAutoRenew,
+  markAutoRenewAttempted,
 } from "../pro-actions";
+
+const AUTO_RENEW_WINDOW_MS = 24 * 60 * 60 * 1000;
+const AUTO_RENEW_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 
 const PERKS = [
   {
@@ -48,6 +57,7 @@ export default function QcProPage() {
   const qcId = currentUser?.uid ?? null;
   const { telegramId, walletAddress } = useUserContext();
   const { data: profile } = useSocialProfile(qcId);
+  const { data: autoRenewState } = useProAutoRenew(qcId);
 
   const { isOpen, requestAuth, handleSuccess, handleCancel } =
     useBiometricAuth();
@@ -101,6 +111,105 @@ export default function QcProPage() {
       recipient: res.data.recipient,
     });
     setStep("review");
+  }
+
+  /**
+   * Silent renewal — quote → send → confirm without biometric prompt or
+   * review screen. Triggered by the auto-renew effect when the user has
+   * opted in and is inside the renewal window. Wallet send still requires
+   * the encrypted mnemonic in IndexedDB; if it's not there, falls back.
+   */
+  async function runSilentRenewal() {
+    if (!qcId || !telegramId || !walletAddress) return;
+    setStep("quoting");
+    const quoteRes = await quoteProSubscription();
+    if (!quoteRes?.data) {
+      setStep("idle");
+      return;
+    }
+    setStep("signing");
+    try {
+      await sendTonFromUserWallet({
+        telegramId,
+        walletAddress,
+        recipient: quoteRes.data.recipient,
+        amountTon: quoteRes.data.amountTon,
+        memo: quoteRes.data.memo,
+      });
+    } catch (e) {
+      console.error("[auto-renew] send failed:", e);
+      toast.error(
+        "Auto-renew couldn't send — open this page to renew manually",
+      );
+      setStep("idle");
+      return;
+    }
+    setStep("verifying");
+    let confirmed = false;
+    const startedAt = Date.now();
+    while (!confirmed && Date.now() - startedAt < 4 * 60 * 1000) {
+      await new Promise((r) => setTimeout(r, 6000));
+      const res = await confirmProPayment({
+        paymentId: quoteRes.data.paymentId,
+      });
+      if (res?.data?.success) {
+        confirmed = true;
+        break;
+      }
+    }
+    if (confirmed) {
+      haptics.success();
+      toast.success("QC Pro auto-renewed");
+      router.refresh();
+    } else {
+      toast.error("Auto-renew still pending — try again from this screen");
+    }
+    setStep("idle");
+  }
+
+  // Silent auto-renew driver. Runs when the user has opted in, expiry is
+  // within 24h, and the cooldown has passed. Only fires once per page mount
+  // and never if a manual flow is already in progress.
+  const autoRenewKickoffRef = useRef(false);
+  useEffect(() => {
+    if (autoRenewKickoffRef.current) return;
+    if (step !== "idle") return;
+    if (!qcId || !telegramId || !walletAddress) return;
+    if (!autoRenewState?.autoRenew) return;
+    if (!proExpiresAt) return;
+    const now = Date.now();
+    const msToExpiry = proExpiresAt.toMillis() - now;
+    if (msToExpiry > AUTO_RENEW_WINDOW_MS) return;
+    if (
+      autoRenewState.lastAttemptMs &&
+      now - autoRenewState.lastAttemptMs < AUTO_RENEW_COOLDOWN_MS
+    ) {
+      return;
+    }
+    autoRenewKickoffRef.current = true;
+    (async () => {
+      await markAutoRenewAttempted();
+      toast.info("Auto-renewing QC Pro…");
+      await runSilentRenewal();
+    })();
+  }, [
+    step,
+    qcId,
+    telegramId,
+    walletAddress,
+    autoRenewState?.autoRenew,
+    autoRenewState?.lastAttemptMs,
+    proExpiresAt,
+  ]);
+
+  async function toggleAutoRenew(next: boolean) {
+    haptics.light();
+    const res = await setAutoRenew({ enabled: next });
+    if (res?.serverError) {
+      toast.error(res.serverError);
+      return;
+    }
+    toast.success(next ? "Auto-renew on" : "Auto-renew off");
   }
 
   async function startPayment() {
@@ -300,9 +409,30 @@ export default function QcProPage() {
         ))}
       </div>
 
-      <p className="mt-8 text-xs text-muted-foreground text-center">
-        QC Pro renews on demand — there&apos;s no auto-charge. We&apos;ll
-        remind you a few days before your membership expires.
+      {isPro && (
+        <div className="mt-8 flex items-start gap-3 rounded-2xl bg-secondary/40 px-4 py-3">
+          <Icon
+            icon="solar:refresh-circle-bold"
+            className="w-5 h-5 text-primary shrink-0 mt-0.5"
+          />
+          <div className="flex-1">
+            <p className="text-sm font-semibold">Auto-renew</p>
+            <p className="text-xs text-muted-foreground">
+              Charge ${QC_PRO_USD_PRICE} from your wallet 24h before expiry.
+              Runs the next time you open the app inside that window.
+            </p>
+          </div>
+          <Switch
+            checked={autoRenewState?.autoRenew ?? false}
+            onCheckedChange={toggleAutoRenew}
+          />
+        </div>
+      )}
+
+      <p className="mt-4 text-xs text-muted-foreground text-center">
+        {autoRenewState?.autoRenew
+          ? "We'll auto-renew once you're inside the 24-hour window."
+          : "QC Pro renews on demand. We'll remind you a few days before your membership expires."}
       </p>
 
       <BiometricAuth

@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,7 @@ import { EmptyState } from "../../_components/EmptyState";
 import { RichContent } from "../../_components/RichContent";
 import { Avatar } from "../../_components/Avatar";
 import { formatRelative } from "../../_components/format";
+import { recordSocialPostView } from "../../affinity-actions";
 
 export default function SocialPostDetailPage({
   params,
@@ -32,6 +33,23 @@ export default function SocialPostDetailPage({
   const { data: profile } = useSocialProfileByHandle(handle);
   const { data: post } = useSocialPost(profile?.id ?? null, postId);
   const replies = usePostReplies(profile?.id ?? null, postId);
+
+  // One post-view affinity bump per (post, mount), gated on a 1.5s dwell.
+  const viewedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!post?.authorQcId || !post?.id || !qcId) return;
+    if (qcId === post.authorQcId) return;
+    const key = `${post.authorQcId}:${post.id}`;
+    if (viewedRef.current === key) return;
+    const t = setTimeout(() => {
+      viewedRef.current = key;
+      recordSocialPostView({
+        authorQcId: post.authorQcId,
+        postId: post.id,
+      }).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [post?.authorQcId, post?.id, qcId]);
 
   if (profile === undefined || post === undefined) {
     return (
