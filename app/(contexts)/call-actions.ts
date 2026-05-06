@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { authActionClient } from "@/lib/safe-action";
+import { authWithQcIdClient } from "@/lib/safe-action";
 import { firestore } from "@/app/(firebase)/server";
 import { sendNotification } from "@/lib/notifications";
 import { env } from "@/env";
@@ -12,9 +12,27 @@ import { env } from "@/env";
 
 const callNotificationSchema = z.object({
   calleeId: z.string().min(1, "Callee ID is required"),
-  callerName: z.string().min(1, "Caller name is required"),
+  callerName: z.string().optional().default(""),
   chatId: z.string().min(1, "Chat ID is required"),
 });
+
+async function resolveCallerName(qcId: string, fallback: string): Promise<string> {
+  const indexed = await firestore
+    .collection("qcUsernames")
+    .where("qcId", "==", qcId)
+    .limit(1)
+    .get();
+  if (!indexed.empty) {
+    const doc = indexed.docs[0];
+    const display = (doc.data().displayUsername as string | undefined) ?? doc.id;
+    if (display) return display.replace(/^@+/, "").trim();
+  }
+  const userSnap = await firestore.doc(`user/${qcId}`).get();
+  const username = ((userSnap.data()?.qcUsername as string | undefined) ?? "")
+    .replace(/^@+/, "")
+    .trim();
+  return username || fallback.replace(/^@+/, "").trim() || "Quantum Club user";
+}
 
 function resolveTelegramId(userData: Record<string, unknown>): string | null {
   if (userData.numericalTelegramId) {
@@ -28,10 +46,11 @@ function resolveTelegramId(userData: Record<string, unknown>): string | null {
   return null;
 }
 
-export const sendCallNotification = authActionClient
+export const sendCallNotification = authWithQcIdClient
   .schema(callNotificationSchema)
-  .action(async ({ parsedInput: { calleeId, callerName, chatId } }) => {
+  .action(async ({ parsedInput: { calleeId, callerName, chatId }, ctx: { qcId } }) => {
     try {
+      const resolvedCallerName = await resolveCallerName(qcId, callerName);
       // Check presence — skip if user is currently online in-app
       const presenceSnap = await firestore.doc(`qc-presence/${calleeId}`).get();
       if (presenceSnap.exists) {
@@ -57,7 +76,7 @@ export const sendCallNotification = authActionClient
         throw new Error("No telegram ID");
       }
 
-      const message = `Incoming voice call from <b>${callerName}</b>`;
+      const message = `Incoming voice call from <b>${resolvedCallerName}</b>`;
       const botUsername = env.BOT_USERNAME || "QuantumClubBot";
       const deepLinkUrl = `https://t.me/${botUsername}/app?startapp=chat_${chatId}`;
       const replyMarkup = {

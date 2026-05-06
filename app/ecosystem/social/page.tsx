@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { Icon } from "@iconify/react";
@@ -18,6 +19,7 @@ import { FeedTabs } from "./_components/FeedTabs";
 import { PostFeed } from "./_components/PostFeed";
 import { EmptyState } from "./_components/EmptyState";
 import { ComposeFab } from "./_components/ComposeFab";
+import { ensureSocialProfile } from "./actions";
 
 export default function SocialFeedPage() {
   useTelegramBackButton("/home");
@@ -37,8 +39,19 @@ export default function SocialFeedPage() {
   const followingFeed = useFollowingFeed(qcId);
   const forYouFeed = useForYouFeed(qcId);
 
-  const needsOnboarding =
-    !authLoading && currentUser && myProfile === null;
+  // Auto-onboard once auth is settled and we've confirmed the user has no
+  // social profile yet. Server-side action mints a profile from their existing
+  // QC username + profile photo so they don't have to claim a handle.
+  const ensuredRef = useRef(false);
+  useEffect(() => {
+    if (ensuredRef.current) return;
+    if (authLoading || !currentUser || myProfile !== null) return;
+    ensuredRef.current = true;
+    ensureSocialProfile({}).catch((err) => {
+      console.error("[social] auto-onboard failed:", err);
+      ensuredRef.current = false;
+    });
+  }, [authLoading, currentUser, myProfile]);
 
   const renderTab = () => {
     if (tab === "discover") {
@@ -110,13 +123,9 @@ export default function SocialFeedPage() {
         <div className="flex items-center gap-3">
           <Link
             href={"/ecosystem/social/pro" as Route}
-            className="p-1"
-            aria-label="QC Pro"
+            className="text-sm font-semibold text-amber-400 px-2 py-1"
           >
-            <Icon
-              icon="solar:crown-bold"
-              className="w-6 h-6 text-amber-400"
-            />
+            Upgrade
           </Link>
           <Link
             href={"/ecosystem/social/search" as Route}
@@ -129,24 +138,6 @@ export default function SocialFeedPage() {
       </header>
 
       <FeedTabs tab={tab} onChange={setTab} />
-
-      {needsOnboarding && (
-        <div className="px-4 py-3 bg-secondary/40">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1">
-              <p className="text-sm font-semibold">Claim your handle</p>
-              <p className="text-xs text-muted-foreground">
-                Set a username so people can find you and you can post.
-              </p>
-            </div>
-            <Link href={"/ecosystem/social/onboarding" as Route}>
-              <Button size="sm" className="rounded-full">
-                Get started
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
 
       {renderTab()}
 

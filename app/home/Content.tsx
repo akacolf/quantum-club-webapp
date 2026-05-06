@@ -409,15 +409,12 @@ const HomeContent = () => {
             <span className="text-[11px] font-medium tracking-wide">AI</span>
           </Link>
 
-          <button disabled className="flex flex-col items-center gap-1.5 text-neutral-500 transition-colors cursor-not-allowed w-fit opacity-60">
-            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm relative">
+          <Link href="/ecosystem/social?back=/home" className="flex flex-col items-center gap-1.5 text-neutral-400 hover:text-white transition-colors cursor-pointer w-fit">
+            <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shadow-sm">
               <Icon icon="lucide:pen-line" width="20" height="20" />
-              <Badge className="absolute -top-2 -right-3 px-1 py-0 text-[8px] font-bold rounded-full bg-secondary text-white hover:bg-secondary border-0 leading-none flex items-center justify-center min-h-[16px]">
-                SOON
-              </Badge>
             </div>
             <span className="text-[11px] font-medium tracking-wide">Post</span>
-          </button>
+          </Link>
         </div>
       </div>
 

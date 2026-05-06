@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import { useForm } from "@tanstack/react-form";
@@ -23,8 +23,7 @@ import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useSocialProfile } from "@/app/(hooks)/queries/use-social";
 import { editSocialProfileFormSchema } from "@/lib/validations";
-import { updateSocialProfile } from "../actions";
-import { EmptyState } from "../_components/EmptyState";
+import { ensureSocialProfile, updateSocialProfile } from "../actions";
 import { CreatorEarnings } from "../_components/CreatorEarnings";
 
 export default function SocialSettingsPage() {
@@ -34,6 +33,17 @@ export default function SocialSettingsPage() {
   const { currentUser } = useAuth();
   const qcId = currentUser?.uid ?? null;
   const { data: profile } = useSocialProfile(qcId);
+
+  // Auto-onboard when settings is opened directly without a profile yet.
+  const ensuredRef = useRef(false);
+  useEffect(() => {
+    if (ensuredRef.current) return;
+    if (!qcId || profile !== null) return;
+    ensuredRef.current = true;
+    ensureSocialProfile({}).catch(() => {
+      ensuredRef.current = false;
+    });
+  }, [qcId, profile]);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -72,20 +82,9 @@ export default function SocialSettingsPage() {
 
   if (currentUser && profile === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center pb-28">
-        <EmptyState
-          icon="solar:user-plus-rounded-linear"
-          title="Claim your handle first"
-          description="You need a profile before you can edit it."
-          action={
-            <Button
-              className="rounded-full"
-              onClick={() => router.replace("/ecosystem/social/onboarding" as Route)}
-            >
-              Get started
-            </Button>
-          }
-        />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 pb-28 text-center">
+        <ButtonLoader size="md" />
+        <p className="text-sm text-muted-foreground">Setting up your profile…</p>
       </div>
     );
   }

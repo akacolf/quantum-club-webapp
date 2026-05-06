@@ -1,6 +1,7 @@
 "use server";
 
 import { after } from "next/server";
+import { z } from "zod";
 import { FieldValue } from "firebase-admin/firestore";
 import { authWithQcIdClient } from "@/lib/safe-action";
 import { firestore } from "@/app/(firebase)/server";
@@ -51,6 +52,119 @@ async function loadProfileSnapshot(qcId: string): Promise<ProfileSnapshot> {
     isPro: proExpiresAt != null && proExpiresAt.toMillis() > Date.now(),
   };
 }
+
+// ---------------------------------------------------------------------------
+// ensureSocialProfile — idempotent auto-onboard. Mints a social profile from
+// the user's existing QC username + profile photo so they don't have to claim
+// a handle separately. Sanitizes the QC username to the social handle
+// alphabet (a-z0-9_), and on collision appends a numeric suffix until a free
+// handle is found. If the user has no QC username yet, returns
+// `{ created: false, missingQcUsername: true }` so the client can prompt for
+// one.
+// ---------------------------------------------------------------------------
+
+const SOCIAL_HANDLE_ALPHABET = /[^a-z0-9_]/g;
+
+function sanitizeQcUsernameToHandle(qcUsername: string): string {
+  return qcUsername
+    .toLowerCase()
+    .replace(SOCIAL_HANDLE_ALPHABET, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 20);
+}
+
+export const ensureSocialProfile = authWithQcIdClient
+  .schema(z.object({}))
+  .action(async ({ ctx: { qcId } }) => {
+    const profileRef = firestore.doc(`socialProfiles/${qcId}`);
+    const existing = await profileRef.get();
+    if (existing.exists) {
+      return {
+        created: false,
+        handle: (existing.data()?.handle as string | undefined) ?? null,
+      };
+    }
+
+    const userSnap = await firestore.doc(`user/${qcId}`).get();
+    const qcUsername = (userSnap.data()?.qcUsername as string | undefined) ?? "";
+    if (!qcUsername.trim()) {
+      return { created: false, missingQcUsername: true as const };
+    }
+
+    let base = sanitizeQcUsernameToHandle(qcUsername);
+    if (base.length < 3) base = `${base}_${qcId.slice(0, 4)}`.slice(0, 20);
+
+    // Pull the profile photo from the QC username index — that's where the
+    // upload lives (see updateProfilePhotoUrl in chat/actions.ts).
+    let avatar: string | null = null;
+    const usernameIdx = await firestore
+      .collection("qcUsernames")
+      .where("qcId", "==", qcId)
+      .limit(1)
+      .get();
+    if (!usernameIdx.empty) {
+      avatar =
+        (usernameIdx.docs[0].data().profilePhotoUrl as string | null) ?? null;
+    }
+
+    const displayName = qcUsername.replace(/^@+/, "").trim() || base;
+
+    let candidate = base;
+    let suffix = 0;
+    let claimedHandle: string | null = null;
+    while (suffix < 25) {
+      const handleRef = firestore.doc(`socialHandles/${candidate}`);
+      try {
+        await firestore.runTransaction(async (tx) => {
+          const [handleSnap, profileSnap] = await Promise.all([
+            tx.get(handleRef),
+            tx.get(profileRef),
+          ]);
+          if (profileSnap.exists) {
+            claimedHandle =
+              (profileSnap.data()?.handle as string | undefined) ?? candidate;
+            return;
+          }
+          if (handleSnap.exists) {
+            throw new Error("handle-taken");
+          }
+          const now = FieldValue.serverTimestamp();
+          tx.set(handleRef, { qcId, claimedAt: now });
+          tx.set(profileRef, {
+            handle: candidate,
+            displayName,
+            bio: "",
+            avatar,
+            banner: null,
+            website: null,
+            linkedBroadcastHandle: null,
+            createdAt: now,
+            followerCount: 0,
+            followingCount: 0,
+            postCount: 0,
+            subscriptionEnabled: false,
+            proExpiresAt: null,
+          });
+          claimedHandle = candidate;
+        });
+        if (claimedHandle) break;
+      } catch (err) {
+        if (err instanceof Error && err.message === "handle-taken") {
+          suffix += 1;
+          const tail = String(suffix);
+          candidate = `${base.slice(0, Math.max(1, 20 - tail.length))}${tail}`;
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!claimedHandle) {
+      throw new Error("Couldn't claim a social handle automatically");
+    }
+    return { created: true, handle: claimedHandle };
+  });
 
 // ---------------------------------------------------------------------------
 // claimSocialHandle — first-time onboarding. Creates the profile doc and

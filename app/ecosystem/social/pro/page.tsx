@@ -272,13 +272,7 @@ export default function QcProPage() {
   return (
     <div className="min-h-screen px-4 pt-6 pb-28 max-w-md mx-auto">
       <header className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Icon
-            icon="solar:crown-bold"
-            className="w-7 h-7 text-amber-400"
-          />
-          <h1 className="text-2xl font-bold">QC Pro</h1>
-        </div>
+        <h1 className="text-2xl font-bold mb-2">QC Pro</h1>
         <p className="text-sm text-muted-foreground">
           Get the verified badge, raise your AI limits, and unlock gated
           posting on QC Social.

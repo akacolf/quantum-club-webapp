@@ -8,7 +8,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@iconify/react";
-import { Badge } from "@/components/ui/badge";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useRouter } from "next/navigation";
 import { useTrading } from "@/app/(contexts)/TradingContext";
@@ -70,13 +69,7 @@ export default function GlobalLiveTrades() {
         return (
             <Card className="bg-white/5 border-white/10 mb-4">
                 <CardContent className="p-3">
-                    <div className="flex items-center gap-2">
-                        <Icon icon="solar:pulse-2-bold" className="w-4 h-4 text-primary animate-pulse" />
-                        <span className="text-xs text-muted-foreground">Loading on-chain activity...</span>
-                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[8px] ml-auto">
-                            On-chain
-                        </Badge>
-                    </div>
+                    <span className="text-xs text-muted-foreground">Loading on-chain activity...</span>
                 </CardContent>
             </Card>
         );
@@ -86,13 +79,7 @@ export default function GlobalLiveTrades() {
         return (
             <Card className="bg-white/5 border-white/10 mb-4">
                 <CardContent className="p-3">
-                    <div className="flex items-center gap-2">
-                        <Icon icon="solar:pulse-2-bold" className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">No trades yet</span>
-                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[8px] ml-auto">
-                            On-chain
-                        </Badge>
-                    </div>
+                    <span className="text-xs text-muted-foreground">No trades yet</span>
                 </CardContent>
             </Card>
         );
@@ -112,12 +99,6 @@ export default function GlobalLiveTrades() {
         >
             <CardContent className="p-3">
                 <div className="flex items-center gap-3">
-                    {/* Live indicator */}
-                    <div className="relative">
-                        <Icon icon="solar:pulse-2-bold" className="w-5 h-5 text-primary" />
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    </div>
-
                     {/* Trade info - animates on change */}
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -128,16 +109,6 @@ export default function GlobalLiveTrades() {
                             transition={{ duration: 0.2 }}
                             className="flex-1 flex items-center gap-2"
                         >
-                            <div
-                                className={`w-6 h-6 rounded-md flex items-center justify-center ${isBuy ? "bg-green-500/20" : "bg-red-500/20"
-                                    }`}
-                            >
-                                <Icon
-                                    icon={isBuy ? "solar:bag-smile-bold" : "solar:hand-money-bold"}
-                                    className={`w-3.5 h-3.5 ${isBuy ? "text-green-400" : "text-red-400"}`}
-                                />
-                            </div>
-
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
                                     <span className={`text-xs font-semibold ${isBuy ? "text-green-400" : "text-red-400"}`}>
@@ -161,29 +132,23 @@ export default function GlobalLiveTrades() {
                         </motion.div>
                     </AnimatePresence>
 
-                    {/* On-chain badge and pagination */}
-                    <div className="flex flex-col items-end gap-1">
-                        <Badge variant="secondary" className="bg-transparent text-green-400 border-0 px-0 text-[8px]">
-                            On-chain
-                        </Badge>
-                        {trades.length > 1 && (
-                            <div className="flex gap-1">
-                                {trades.slice(0, 5).map((_, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setCurrentIndex(i);
-                                        }}
-                                        className={`w-1.5 h-1.5 rounded-full transition-all ${i === currentIndex
-                                            ? "bg-primary w-3"
-                                            : "bg-white/20 hover:bg-white/40"
-                                            }`}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    {trades.length > 1 && (
+                        <div className="flex gap-1">
+                            {trades.slice(0, 5).map((_, i) => (
+                                <button
+                                    key={i}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCurrentIndex(i);
+                                    }}
+                                    className={`w-1.5 h-1.5 rounded-full transition-all ${i === currentIndex
+                                        ? "bg-primary w-3"
+                                        : "bg-white/20 hover:bg-white/40"
+                                        }`}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>

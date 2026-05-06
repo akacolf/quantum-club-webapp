@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Route } from "next";
 import { useForm, useStore } from "@tanstack/react-form";
@@ -22,7 +22,7 @@ import {
   publishSocialPostSchema,
   SOCIAL_POST_CONTENT_MAX,
 } from "@/lib/validations";
-import { publishSocialPost } from "../actions";
+import { ensureSocialProfile, publishSocialPost } from "../actions";
 import { Avatar } from "../_components/Avatar";
 import { RichContent } from "../_components/RichContent";
 
@@ -43,6 +43,18 @@ export default function SocialComposerPage() {
   const { data: profile } = useSocialProfile(qcId);
   const { data: parentPost } = useSocialPost(parentAuthorQcId, parentPostId);
 
+  // Auto-onboard on direct visits to /compose so users without a profile yet
+  // get one minted from their QC username + photo before posting.
+  const ensuredRef = useRef(false);
+  useEffect(() => {
+    if (ensuredRef.current) return;
+    if (!qcId || profile !== null) return;
+    ensuredRef.current = true;
+    ensureSocialProfile({}).catch(() => {
+      ensuredRef.current = false;
+    });
+  }, [qcId, profile]);
+
   const [submitting, setSubmitting] = useState(false);
   const now = useNow();
 
@@ -62,8 +74,7 @@ export default function SocialComposerPage() {
     validators: { onSubmit: publishSocialPostSchema },
     onSubmit: async ({ value }) => {
       if (!profile) {
-        toast.error("Set up your social profile first");
-        router.push("/ecosystem/social/onboarding" as Route);
+        toast.error("Setting up your profile — try again in a moment");
         return;
       }
       setSubmitting(true);
@@ -102,23 +113,11 @@ export default function SocialComposerPage() {
   if (currentUser && profile === null) {
     return (
       <div className="min-h-screen flex items-center justify-center pb-28 px-6 text-center">
-        <div className="space-y-4">
-          <Icon
-            icon="solar:user-plus-rounded-linear"
-            className="w-14 h-14 text-muted-foreground mx-auto"
-          />
-          <div>
-            <p className="font-semibold">Claim your handle first</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              You need a profile before you can post.
-            </p>
-          </div>
-          <Button
-            className="rounded-full"
-            onClick={() => router.replace("/ecosystem/social/onboarding" as Route)}
-          >
-            Get started
-          </Button>
+        <div className="space-y-3">
+          <ButtonLoader size="md" />
+          <p className="text-sm text-muted-foreground">
+            Setting up your profile…
+          </p>
         </div>
       </div>
     );
