@@ -137,7 +137,7 @@ export function PostCard({ post, qcId, compact, inThread }: Props) {
 
           {post.attachedTokenId && (
             <Link
-              href={`/trade/${post.attachedTokenId}` as Route}
+              href={`/ecosystem/trade/${post.attachedTokenId}` as Route}
               onClick={(e) => e.stopPropagation()}
               className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary text-xs text-foreground"
             >

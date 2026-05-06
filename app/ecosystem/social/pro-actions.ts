@@ -156,7 +156,7 @@ export const quoteProSubscription = authWithQcIdClient.action(
 
 export const confirmProPayment = authWithQcIdClient
   .schema(confirmPaymentSchema.pick({ paymentId: true }))
-  .action(async ({ parsedInput: { paymentId }, ctx: { qcId } }) => {
+  .action(async ({ parsedInput: { paymentId }, ctx: { qcId, telegramId } }) => {
     const paymentRef = firestore.doc(`subscriptionPayments/${paymentId}`);
     const snap = await paymentRef.get();
     if (!snap.exists) throw new Error("Payment not found");
@@ -181,6 +181,7 @@ export const confirmProPayment = authWithQcIdClient
     }
 
     const profileRef = firestore.doc(`socialProfiles/${qcId}`);
+    const userRef = firestore.doc(`user/${qcId}`);
     await firestore.runTransaction(async (tx) => {
       const profile = await tx.get(profileRef);
       if (!profile.exists) throw new Error("Profile missing");
@@ -193,6 +194,18 @@ export const confirmProPayment = authWithQcIdClient
         fromMs + QC_PRO_DURATION_DAYS * 24 * 60 * 60 * 1000,
       );
       tx.update(profileRef, { proExpiresAt: newExpiry });
+      // Store raw telegramId on the private user doc so the renewal-nudge
+      // cron can deliver Telegram pushes without exposing it in the public
+      // socialProfiles read scope. lastRenewalNudgeAt resets on every renew.
+      tx.set(
+        userRef,
+        {
+          proTelegramId: telegramId,
+          proExpiresAt: newExpiry,
+          lastRenewalNudgeAt: null,
+        },
+        { merge: true },
+      );
       tx.update(paymentRef, {
         status: "verified",
         txHash: found.txHash,

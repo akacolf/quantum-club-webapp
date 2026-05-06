@@ -71,6 +71,13 @@ export default function QcProPage() {
         day: "numeric",
       })
     : null;
+  const daysUntilExpiry =
+    isPro && proExpiresAt
+      ? Math.ceil(
+          (proExpiresAt.toMillis() - Date.now()) / (24 * 60 * 60 * 1000),
+        )
+      : null;
+  const showRenewalNudge = daysUntilExpiry !== null && daysUntilExpiry <= 3;
 
   async function startQuote() {
     if (!qcId) return;
@@ -177,17 +184,38 @@ export default function QcProPage() {
           Paid in TON, deducted from your QC wallet. No middleman fees.
         </p>
 
-        {isPro ? (
-          <div className="rounded-xl bg-primary/10 px-4 py-3 mb-3">
+        {isPro && (
+          <div
+            className={
+              showRenewalNudge
+                ? "rounded-xl bg-amber-500/15 px-4 py-3 mb-3"
+                : "rounded-xl bg-primary/10 px-4 py-3 mb-3"
+            }
+          >
             <p className="text-sm font-semibold flex items-center gap-2">
               <Icon
-                icon="solar:check-circle-bold"
-                className="w-4 h-4 text-primary"
+                icon={
+                  showRenewalNudge
+                    ? "solar:clock-circle-bold"
+                    : "solar:check-circle-bold"
+                }
+                className={
+                  showRenewalNudge
+                    ? "w-4 h-4 text-amber-500"
+                    : "w-4 h-4 text-primary"
+                }
               />
-              You&apos;re Pro until {expiresLabel}
+              {showRenewalNudge
+                ? `Renews in ${daysUntilExpiry} day${daysUntilExpiry === 1 ? "" : "s"}`
+                : `You're Pro until ${expiresLabel}`}
             </p>
+            {showRenewalNudge && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Extend now to keep the badge, AI limits, and gated posting.
+              </p>
+            )}
           </div>
-        ) : null}
+        )}
 
         {step === "review" && quote ? (
           <div className="space-y-3">

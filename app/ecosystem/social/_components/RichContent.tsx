@@ -47,7 +47,7 @@ export function RichContent({ content, size = "md" }: Props) {
           return (
             <Link
               key={i}
-              href={`/trade?q=${seg.symbol}` as Route}
+              href={`/ecosystem/trade?q=${seg.symbol}` as Route}
               className="text-primary underline underline-offset-2"
               onClick={(e) => e.stopPropagation()}
             >
