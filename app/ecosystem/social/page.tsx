@@ -177,7 +177,10 @@ export default function SocialFeedPage() {
         </div>
       )}
 
-      <div ref={swipeRef} className="touch-pan-y">
+      {/* Make the swipe target fill the visible area below the header + tabs
+          so left/right swipes register even on tabs whose feed is short.
+          touch-pan-y lets vertical scroll keep working. */}
+      <div ref={swipeRef} className="touch-pan-y min-h-[70vh]">
         {renderTab()}
       </div>
 

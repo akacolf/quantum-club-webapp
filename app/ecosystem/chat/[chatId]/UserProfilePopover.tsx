@@ -20,7 +20,6 @@ import { useQcUsernameQuery } from "@/app/(hooks)/queries/use-qc-username";
 import { useUserRank } from "@/app/(hooks)/queries/use-user-rank";
 import { useSocialProfile } from "@/app/(hooks)/queries/use-social";
 import { useQcProfilePhoto } from "@/app/(hooks)/useQcProfilePhoto";
-import { isQcTeamMember } from "@/lib/qc-team";
 import {
   VerifiedBadge,
   isProActive,
@@ -100,7 +99,6 @@ export default function UserProfilePopover({
     "Unknown";
   const initials = getInitials(displayName);
   const avatarColor = getAvatarColor(displayName);
-  const isTeam = isQcTeamMember(displayName);
 
   const handleCopyAddress = () => {
     if (!walletAddress) return;
@@ -154,12 +152,6 @@ export default function UserProfilePopover({
                 });
                 return kind ? <VerifiedBadge size={16} tone={kind} /> : null;
               })()}
-              {isTeam && (
-                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 font-bold rounded gap-0.5">
-                  <Image src="/svg/logo-white.svg" alt="QC" width={10} height={10} />
-                  QC
-                </Badge>
-              )}
             </div>
             {profile?.memberSince && (
               <p className="text-[11px] text-muted-foreground">

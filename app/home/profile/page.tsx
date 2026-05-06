@@ -334,21 +334,19 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="text-center w-full max-w-xs mx-auto">
-                        <h1 className="text-2xl font-bold text-white leading-tight inline-flex items-center justify-center gap-1.5">
-                            <span>
-                              <span className="text-neutral-400 font-normal">
-                                  {photoUrl ? "Looking good, " : "Hi, "}
-                              </span>
-                              {displayName}!
+                        <h1 className="text-2xl font-bold text-white leading-tight">
+                            <span className="text-neutral-400 font-normal">
+                                {photoUrl ? "Looking good, " : "Hi, "}
                             </span>
-                            {verificationKind && (
-                              <VerifiedBadge size={20} tone={verificationKind} />
-                            )}
+                            {displayName}!
                         </h1>
 
                         {qcUsername ? (
                             <p className="text-sm text-primary font-medium mt-0.5 inline-flex items-center justify-center gap-1">
                               @{qcUsername}
+                              {verificationKind && (
+                                <VerifiedBadge size={14} tone={verificationKind} />
+                              )}
                             </p>
                         ) : (
                             <button
