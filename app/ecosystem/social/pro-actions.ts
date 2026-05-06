@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import { z } from "zod";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Address } from "@ton/core";
@@ -8,6 +9,7 @@ import { firestore } from "@/app/(firebase)/server";
 import { fetchTonPrice } from "@/lib/price-api";
 import { PLATFORM_WALLET_ADDRESS } from "@/lib/platform-config";
 import { bumpAffinity } from "@/lib/social-affinity";
+import { mixIntoTaste } from "@/lib/social-embedding";
 import { env } from "@/env";
 import {
   QC_PRO_USD_PRICE,
@@ -407,6 +409,13 @@ export const confirmPostUnlock = authWithQcIdClient
     });
 
     await bumpAffinity(qcId, targetAuthorQcId, "unlock");
+    // Unlocks are the strongest signal we have (real money), so feed the
+    // post embedding into the reader's taste vector even more eagerly than
+    // likes/replies. Run post-response so the unlock confirmation isn't
+    // blocked by Gemini latency.
+    after(async () => {
+      await mixIntoTaste(qcId, targetAuthorQcId, targetPostId);
+    });
     return { success: true, alreadyVerified: false };
   });
 

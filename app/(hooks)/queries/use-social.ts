@@ -83,6 +83,9 @@ function docToPost(id: string, data: Record<string, unknown>): SocialPost {
     editedAt: (data.editedAt as SocialPost["editedAt"]) ?? null,
     gated: (data.gated as boolean) ?? false,
     unlockPriceTon: (data.unlockPriceTon as number | null) ?? null,
+    embedding: Array.isArray(data.embedding)
+      ? (data.embedding as number[])
+      : undefined,
   };
 }
 
@@ -511,10 +514,62 @@ export function useAffinityScores(qcId: string | null) {
 }
 
 // ---------------------------------------------------------------------------
+// useSocialTaste — phase-3 personalization signal. Live snapshot of the
+// viewer's running-average taste embedding at user/{qcId}/socialMeta/taste,
+// updated server-side when the user likes / replies to / unlocks a post.
+// Returns null until the user has any positive engagement.
+// ---------------------------------------------------------------------------
+
+export interface SocialTaste {
+  vector: number[];
+  interactionCount: number;
+}
+
+export function useSocialTaste(qcId: string | null) {
+  const queryClient = useQueryClient();
+  const queryKey = ["social", "taste", qcId];
+
+  useEffect(() => {
+    if (!qcId) return;
+    const unsub = onSnapshot(
+      doc(dbfs, "user", qcId, "socialMeta", "taste"),
+      (snap) => {
+        if (!snap.exists()) {
+          queryClient.setQueryData(queryKey, null);
+          return;
+        }
+        const data = snap.data();
+        const vector = Array.isArray(data.vector)
+          ? (data.vector as number[])
+          : null;
+        if (!vector) {
+          queryClient.setQueryData(queryKey, null);
+          return;
+        }
+        queryClient.setQueryData(queryKey, {
+          vector,
+          interactionCount: (data.interactionCount as number) ?? 0,
+        });
+      },
+      (err) => console.error("[useSocialTaste] listener error:", err),
+    );
+    return () => unsub();
+  }, [qcId]);
+
+  return useQuery<SocialTaste | null>({
+    queryKey,
+    queryFn: () => null,
+    enabled: !!qcId,
+    staleTime: Infinity,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // useForYouFeed — for-you ranker. Pools discover + following posts, scores
-// by engagement + recency + follow-affinity + per-author affinity (phase 2),
-// applies a diversity pass. Affinity is folded in once the live snapshot
-// lands; the feed re-ranks automatically as new engagement events post.
+// by engagement + recency + follow-affinity + per-author affinity (phase 2)
+// + semantic similarity to the viewer's taste vector (phase 3), then runs a
+// diversity pass. All signals fold in live; the feed re-ranks automatically
+// as new engagement events post.
 // ---------------------------------------------------------------------------
 
 export function useForYouFeed(qcId: string | null) {
@@ -523,6 +578,7 @@ export function useForYouFeed(qcId: string | null) {
     useFollowingFeed(qcId);
   const { data: following = [] } = useFollowingList(qcId);
   const { data: affinityByAuthor } = useAffinityScores(qcId);
+  const { data: taste } = useSocialTaste(qcId);
 
   const followedQcIds = new Set(following.map((f) => f.targetQcId));
   const pool = [...discover, ...followingPosts];
@@ -530,6 +586,8 @@ export function useForYouFeed(qcId: string | null) {
     followedQcIds,
     selfQcId: qcId,
     affinityByAuthor,
+    tasteVector: taste?.vector ?? null,
+    tasteInteractionCount: taste?.interactionCount ?? 0,
   });
 
   return {

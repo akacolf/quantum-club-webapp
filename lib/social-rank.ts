@@ -18,6 +18,11 @@ import {
   affinityScoreFromCounts,
   type AffinityCounts,
 } from "@/lib/social-affinity";
+import {
+  cosineSim,
+  MIN_INTERACTIONS_FOR_TASTE,
+  SEMANTIC_BOOST_SCALE,
+} from "@/lib/social-similarity";
 
 interface RankContext {
   /** qcIds the viewer follows — used for follow boost */
@@ -26,6 +31,13 @@ interface RankContext {
   selfQcId: string | null;
   /** Per-author affinity counters for the viewer (phase 2). Optional. */
   affinityByAuthor?: Map<string, Partial<AffinityCounts>>;
+  /**
+   * Phase-3 — viewer's running-average taste vector. Cosine similarity vs
+   * each post's embedding feeds an additional boost. Skipped entirely when
+   * absent or below the bootstrap threshold (`tasteInteractionCount`).
+   */
+  tasteVector?: number[] | null;
+  tasteInteractionCount?: number;
   /** Reference time (ms). Defaults to Date.now(); injectable for tests. */
   now?: number;
 }
@@ -73,6 +85,17 @@ export function scorePost(post: SocialPost, ctx: RankContext): number {
   const affinity = ctx.affinityByAuthor?.get(post.authorQcId);
   if (affinity) {
     score += affinityScoreFromCounts(affinity) * AFFINITY_BOOST_SCALE;
+  }
+
+  // Phase-3 semantic boost. Gated on bootstrap threshold so a fresh user
+  // with a noisy taste vector doesn't get worse rankings than the heuristic.
+  if (
+    ctx.tasteVector &&
+    post.embedding &&
+    (ctx.tasteInteractionCount ?? 0) >= MIN_INTERACTIONS_FOR_TASTE
+  ) {
+    const sim = cosineSim(post.embedding, ctx.tasteVector);
+    if (sim > 0) score += sim * SEMANTIC_BOOST_SCALE;
   }
 
   return score;
