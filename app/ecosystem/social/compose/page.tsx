@@ -32,7 +32,7 @@ import {
   publishSocialPostSchema,
   SOCIAL_POST_CONTENT_MAX,
 } from "@/lib/validations";
-import { publishSocialPost } from "../actions";
+import { publishSocialPost, repostSocialPost } from "../actions";
 import { Avatar } from "../_components/Avatar";
 import { RichContent } from "../_components/RichContent";
 import { useEnsureSocialProfile } from "../_components/use-ensure-profile";
@@ -44,10 +44,14 @@ export default function SocialComposerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const replyTo = searchParams.get("replyTo");
+  const quoteRef = searchParams.get("quote");
   const tokenId = searchParams.get("token");
 
   const [parentAuthorQcId, parentPostId] = replyTo
     ? (replyTo.split(":") as [string, string])
+    : [null, null];
+  const [quoteAuthorQcId, quotePostId] = quoteRef
+    ? (quoteRef.split(":") as [string, string])
     : [null, null];
 
   const { currentUser } = useAuth();
@@ -55,6 +59,7 @@ export default function SocialComposerPage() {
 
   const { data: profile } = useSocialProfile(qcId);
   const { data: parentPost } = useSocialPost(parentAuthorQcId, parentPostId);
+  const { data: quotePost } = useSocialPost(quoteAuthorQcId, quotePostId);
 
   // Auto-onboard on direct visits to /compose so users without a profile yet
   // get one minted from their QC username + photo before posting.
@@ -86,6 +91,38 @@ export default function SocialComposerPage() {
       }
       setSubmitting(true);
       haptics.medium();
+
+      // Quote-repost flow goes through repostSocialPost so the original's
+      // repostCount + the per-user reposts/{qcId} sentinel get updated in
+      // the same transaction.
+      if (quoteAuthorQcId && quotePostId) {
+        const res = await repostSocialPost({
+          authorQcId: quoteAuthorQcId,
+          postId: quotePostId,
+          comment: value.content,
+        });
+        setSubmitting(false);
+        if (res?.serverError) {
+          toast.error(res.serverError);
+          haptics.error();
+          return;
+        }
+        haptics.success();
+        if (res?.data?.existing) {
+          toast.info("You already reposted this");
+        } else {
+          toast.success("Reposted");
+        }
+        if (profile && res?.data?.postId) {
+          router.replace(
+            `/ecosystem/social/${profile.handle}/${res.data.postId}` as Route,
+          );
+        } else {
+          router.replace("/ecosystem/social");
+        }
+        return;
+      }
+
       const res = await publishSocialPost(value);
       setSubmitting(false);
       if (res?.serverError) {
@@ -116,8 +153,10 @@ export default function SocialComposerPage() {
   const content = useStore(form.store, (s) => s.values.content);
   const media = useStore(form.store, (s) => s.values.media);
   const remaining = SOCIAL_POST_CONTENT_MAX - content.length;
-  const canSubmit =
-    (content.trim().length > 0 || media.length > 0) && remaining >= 0;
+  const isQuote = quoteAuthorQcId !== null && quotePostId !== null;
+  const canSubmit = isQuote
+    ? content.trim().length > 0 && remaining >= 0
+    : (content.trim().length > 0 || media.length > 0) && remaining >= 0;
 
   const handleAddImage = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -219,6 +258,8 @@ export default function SocialComposerPage() {
             <ButtonLoader size="sm" />
           ) : parentPostId ? (
             "Reply"
+          ) : isQuote ? (
+            "Quote"
           ) : (
             "Post"
           )}
@@ -247,6 +288,28 @@ export default function SocialComposerPage() {
         </div>
       )}
 
+      {quotePost && (
+        <div className="px-4 py-3 border-b border-border/30">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+            <Icon icon="hugeicons:repost" className="w-3.5 h-3.5" />
+            Quoting @{quotePost.authorHandle}
+          </div>
+          <div className="flex gap-3 opacity-80">
+            <Avatar
+              src={quotePost.authorAvatar}
+              name={quotePost.authorDisplayName}
+              size={32}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold">
+                {quotePost.authorDisplayName}
+              </p>
+              <RichContent content={quotePost.content} size="sm" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="px-4 py-4 flex gap-3">
         <Avatar
           src={profile?.avatar ?? null}
@@ -260,7 +323,13 @@ export default function SocialComposerPage() {
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
-                placeholder={parentPostId ? "Write a reply" : "What's on your mind?"}
+                placeholder={
+                  parentPostId
+                    ? "Write a reply"
+                    : isQuote
+                      ? "Add a comment"
+                      : "What's on your mind?"
+                }
                 rows={6}
                 maxLength={SOCIAL_POST_CONTENT_MAX}
                 autoFocus

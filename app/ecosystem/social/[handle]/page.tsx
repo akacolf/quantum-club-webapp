@@ -3,7 +3,9 @@
 import { use, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { parseAsStringEnum, useQueryState } from "nuqs";
+import { useDrag } from "@use-gesture/react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { haptics } from "@/lib/haptics";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import {
@@ -63,6 +65,32 @@ export default function SocialProfilePage({
       .withOptions({ history: "replace" }),
   );
 
+  // Swipe-to-switch between profile tabs (posts → replies → media). Mirrors
+  // the gesture on the main social feed: distance threshold dominates so a
+  // vertical scroll never accidentally switches tabs.
+  const swipeRef = useRef<HTMLDivElement>(null);
+  useDrag(
+    ({ swipe: [sx], movement: [mx, my], last }) => {
+      if (!last) return;
+      const horizontal =
+        sx !== 0 || (Math.abs(mx) > 60 && Math.abs(mx) > Math.abs(my));
+      if (!horizontal) return;
+      const dir = sx !== 0 ? sx : Math.sign(mx);
+      const idx = SOCIAL_PROFILE_TABS.indexOf(tab);
+      const next = SOCIAL_PROFILE_TABS[idx - dir];
+      if (next && next !== tab) {
+        haptics.light();
+        setTab(next);
+      }
+    },
+    {
+      target: swipeRef,
+      axis: "lock",
+      filterTaps: true,
+      eventOptions: { passive: true },
+    },
+  );
+
   if (profile === undefined) {
     return (
       <div className="min-h-screen pb-28">
@@ -120,45 +148,47 @@ export default function SocialProfilePage({
         })}
       </div>
 
-      {tab === "posts" && (
-        <PostFeed
-          posts={posts.data}
-          qcId={qcId}
-          emptyState={
-            <EmptyState
-              icon="solar:document-text-linear"
-              title="No posts yet"
-              description={`@${profile.handle} hasn't posted anything.`}
-            />
-          }
-        />
-      )}
-      {tab === "replies" && (
-        <PostFeed
-          posts={replies.data}
-          qcId={qcId}
-          emptyState={
-            <EmptyState
-              icon="solar:chat-round-line-linear"
-              title="No replies yet"
-              description={`@${profile.handle} hasn't replied to anyone.`}
-            />
-          }
-        />
-      )}
-      {tab === "media" && (
-        <PostFeed
-          posts={posts.data === undefined ? undefined : mediaPosts}
-          qcId={qcId}
-          emptyState={
-            <EmptyState
-              icon="solar:gallery-linear"
-              title="No media yet"
-              description={`@${profile.handle} hasn't shared any photos.`}
-            />
-          }
-        />
-      )}
+      <div ref={swipeRef} className="touch-pan-y min-h-[60vh]">
+        {tab === "posts" && (
+          <PostFeed
+            posts={posts.data}
+            qcId={qcId}
+            emptyState={
+              <EmptyState
+                icon="solar:document-text-linear"
+                title="No posts yet"
+                description={`@${profile.handle} hasn't posted anything.`}
+              />
+            }
+          />
+        )}
+        {tab === "replies" && (
+          <PostFeed
+            posts={replies.data}
+            qcId={qcId}
+            emptyState={
+              <EmptyState
+                icon="solar:chat-round-line-linear"
+                title="No replies yet"
+                description={`@${profile.handle} hasn't replied to anyone.`}
+              />
+            }
+          />
+        )}
+        {tab === "media" && (
+          <PostFeed
+            posts={posts.data === undefined ? undefined : mediaPosts}
+            qcId={qcId}
+            emptyState={
+              <EmptyState
+                icon="solar:gallery-linear"
+                title="No media yet"
+                description={`@${profile.handle} hasn't shared any photos.`}
+              />
+            }
+          />
+        )}
+      </div>
 
       {profile.subscriptionEnabled && (
         <div className="mx-4 mt-4 p-4 rounded-2xl bg-secondary/50 flex items-center gap-3">

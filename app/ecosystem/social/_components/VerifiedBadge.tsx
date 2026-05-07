@@ -3,11 +3,16 @@ import { cn } from "@/lib/utils";
 import type { SocialProfile } from "@/lib/social-types";
 import { isQcTeamHandle } from "@/lib/qc-team";
 
-/** Whether the user currently has an active QC Pro membership */
+/**
+ * Whether the user currently has QC Pro perks. Team handles are treated as
+ * permanently Pro — they never need to subscribe.
+ */
 export function isProActive(
-  profile: Pick<SocialProfile, "proExpiresAt"> | null | undefined,
+  profile: Pick<SocialProfile, "proExpiresAt" | "handle"> | null | undefined,
 ): boolean {
-  if (!profile?.proExpiresAt) return false;
+  if (!profile) return false;
+  if (isQcTeamHandle(profile.handle)) return true;
+  if (!profile.proExpiresAt) return false;
   return profile.proExpiresAt.toMillis() > Date.now();
 }
 

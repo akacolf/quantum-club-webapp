@@ -8,8 +8,15 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
 import type { SocialPost } from "@/lib/social-types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useMyRepost } from "@/app/(hooks)/queries/use-social";
 import { LikeButton } from "./LikeButton";
-import { repostSocialPost } from "../actions";
+import { repostSocialPost, undoSocialRepost } from "../actions";
 
 interface Props {
   post: SocialPost;
@@ -17,12 +24,15 @@ interface Props {
 }
 
 /**
- * Bottom action bar of a post: reply, repost, like, share. Reply and share
- * navigate; repost and like mutate via server actions.
+ * Bottom action bar of a post: reply, repost, like, view-count. Reply and
+ * Quote navigate to the composer; repost / undo-repost mutate via server
+ * actions. Reposting is one-shot — tapping again undoes.
  */
 export function PostActions({ post, qcId }: Props) {
   const router = useRouter();
-  const [reposting, setReposting] = useState(false);
+  const [pendingRepost, setPendingRepost] = useState(false);
+  const { data: myRepostId } = useMyRepost(qcId, post.authorQcId, post.id);
+  const hasReposted = myRepostId !== null && myRepostId !== undefined;
 
   const totalLikes = Object.values(post.reactions).reduce(
     (sum, n) => sum + (n ?? 0),
@@ -38,15 +48,13 @@ export function PostActions({ post, qcId }: Props) {
     );
   };
 
-  const handleRepost = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handlePlainRepost = async () => {
     if (!qcId) {
       toast.error("Set up your social profile first");
       return;
     }
-    if (reposting) return;
-    setReposting(true);
+    if (pendingRepost) return;
+    setPendingRepost(true);
     haptics.medium();
     const res = await repostSocialPost({
       authorQcId: post.authorQcId,
@@ -54,8 +62,34 @@ export function PostActions({ post, qcId }: Props) {
       comment: "",
     });
     if (res?.serverError) toast.error(res.serverError);
+    else if (res?.data?.existing) toast.info("You already reposted this");
     else toast.success("Reposted");
-    setReposting(false);
+    setPendingRepost(false);
+  };
+
+  const handleQuote = () => {
+    if (!qcId) {
+      toast.error("Set up your social profile first");
+      return;
+    }
+    haptics.light();
+    router.push(
+      `/ecosystem/social/compose?quote=${post.authorQcId}:${post.id}` as Route,
+    );
+  };
+
+  const handleUndoRepost = async () => {
+    if (!qcId) return;
+    if (pendingRepost) return;
+    setPendingRepost(true);
+    haptics.light();
+    const res = await undoSocialRepost({
+      authorQcId: post.authorQcId,
+      postId: post.id,
+    });
+    if (res?.serverError) toast.error(res.serverError);
+    else toast.success("Repost removed");
+    setPendingRepost(false);
   };
 
   return (
@@ -68,30 +102,61 @@ export function PostActions({ post, qcId }: Props) {
         <Icon icon="solar:chat-round-line-linear" className="w-4 h-4" />
         <span className="tabular-nums">{post.replyCount}</span>
       </button>
-      <button
-        type="button"
-        onClick={handleRepost}
-        disabled={reposting}
-        className={cn(
-          "flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors",
-          reposting && "opacity-60",
-        )}
-      >
-        <Icon icon="solar:refresh-linear" className="w-4 h-4" />
-        <span className="tabular-nums">{post.repostCount}</span>
-      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            disabled={pendingRepost}
+            className={cn(
+              "flex items-center gap-1.5 text-xs transition-colors",
+              hasReposted
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground",
+              pendingRepost && "opacity-60",
+            )}
+          >
+            <Icon icon="hugeicons:repost" className="w-4 h-4" />
+            <span className="tabular-nums">{post.repostCount}</span>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="center"
+          onClick={(e) => e.stopPropagation()}
+          className="min-w-[10rem]"
+        >
+          {hasReposted ? (
+            <DropdownMenuItem onSelect={handleUndoRepost}>
+              <Icon icon="hugeicons:repost" className="w-4 h-4 mr-2" />
+              Undo repost
+            </DropdownMenuItem>
+          ) : (
+            <>
+              <DropdownMenuItem onSelect={handlePlainRepost}>
+                <Icon icon="hugeicons:repost" className="w-4 h-4 mr-2" />
+                Repost
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleQuote}>
+                <Icon
+                  icon="solar:pen-new-square-linear"
+                  className="w-4 h-4 mr-2"
+                />
+                Quote
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
       <LikeButton
         qcId={qcId}
         authorQcId={post.authorQcId}
         postId={post.id}
         count={totalLikes}
       />
-      {post.viewCount > 0 && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Icon icon="solar:eye-linear" className="w-4 h-4" />
-          <span className="tabular-nums">{post.viewCount}</span>
-        </div>
-      )}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon icon="solar:eye-linear" className="w-4 h-4" />
+        <span className="tabular-nums">{post.viewCount}</span>
+      </div>
     </div>
   );
 }

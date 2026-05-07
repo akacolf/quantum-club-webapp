@@ -41,7 +41,7 @@ export function ProfileHeader({ profile, qcId }: Props) {
             size={80}
             className="ring-4 ring-background"
           />
-          <div className="pb-2 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2">
             {isSelf ? (
               <Link
                 href={"/ecosystem/social/settings" as Route}

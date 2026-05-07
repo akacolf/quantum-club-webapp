@@ -1,15 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Field,
   FieldContent,
@@ -19,7 +26,9 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import { storage } from "@/app/(firebase)/client";
 import { haptics } from "@/lib/haptics";
+import { resizeToAspectJpeg } from "@/lib/image-resize";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useSocialProfile } from "@/app/(hooks)/queries/use-social";
@@ -40,6 +49,15 @@ export default function SocialSettingsPage() {
   const { missingQcUsername } = useEnsureSocialProfile(qcId, profile);
 
   const [submitting, setSubmitting] = useState(false);
+  const [pendingBanner, setPendingBanner] = useState<Blob | null>(null);
+  const [bannerPreviewUrl, setBannerPreviewUrl] = useState<string | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (bannerPreviewUrl) URL.revokeObjectURL(bannerPreviewUrl);
+    };
+  }, [bannerPreviewUrl]);
 
   const form = useForm({
     defaultValues: {
@@ -49,12 +67,33 @@ export default function SocialSettingsPage() {
     },
     validators: { onSubmit: editSocialProfileFormSchema },
     onSubmit: async ({ value }) => {
+      if (!qcId) return;
       setSubmitting(true);
       haptics.medium();
+
+      let bannerUrl: string | undefined;
+      if (pendingBanner) {
+        try {
+          const path = `social-posts/${qcId}/banner/${Date.now()}.jpg`;
+          const ref = storageRef(storage, path);
+          await uploadBytes(ref, pendingBanner, {
+            contentType: "image/jpeg",
+          });
+          bannerUrl = await getDownloadURL(ref);
+        } catch (err) {
+          console.error("[social settings] banner upload failed:", err);
+          toast.error("Couldn't upload your banner");
+          haptics.error();
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const res = await updateSocialProfile({
         displayName: value.displayName,
         bio: value.bio,
         website: value.website || null,
+        ...(bannerUrl ? { banner: bannerUrl } : {}),
       });
       setSubmitting(false);
       if (res?.serverError) {
@@ -66,6 +105,9 @@ export default function SocialSettingsPage() {
         toast.error("Please fix the errors and try again");
         return;
       }
+      if (bannerPreviewUrl) URL.revokeObjectURL(bannerPreviewUrl);
+      setPendingBanner(null);
+      setBannerPreviewUrl(null);
       haptics.success();
       toast.success("Profile updated");
       if (profile) {
@@ -73,6 +115,30 @@ export default function SocialSettingsPage() {
       }
     },
   });
+
+  const handleBannerSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (bannerInputRef.current) bannerInputRef.current.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image");
+      return;
+    }
+    try {
+      const blob = await resizeToAspectJpeg(file, 1200, 400);
+      if (bannerPreviewUrl) URL.revokeObjectURL(bannerPreviewUrl);
+      setPendingBanner(blob);
+      setBannerPreviewUrl(URL.createObjectURL(blob));
+      haptics.light();
+    } catch (err) {
+      console.error("[social settings] banner resize failed:", err);
+      toast.error("Couldn't process that image");
+    }
+  };
+
+  const displayedBanner = bannerPreviewUrl ?? profile?.banner ?? null;
 
   if (currentUser && profile === null) {
     if (missingQcUsername) {
@@ -119,6 +185,52 @@ export default function SocialSettingsPage() {
           @{profile?.handle ?? ""} — your handle is permanent.
         </p>
       </header>
+
+      <section className="mb-5">
+        <div className="flex items-center gap-2 mb-2">
+          <p className="text-sm font-semibold">Banner</p>
+          {pendingBanner && (
+            <Badge className="h-4 px-1.5 text-[9px] font-semibold bg-primary/15 text-primary border-0 leading-none">
+              Unsaved
+            </Badge>
+          )}
+          <span className="ml-auto text-[10px] text-muted-foreground/70 tabular-nums">
+            1200 × 400
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => bannerInputRef.current?.click()}
+          disabled={submitting}
+          className="relative block w-full aspect-[3/1] rounded-2xl overflow-hidden bg-secondary disabled:opacity-60"
+        >
+          {displayedBanner ? (
+            <Image
+              src={displayedBanner}
+              alt=""
+              fill
+              sizes="(max-width: 448px) 100vw, 448px"
+              className="object-cover"
+              unoptimized
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+              <Icon icon="solar:gallery-add-linear" className="w-8 h-8" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-xs font-semibold gap-1.5">
+            <Icon icon="solar:upload-linear" className="w-4 h-4" />
+            {displayedBanner ? "Change banner" : "Upload banner"}
+          </div>
+        </button>
+        <input
+          ref={bannerInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleBannerSelect}
+          className="hidden"
+        />
+      </section>
 
       <form
         onSubmit={(e) => {
