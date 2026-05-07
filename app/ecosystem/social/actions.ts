@@ -679,49 +679,20 @@ export const undoSocialRepost = authWithQcIdClient
       const repostMarkerRef = originalRef.collection("reposts").doc(qcId);
       const meRef = firestore.doc(`socialProfiles/${qcId}`);
 
-      // Pre-tx legacy lookup — reposts created before the reposts/{qcId}
-      // marker existed only live as posts in the caller's own subcollection.
-      // Find one so we can clean it up in the same transaction. Reads have
-      // to happen outside the txn because we need the doc id to construct
-      // the ref and Firestore txns can't run a query.
-      const legacyHits = await firestore
-        .collection(`socialProfiles/${qcId}/posts`)
-        .where("repostOfAuthorQcId", "==", authorQcId)
-        .where("repostOfPostId", "==", postId)
-        .limit(1)
-        .get();
-      const legacyRepostPostId = legacyHits.empty
-        ? null
-        : legacyHits.docs[0].id;
-
       await firestore.runTransaction(async (tx) => {
         const markerSnap = await tx.get(repostMarkerRef);
+        if (!markerSnap.exists) return; // idempotent
 
-        if (markerSnap.exists) {
-          const repostPostId = markerSnap.data()?.repostPostId as
-            | string
-            | undefined;
-          if (repostPostId) {
-            const repostPostRef = meRef.collection("posts").doc(repostPostId);
-            tx.delete(repostPostRef);
-            tx.update(meRef, { postCount: FieldValue.increment(-1) });
-          }
-          tx.delete(repostMarkerRef);
-          tx.update(originalRef, { repostCount: FieldValue.increment(-1) });
-          return;
-        }
-
-        if (legacyRepostPostId) {
-          // Legacy repost — no marker existed, but the post is still on the
-          // caller's timeline. Clean it up the same way.
-          const repostPostRef = meRef
-            .collection("posts")
-            .doc(legacyRepostPostId);
+        const repostPostId = markerSnap.data()?.repostPostId as
+          | string
+          | undefined;
+        if (repostPostId) {
+          const repostPostRef = meRef.collection("posts").doc(repostPostId);
           tx.delete(repostPostRef);
           tx.update(meRef, { postCount: FieldValue.increment(-1) });
-          tx.update(originalRef, { repostCount: FieldValue.increment(-1) });
         }
-        // No marker, no legacy hit — nothing to undo (idempotent).
+        tx.delete(repostMarkerRef);
+        tx.update(originalRef, { repostCount: FieldValue.increment(-1) });
       });
 
       return { success: true };
