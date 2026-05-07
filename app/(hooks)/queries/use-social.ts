@@ -705,15 +705,33 @@ export function useMyRepost(
         "reposts",
         qcId,
       ),
-      (snap) => {
-        if (!snap.exists()) {
-          queryClient.setQueryData(queryKey, null);
+      async (snap) => {
+        if (snap.exists()) {
+          queryClient.setQueryData(
+            queryKey,
+            (snap.data().repostPostId as string) ?? null,
+          );
           return;
         }
-        queryClient.setQueryData(
-          queryKey,
-          (snap.data().repostPostId as string) ?? null,
-        );
+        // Legacy fallback — reposts created before the marker doc existed
+        // live only as posts in the user's own subcollection. Look them up
+        // once so the UI can still display "reposted" + allow undo.
+        try {
+          const legacy = await getDocs(
+            query(
+              collection(dbfs, "socialProfiles", qcId, "posts"),
+              where("repostOfAuthorQcId", "==", authorQcId),
+              where("repostOfPostId", "==", postId),
+              limit(1),
+            ),
+          );
+          queryClient.setQueryData(
+            queryKey,
+            legacy.empty ? null : legacy.docs[0].id,
+          );
+        } catch {
+          queryClient.setQueryData(queryKey, null);
+        }
       },
       (err) => console.error("[useMyRepost] listener error:", err),
     );
