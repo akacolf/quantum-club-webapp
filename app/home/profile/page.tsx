@@ -43,6 +43,12 @@ import {
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { APP_VERSION } from "@/lib/version";
+import {
+  VerifiedBadge,
+  isProActive,
+  getVerificationKind,
+} from "@/app/ecosystem/social/_components/VerifiedBadge";
+import { useSocialProfile } from "@/app/(hooks)/queries/use-social";
 
 export default function ProfilePage() {
     useTelegramBackButton("/home");
@@ -96,6 +102,15 @@ export default function ProfilePage() {
     const { unlocked, locked } = resolveAchievements(resolvedStats, serverAwardedIds);
 
     const displayName = qcUsername || username || tgUser?.username || tgUser?.first_name || "Quantum User";
+
+    // Verified badge — team handles get a white check, Pro subscribers a
+    // primary-blue check. Falls back to nothing for everyone else.
+    const qcId = authContext?.currentUser?.uid ?? null;
+    const { data: socialProfile } = useSocialProfile(qcId);
+    const verificationKind = getVerificationKind({
+      handle: qcUsername,
+      isPro: isProActive(socialProfile),
+    });
 
     let initials = "";
     if (displayName && displayName !== "Quantum User") {
@@ -325,9 +340,14 @@ export default function ProfilePage() {
                             </span>
                             {displayName}!
                         </h1>
-                        
+
                         {qcUsername ? (
-                            <p className="text-sm text-primary font-medium mt-0.5">@{qcUsername}</p>
+                            <p className="text-sm text-primary font-medium mt-0.5 inline-flex items-center justify-center gap-1">
+                              @{qcUsername}
+                              {verificationKind && (
+                                <VerifiedBadge size={14} tone={verificationKind} />
+                              )}
+                            </p>
                         ) : (
                             <button
                                 onClick={() => setShowUsernameForm(!showUsernameForm)}

@@ -22,7 +22,7 @@ import type {
 } from "@/lib/social-types";
 import type { SocialReaction } from "@/lib/validations";
 import { rankFeed } from "@/lib/social-rank";
-import type { AffinityCounts } from "@/lib/social-affinity";
+import type { AffinityCounts } from "@/lib/social-affinity-shared";
 
 const FEED_PAGE_SIZE = 50;
 const POSTS_PAGE_SIZE = 30;
@@ -672,6 +672,55 @@ export function useMyLike(
   }, [qcId, authorQcId, postId]);
 
   return useQuery<SocialReaction | null>({
+    queryKey,
+    queryFn: () => null,
+    enabled: !!qcId && !!authorQcId && !!postId,
+    staleTime: Infinity,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// useMyRepost — has the current user reposted this post? Returns the
+// reposter's repost-post id, or null. Live so the repost button updates
+// instantly across devices.
+// ---------------------------------------------------------------------------
+
+export function useMyRepost(
+  qcId: string | null,
+  authorQcId: string | null,
+  postId: string | null,
+) {
+  const queryClient = useQueryClient();
+  const queryKey = ["social", "myRepost", qcId, authorQcId, postId];
+
+  useEffect(() => {
+    if (!qcId || !authorQcId || !postId) return;
+    const unsub = onSnapshot(
+      doc(
+        dbfs,
+        "socialProfiles",
+        authorQcId,
+        "posts",
+        postId,
+        "reposts",
+        qcId,
+      ),
+      (snap) => {
+        if (!snap.exists()) {
+          queryClient.setQueryData(queryKey, null);
+          return;
+        }
+        queryClient.setQueryData(
+          queryKey,
+          (snap.data().repostPostId as string) ?? null,
+        );
+      },
+      (err) => console.error("[useMyRepost] listener error:", err),
+    );
+    return () => unsub();
+  }, [qcId, authorQcId, postId]);
+
+  return useQuery<string | null>({
     queryKey,
     queryFn: () => null,
     enabled: !!qcId && !!authorQcId && !!postId,

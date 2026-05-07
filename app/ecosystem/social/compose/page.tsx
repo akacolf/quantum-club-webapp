@@ -1,16 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import Image from "next/image";
+import { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Route } from "next";
 import { useForm, useStore } from "@tanstack/react-form";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ButtonLoader } from "@/app/(components)/ButtonLoader";
+import { storage } from "@/app/(firebase)/client";
 import { haptics } from "@/lib/haptics";
+import { resizeToMaxEdgeJpeg } from "@/lib/image-resize";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { useNow } from "@/app/(hooks)/useNow";
@@ -22,19 +32,26 @@ import {
   publishSocialPostSchema,
   SOCIAL_POST_CONTENT_MAX,
 } from "@/lib/validations";
-import { publishSocialPost } from "../actions";
+import { publishSocialPost, repostSocialPost } from "../actions";
 import { Avatar } from "../_components/Avatar";
 import { RichContent } from "../_components/RichContent";
+import { useEnsureSocialProfile } from "../_components/use-ensure-profile";
+
+const MAX_IMAGES_PER_POST = 4;
 
 export default function SocialComposerPage() {
   useTelegramBackButton("/ecosystem/social");
   const router = useRouter();
   const searchParams = useSearchParams();
   const replyTo = searchParams.get("replyTo");
+  const quoteRef = searchParams.get("quote");
   const tokenId = searchParams.get("token");
 
   const [parentAuthorQcId, parentPostId] = replyTo
     ? (replyTo.split(":") as [string, string])
+    : [null, null];
+  const [quoteAuthorQcId, quotePostId] = quoteRef
+    ? (quoteRef.split(":") as [string, string])
     : [null, null];
 
   const { currentUser } = useAuth();
@@ -42,8 +59,15 @@ export default function SocialComposerPage() {
 
   const { data: profile } = useSocialProfile(qcId);
   const { data: parentPost } = useSocialPost(parentAuthorQcId, parentPostId);
+  const { data: quotePost } = useSocialPost(quoteAuthorQcId, quotePostId);
+
+  // Auto-onboard on direct visits to /compose so users without a profile yet
+  // get one minted from their QC username + photo before posting.
+  const { missingQcUsername } = useEnsureSocialProfile(qcId, profile);
 
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const now = useNow();
 
   const isPro =
@@ -62,12 +86,43 @@ export default function SocialComposerPage() {
     validators: { onSubmit: publishSocialPostSchema },
     onSubmit: async ({ value }) => {
       if (!profile) {
-        toast.error("Set up your social profile first");
-        router.push("/ecosystem/social/onboarding" as Route);
+        toast.error("Setting up your profile — try again in a moment");
         return;
       }
       setSubmitting(true);
       haptics.medium();
+
+      // Quote-repost flow goes through repostSocialPost so the original's
+      // repostCount + the per-user reposts/{qcId} sentinel get updated in
+      // the same transaction.
+      if (quoteAuthorQcId && quotePostId) {
+        const res = await repostSocialPost({
+          authorQcId: quoteAuthorQcId,
+          postId: quotePostId,
+          comment: value.content,
+        });
+        setSubmitting(false);
+        if (res?.serverError) {
+          toast.error(res.serverError);
+          haptics.error();
+          return;
+        }
+        haptics.success();
+        if (res?.data?.existing) {
+          toast.info("You already reposted this");
+        } else {
+          toast.success("Reposted");
+        }
+        if (profile && res?.data?.postId) {
+          router.replace(
+            `/ecosystem/social/${profile.handle}/${res.data.postId}` as Route,
+          );
+        } else {
+          router.replace("/ecosystem/social");
+        }
+        return;
+      }
+
       const res = await publishSocialPost(value);
       setSubmitting(false);
       if (res?.serverError) {
@@ -96,29 +151,88 @@ export default function SocialComposerPage() {
   });
 
   const content = useStore(form.store, (s) => s.values.content);
+  const media = useStore(form.store, (s) => s.values.media);
   const remaining = SOCIAL_POST_CONTENT_MAX - content.length;
-  const canSubmit = content.trim().length > 0 && remaining >= 0;
+  const isQuote = quoteAuthorQcId !== null && quotePostId !== null;
+  const canSubmit = isQuote
+    ? content.trim().length > 0 && remaining >= 0
+    : (content.trim().length > 0 || media.length > 0) && remaining >= 0;
+
+  const handleAddImage = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    appendMedia: (next: string[]) => void,
+  ) => {
+    const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file || !qcId) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image");
+      return;
+    }
+    setUploadingMedia(true);
+    try {
+      const resized = await resizeToMaxEdgeJpeg(file, 1080, 0.85);
+      const path = `social-posts/${qcId}/${Date.now()}.jpg`;
+      const ref = storageRef(storage, path);
+      await uploadBytes(ref, resized, { contentType: "image/jpeg" });
+      const url = await getDownloadURL(ref);
+      appendMedia([...media, url]);
+      haptics.light();
+    } catch (err) {
+      console.error("[social compose] upload failed:", err);
+      toast.error("Couldn't upload that image");
+      haptics.error();
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  const removeMedia = async (
+    url: string,
+    setMedia: (next: string[]) => void,
+  ) => {
+    setMedia(media.filter((u) => u !== url));
+    // Best-effort delete of the orphaned blob; server-side post doc never
+    // referenced it, so a failure here is harmless.
+    try {
+      const decoded = decodeURIComponent(url);
+      const match = decoded.match(/\/o\/(.+?)\?/);
+      if (match) await deleteObject(storageRef(storage, match[1]));
+    } catch {
+      /* swallow */
+    }
+  };
 
   if (currentUser && profile === null) {
+    if (missingQcUsername) {
+      return (
+        <div className="min-h-screen flex items-center justify-center pb-28 px-6 text-center">
+          <div className="space-y-4 max-w-xs">
+            <Icon
+              icon="lucide:user-cog"
+              className="w-12 h-12 text-muted-foreground mx-auto"
+            />
+            <div>
+              <p className="font-semibold">Set up your QC profile first</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Pick a QC username and add a photo. Your QC Social profile
+                will use them automatically.
+              </p>
+            </div>
+            <Link href={"/home/profile" as Route}>
+              <Button className="rounded-full">Open profile</Button>
+            </Link>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center pb-28 px-6 text-center">
-        <div className="space-y-4">
-          <Icon
-            icon="solar:user-plus-rounded-linear"
-            className="w-14 h-14 text-muted-foreground mx-auto"
-          />
-          <div>
-            <p className="font-semibold">Claim your handle first</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              You need a profile before you can post.
-            </p>
-          </div>
-          <Button
-            className="rounded-full"
-            onClick={() => router.replace("/ecosystem/social/onboarding" as Route)}
-          >
-            Get started
-          </Button>
+        <div className="space-y-3">
+          <ButtonLoader size="md" />
+          <p className="text-sm text-muted-foreground">
+            Setting up your profile…
+          </p>
         </div>
       </div>
     );
@@ -144,6 +258,8 @@ export default function SocialComposerPage() {
             <ButtonLoader size="sm" />
           ) : parentPostId ? (
             "Reply"
+          ) : isQuote ? (
+            "Quote"
           ) : (
             "Post"
           )}
@@ -172,6 +288,28 @@ export default function SocialComposerPage() {
         </div>
       )}
 
+      {quotePost && (
+        <div className="px-4 py-3 border-b border-border/30">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+            <Icon icon="hugeicons:repost" className="w-3.5 h-3.5" />
+            Quoting @{quotePost.authorHandle}
+          </div>
+          <div className="flex gap-3 opacity-80">
+            <Avatar
+              src={quotePost.authorAvatar}
+              name={quotePost.authorDisplayName}
+              size={32}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold">
+                {quotePost.authorDisplayName}
+              </p>
+              <RichContent content={quotePost.content} size="sm" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="px-4 py-4 flex gap-3">
         <Avatar
           src={profile?.avatar ?? null}
@@ -185,7 +323,13 @@ export default function SocialComposerPage() {
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
-                placeholder={parentPostId ? "Write a reply" : "What's on your mind?"}
+                placeholder={
+                  parentPostId
+                    ? "Write a reply"
+                    : isQuote
+                      ? "Add a comment"
+                      : "What's on your mind?"
+                }
                 rows={6}
                 maxLength={SOCIAL_POST_CONTENT_MAX}
                 autoFocus
@@ -270,36 +414,82 @@ export default function SocialComposerPage() {
         </form.Field>
       )}
 
-      <div className="px-4 flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          {/* Media uploads land in the next milestone — buttons reserved */}
-          <button
-            type="button"
-            disabled
-            className="p-2 text-muted-foreground/40 disabled:cursor-not-allowed"
-            aria-label="Add image (coming soon)"
-          >
-            <Icon icon="solar:gallery-linear" className="w-5 h-5" />
-          </button>
-          <button
-            type="button"
-            disabled
-            className="p-2 text-muted-foreground/40 disabled:cursor-not-allowed"
-            aria-label="Add poll (coming soon)"
-          >
-            <Icon icon="solar:chart-square-linear" className="w-5 h-5" />
-          </button>
-        </div>
-        <span
-          className={
-            remaining < 20
-              ? "text-xs font-semibold text-destructive tabular-nums"
-              : "text-xs text-muted-foreground tabular-nums"
-          }
-        >
-          {remaining}
-        </span>
-      </div>
+      <form.Field name="media">
+        {(field) => (
+          <>
+            {field.state.value.length > 0 && (
+              <div className="px-4 mb-3 grid grid-cols-2 gap-2">
+                {field.state.value.map((url) => (
+                  <div
+                    key={url}
+                    className="relative aspect-square rounded-2xl overflow-hidden bg-secondary"
+                  >
+                    <Image
+                      src={url}
+                      alt=""
+                      fill
+                      sizes="(max-width: 448px) 50vw, 220px"
+                      className="object-cover"
+                      unoptimized
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeMedia(url, (next) => field.handleChange(next))}
+                      className="absolute top-1.5 right-1.5 size-7 rounded-full bg-black/60 text-white flex items-center justify-center"
+                      aria-label="Remove image"
+                    >
+                      <Icon icon="lucide:x" className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="px-4 flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    handleAddImage(e, (next) => field.handleChange(next))
+                  }
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={
+                    uploadingMedia || field.state.value.length >= MAX_IMAGES_PER_POST
+                  }
+                  className="p-2 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="Add image"
+                >
+                  {uploadingMedia ? (
+                    <ButtonLoader size="sm" />
+                  ) : (
+                    <Icon icon="lucide:image-plus" className="w-5 h-5" />
+                  )}
+                </button>
+                {field.state.value.length > 0 && (
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                    {field.state.value.length}/{MAX_IMAGES_PER_POST}
+                  </span>
+                )}
+              </div>
+              <span
+                className={
+                  remaining < 20
+                    ? "text-xs font-semibold text-destructive tabular-nums"
+                    : "text-xs text-muted-foreground tabular-nums"
+                }
+              >
+                {remaining}
+              </span>
+            </div>
+          </>
+        )}
+      </form.Field>
     </div>
   );
 }

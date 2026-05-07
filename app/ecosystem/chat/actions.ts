@@ -20,7 +20,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 const chatNotificationSchema = z.object({
   recipientIds: z.array(z.string().min(1)).min(1),
-  senderName: z.string().min(1),
+  senderName: z.string().optional().default(""),
   chatId: z.string().min(1),
   chatName: z.string().optional().default(""),
   isGroup: z.boolean().optional().default(false),
@@ -43,12 +43,36 @@ function formatQcDisplayName(value: string, fallback: string) {
   return normalized || fallback;
 }
 
-export const sendChatNotification = authActionClient
+async function resolveSenderQcUsername(qcId: string): Promise<string> {
+  // Prefer the qcUsernames index — that's the canonical, unique handle.
+  const indexed = await firestore
+    .collection("qcUsernames")
+    .where("qcId", "==", qcId)
+    .limit(1)
+    .get();
+  if (!indexed.empty) {
+    const doc = indexed.docs[0];
+    const display = (doc.data().displayUsername as string | undefined) ?? doc.id;
+    if (display) return display;
+  }
+  // Fallback to the user doc if the index hasn't been populated yet.
+  const userSnap = await firestore.doc(`user/${qcId}`).get();
+  return ((userSnap.data()?.qcUsername as string | undefined) ?? "").trim();
+}
+
+export const sendChatNotification = authWithQcIdClient
   .schema(chatNotificationSchema)
   .action(
     async ({
       parsedInput: { recipientIds, senderName, chatId, chatName, isGroup },
+      ctx: { qcId },
     }) => {
+      // Resolve the canonical QC username from the caller's qcId — the client
+      // may not have the username hydrated yet right after registration, which
+      // is why some notifications were arriving as "Unknown".
+      const resolvedQcUsername = await resolveSenderQcUsername(qcId);
+      const effectiveSenderName = resolvedQcUsername || senderName || "";
+
       const promises = recipientIds.map(async (encryptedId) => {
         try {
           if (await checkRateLimit(`chat:${encryptedId}:${chatId}`, 30_000, 1)) return;
@@ -73,7 +97,7 @@ export const sendChatNotification = authActionClient
           const numericalId = resolveTelegramId(userData);
           if (!numericalId) return;
 
-          const displaySenderName = formatQcDisplayName(senderName, "Quantum Club user");
+          const displaySenderName = formatQcDisplayName(effectiveSenderName, "Quantum Club user");
           const displayChatName = chatName.trim() || "QC chat";
           const message = isGroup
             ? `<b>${displaySenderName}</b> in <b>${displayChatName}</b>\nYou have a new message`

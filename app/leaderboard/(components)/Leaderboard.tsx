@@ -9,6 +9,7 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import dynamic from "next/dynamic";
 import trophyAnimationData from "@/public/lottie/trophy-lottie.json";
+import { VerifiedBadge, getVerificationKind } from "@/app/ecosystem/social/_components/VerifiedBadge";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
@@ -75,13 +76,30 @@ export default function LeaderboardList({ fetchNextPage, hasNextPage, isFetching
                                                 <Image src={logoWhite} alt="logo" height={24} width={24} className="opacity-80" />
                                             </div>
                                             <div>
-                                                <div className={`font-bold text-sm ${index === 0 ? 'text-yellow-500' :
-                                                    index === 1 ? 'text-gray-300' :
-                                                        index === 2 ? 'text-orange-400' :
-                                                            'text-white'
-                                                    }`}>
-                                                    {item.username}
-                                                </div>
+                                                {(() => {
+                                                  // Prefer qcUsername with @ prefix; fall back to TG username for
+                                                  // users who haven't claimed one. Verified badge resolves team
+                                                  // (white) and Pro (blue) — team always wins.
+                                                  const handle = item.qcUsername || null;
+                                                  const displayName = handle ? `@${handle}` : item.username;
+                                                  const isProActiveRow =
+                                                    typeof item.proExpiresAtMs === "number" &&
+                                                    item.proExpiresAtMs > Date.now();
+                                                  const kind = getVerificationKind({
+                                                    handle: handle ?? item.username,
+                                                    isPro: isProActiveRow,
+                                                  });
+                                                  return (
+                                                    <div className={`font-bold text-sm flex items-center gap-1 ${index === 0 ? 'text-yellow-500' :
+                                                        index === 1 ? 'text-gray-300' :
+                                                            index === 2 ? 'text-orange-400' :
+                                                                'text-white'
+                                                        }`}>
+                                                        <span>{displayName}</span>
+                                                        {kind && <VerifiedBadge size={14} tone={kind} />}
+                                                    </div>
+                                                  );
+                                                })()}
                                                 <div className="font-medium text-xs text-neutral-500">
                                                     {Number(item.QuantAmount).toLocaleString("en-US", { maximumFractionDigits: 0 })} QNTM
                                                 </div>

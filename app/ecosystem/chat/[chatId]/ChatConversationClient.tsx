@@ -90,6 +90,7 @@ import UserProfilePopover from "./UserProfilePopover";
 import { useWallet } from "@/app/wallet/WalletContext";
 import { useQcUsernamesBatch, useQcUsernameQuery } from "@/app/(hooks)/queries/use-qc-username";
 import { isQcTeamMember } from "@/lib/qc-team";
+import { VerifiedBadge } from "@/app/ecosystem/social/_components/VerifiedBadge";
 import { toast } from "sonner";
 
 const gradientPattern = /(?:linear|radial|conic)-gradient/i;
@@ -2998,10 +2999,7 @@ export default function ChatConversationClient() {
                           @{resolveSenderName(msg)}
                         </button>
                         {isQcTeamMember(resolveSenderName(msg)) && (
-                          <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 font-bold rounded-sm gap-0.5 shrink-0">
-                            <Image src="/svg/logo-white.svg" alt="QC" width={10} height={10} />
-                            QC
-                          </Badge>
+                          <VerifiedBadge size={12} tone="team" />
                         )}
                       </div>
                     )}

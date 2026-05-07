@@ -22,6 +22,7 @@ import {
 } from "@/app/(hooks)/queries/use-social";
 import { sendTonFromUserWallet } from "@/lib/user-wallet-send";
 import { haptics } from "@/lib/haptics";
+import { isQcTeamHandle } from "@/lib/qc-team";
 import { QC_PRO_USD_PRICE } from "@/lib/validations";
 import {
   quoteProSubscription,
@@ -74,16 +75,20 @@ export default function QcProPage() {
 
   const now = useNow();
   const proExpiresAt = profile?.proExpiresAt ?? null;
-  const isPro = proExpiresAt != null && proExpiresAt.toMillis() > now;
-  const expiresLabel = isPro
-    ? new Date(proExpiresAt!.toMillis()).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : null;
+  const isTeam = isQcTeamHandle(profile?.handle);
+  const hasPaidPro =
+    proExpiresAt != null && proExpiresAt.toMillis() > now;
+  const isPro = isTeam || hasPaidPro;
+  const expiresLabel =
+    !isTeam && hasPaidPro
+      ? new Date(proExpiresAt!.toMillis()).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      : null;
   const daysUntilExpiry =
-    isPro && proExpiresAt
+    !isTeam && hasPaidPro && proExpiresAt
       ? Math.ceil(
           (proExpiresAt.toMillis() - now) / (24 * 60 * 60 * 1000),
         )
@@ -178,6 +183,7 @@ export default function QcProPage() {
     if (!qcId || !telegramId || !walletAddress) return;
     if (!autoRenewState?.autoRenew) return;
     if (!proExpiresAt) return;
+    if (isTeam) return;
     const now = Date.now();
     const msToExpiry = proExpiresAt.toMillis() - now;
     if (msToExpiry > AUTO_RENEW_WINDOW_MS) return;
@@ -273,28 +279,57 @@ export default function QcProPage() {
     <div className="min-h-screen px-4 pt-6 pb-28 max-w-md mx-auto">
       <header className="mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <Icon
-            icon="solar:crown-bold"
-            className="w-7 h-7 text-amber-400"
-          />
           <h1 className="text-2xl font-bold">QC Pro</h1>
+          {isPro && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary text-[11px] font-semibold px-2 py-0.5">
+              <Icon icon="lucide:badge-check" className="w-3.5 h-3.5" />
+              Active
+            </span>
+          )}
         </div>
         <p className="text-sm text-muted-foreground">
-          Get the verified badge, raise your AI limits, and unlock gated
-          posting on QC Social.
+          {isTeam
+            ? "You're on the QC team — Pro is on the house. Every perk below is yours, no subscription needed."
+            : isPro
+              ? "You're subscribed — every QC Pro perk below is unlocked on your account."
+              : "Get the verified badge, raise your AI limits, and unlock gated posting on QC Social."}
         </p>
       </header>
 
       <Card className="border-0 p-5 mb-5 bg-gradient-to-br from-amber-500/10 via-primary/5 to-transparent">
-        <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-4xl font-bold">${QC_PRO_USD_PRICE}</span>
-          <span className="text-sm text-muted-foreground">/ month</span>
-        </div>
+        {isTeam ? (
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-4xl font-bold">Team</span>
+            <span className="text-sm text-muted-foreground">/ lifetime</span>
+          </div>
+        ) : (
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-4xl font-bold">${QC_PRO_USD_PRICE}</span>
+            <span className="text-sm text-muted-foreground">/ month</span>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground mb-4">
-          Paid in TON, deducted from your QC wallet. No middleman fees.
+          {isTeam
+            ? "Lifetime QC Pro for QC core team accounts. Comes with your handle."
+            : "Paid in TON, deducted from your QC wallet. No middleman fees."}
         </p>
 
-        {isPro && (
+        {isTeam && (
+          <div className="rounded-xl bg-primary/10 px-4 py-3 mb-3">
+            <p className="text-sm font-semibold flex items-center gap-2">
+              <Icon
+                icon="solar:verified-check-bold"
+                className="w-4 h-4 text-white"
+              />
+              You&apos;re on QC Pro (team)
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              No need to subscribe — every perk below is already on.
+            </p>
+          </div>
+        )}
+
+        {!isTeam && hasPaidPro && (
           <div
             className={
               showRenewalNudge
@@ -327,7 +362,7 @@ export default function QcProPage() {
           </div>
         )}
 
-        {step === "review" && quote ? (
+        {isTeam ? null : step === "review" && quote ? (
           <div className="space-y-3">
             <div className="rounded-xl bg-secondary/40 px-4 py-3 text-sm space-y-1">
               <div className="flex justify-between">
@@ -402,15 +437,24 @@ export default function QcProPage() {
               icon={p.icon}
               className="w-6 h-6 text-primary shrink-0 mt-0.5"
             />
-            <div>
-              <p className="text-sm font-semibold">{p.title}</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold">{p.title}</p>
+                {isPro && (
+                  <Icon
+                    icon="lucide:check"
+                    className="w-3.5 h-3.5 text-primary"
+                    aria-label="Active"
+                  />
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">{p.desc}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {isPro && (
+      {!isTeam && isPro && (
         <div className="mt-8 flex items-start gap-3 rounded-2xl bg-secondary/40 px-4 py-3">
           <Icon
             icon="solar:refresh-circle-bold"
@@ -430,11 +474,13 @@ export default function QcProPage() {
         </div>
       )}
 
-      <p className="mt-4 text-xs text-muted-foreground text-center">
-        {autoRenewState?.autoRenew
-          ? "We'll auto-renew once you're inside the 24-hour window."
-          : "QC Pro renews on demand. We'll remind you a few days before your membership expires."}
-      </p>
+      {!isTeam && (
+        <p className="mt-4 text-xs text-muted-foreground text-center">
+          {autoRenewState?.autoRenew
+            ? "We'll auto-renew once you're inside the 24-hour window."
+            : "QC Pro renews on demand. We'll remind you a few days before your membership expires."}
+        </p>
+      )}
 
       <BiometricAuth
         isOpen={isOpen}

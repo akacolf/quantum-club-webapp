@@ -2,7 +2,6 @@
 
 import { use, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Icon } from "@iconify/react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -17,6 +16,10 @@ import { EmptyState } from "../../_components/EmptyState";
 import { RichContent } from "../../_components/RichContent";
 import { Avatar } from "../../_components/Avatar";
 import { formatRelative } from "../../_components/format";
+import {
+  VerifiedBadge,
+  getVerificationKind,
+} from "../../_components/VerifiedBadge";
 import { recordSocialPostView } from "../../affinity-actions";
 
 export default function SocialPostDetailPage({
@@ -86,8 +89,17 @@ export default function SocialPostDetailPage({
             size={44}
           />
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm truncate">
-              {post.authorDisplayName || post.authorHandle}
+            <p className="font-semibold text-sm truncate inline-flex items-center gap-1">
+              <span className="truncate">
+                {post.authorDisplayName || post.authorHandle}
+              </span>
+              {(() => {
+                const kind = getVerificationKind({
+                  handle: post.authorHandle,
+                  isPro: post.authorIsPro,
+                });
+                return kind ? <VerifiedBadge size={14} tone={kind} /> : null;
+              })()}
             </p>
             <p className="text-xs text-muted-foreground">
               @{post.authorHandle}
@@ -130,10 +142,6 @@ export default function SocialPostDetailPage({
       </div>
 
       <div className="mt-2 px-4 pb-2 flex items-center gap-2">
-        <Icon
-          icon="solar:chat-round-line-linear"
-          className="w-4 h-4 text-muted-foreground"
-        />
         <p className="text-sm font-semibold">Replies</p>
         <span className="text-xs text-muted-foreground">
           {post.replyCount}

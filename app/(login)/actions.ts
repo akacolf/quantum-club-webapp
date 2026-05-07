@@ -193,11 +193,31 @@ export const checkUserRank = authWithQcIdClient
 
     const rank = userRank.data().count + 1;
     const userRankRef = firestore.collection("userRanks").doc(qcId);
+
+    // Denormalize qcUsername + Pro expiry onto the rank doc so the
+    // leaderboard list can surface verified badges (team & Pro) without a
+    // per-row lookup. proExpiresAt is stored as millis-since-epoch since
+    // server-action return values cross a JSON boundary.
+    const [userSnap, socialSnap] = await Promise.all([
+      firestore.doc(`user/${qcId}`).get(),
+      firestore.doc(`socialProfiles/${qcId}`).get(),
+    ]);
+    const qcUsername =
+      (userSnap.data()?.qcUsername as string | undefined) ?? null;
+    const proExpiresAtTs = socialSnap.data()?.proExpiresAt as
+      | { toMillis(): number }
+      | null
+      | undefined;
+    const proExpiresAtMs =
+      proExpiresAtTs != null ? proExpiresAtTs.toMillis() : null;
+
     await userRankRef.set({
       userId: qcId,
       rank,
       QuantAmount,
       username: userName,
+      qcUsername,
+      proExpiresAtMs,
     }, { merge: true });
 
     return { rank };

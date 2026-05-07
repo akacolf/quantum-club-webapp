@@ -37,11 +37,19 @@ export const getLeaderboardData = authActionClient
         }
 
         const valuesSnapshot = await query.get();
-        const allValues = valuesSnapshot.docs.map((rankDoc) => ({
-            id: rankDoc.id,
-            username: rankDoc.data().username,
-            QuantAmount: Math.round(Number(rankDoc.data().QuantAmount || 0)),
-        }));
+        const allValues = valuesSnapshot.docs.map((rankDoc) => {
+            const data = rankDoc.data();
+            return {
+                id: rankDoc.id,
+                username: data.username,
+                qcUsername: (data.qcUsername as string | null | undefined) ?? null,
+                proExpiresAtMs:
+                    typeof data.proExpiresAtMs === "number"
+                        ? (data.proExpiresAtMs as number)
+                        : null,
+                QuantAmount: Math.round(Number(data.QuantAmount || 0)),
+            };
+        });
 
         const lastVisible = valuesSnapshot.docs[valuesSnapshot.docs.length - 1];
         const nextCursor = allValues.length === LEADERBOARD_PAGE_SIZE ? lastVisible?.id : undefined;

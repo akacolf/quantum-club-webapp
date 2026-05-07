@@ -1,11 +1,13 @@
 "use server";
 
 import { after } from "next/server";
+import { z } from "zod";
 import { FieldValue } from "firebase-admin/firestore";
 import { authWithQcIdClient } from "@/lib/safe-action";
 import { firestore } from "@/app/(firebase)/server";
 import { bumpAffinity } from "@/lib/social-affinity";
 import { embedAndStorePost, mixIntoTaste } from "@/lib/social-embedding";
+import { isQcTeamHandle } from "@/lib/qc-team";
 import {
   claimSocialHandleSchema,
   deleteSocialPostSchema,
@@ -39,18 +41,134 @@ async function loadProfileSnapshot(qcId: string): Promise<ProfileSnapshot> {
     throw new Error("Set up your social profile first");
   }
   const data = snap.data() ?? {};
+  const handle = (data.handle as string) ?? "";
   const proExpiresAt = data.proExpiresAt as
     | { toMillis(): number }
     | null
     | undefined;
+  const hasPaidPro =
+    proExpiresAt != null && proExpiresAt.toMillis() > Date.now();
   return {
     qcId,
-    handle: (data.handle as string) ?? "",
+    handle,
     displayName: (data.displayName as string) ?? "",
     avatar: (data.avatar as string | null) ?? null,
-    isPro: proExpiresAt != null && proExpiresAt.toMillis() > Date.now(),
+    isPro: hasPaidPro || isQcTeamHandle(handle),
   };
 }
+
+// ---------------------------------------------------------------------------
+// ensureSocialProfile — idempotent auto-onboard. Mints a social profile from
+// the user's existing QC username + profile photo so they don't have to claim
+// a handle separately. Sanitizes the QC username to the social handle
+// alphabet (a-z0-9_), and on collision appends a numeric suffix until a free
+// handle is found. If the user has no QC username yet, returns
+// `{ created: false, missingQcUsername: true }` so the client can prompt for
+// one.
+// ---------------------------------------------------------------------------
+
+const SOCIAL_HANDLE_ALPHABET = /[^a-z0-9_]/g;
+
+function sanitizeQcUsernameToHandle(qcUsername: string): string {
+  return qcUsername
+    .toLowerCase()
+    .replace(SOCIAL_HANDLE_ALPHABET, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 20);
+}
+
+export const ensureSocialProfile = authWithQcIdClient
+  .schema(z.object({}))
+  .action(async ({ ctx: { qcId } }) => {
+    const profileRef = firestore.doc(`socialProfiles/${qcId}`);
+    const existing = await profileRef.get();
+    if (existing.exists) {
+      return {
+        created: false,
+        handle: (existing.data()?.handle as string | undefined) ?? null,
+      };
+    }
+
+    const userSnap = await firestore.doc(`user/${qcId}`).get();
+    const qcUsername = (userSnap.data()?.qcUsername as string | undefined) ?? "";
+    if (!qcUsername.trim()) {
+      return { created: false, missingQcUsername: true as const };
+    }
+
+    let base = sanitizeQcUsernameToHandle(qcUsername);
+    if (base.length < 3) base = `${base}_${qcId.slice(0, 4)}`.slice(0, 20);
+
+    // Pull the profile photo from the QC username index — that's where the
+    // upload lives (see updateProfilePhotoUrl in chat/actions.ts).
+    let avatar: string | null = null;
+    const usernameIdx = await firestore
+      .collection("qcUsernames")
+      .where("qcId", "==", qcId)
+      .limit(1)
+      .get();
+    if (!usernameIdx.empty) {
+      avatar =
+        (usernameIdx.docs[0].data().profilePhotoUrl as string | null) ?? null;
+    }
+
+    const displayName = qcUsername.replace(/^@+/, "").trim() || base;
+
+    let candidate = base;
+    let suffix = 0;
+    let claimedHandle: string | null = null;
+    while (suffix < 25) {
+      const handleRef = firestore.doc(`socialHandles/${candidate}`);
+      try {
+        await firestore.runTransaction(async (tx) => {
+          const [handleSnap, profileSnap] = await Promise.all([
+            tx.get(handleRef),
+            tx.get(profileRef),
+          ]);
+          if (profileSnap.exists) {
+            claimedHandle =
+              (profileSnap.data()?.handle as string | undefined) ?? candidate;
+            return;
+          }
+          if (handleSnap.exists) {
+            throw new Error("handle-taken");
+          }
+          const now = FieldValue.serverTimestamp();
+          tx.set(handleRef, { qcId, claimedAt: now });
+          tx.set(profileRef, {
+            handle: candidate,
+            displayName,
+            bio: "",
+            avatar,
+            banner: null,
+            website: null,
+            linkedBroadcastHandle: null,
+            createdAt: now,
+            followerCount: 0,
+            followingCount: 0,
+            postCount: 0,
+            subscriptionEnabled: false,
+            proExpiresAt: null,
+          });
+          claimedHandle = candidate;
+        });
+        if (claimedHandle) break;
+      } catch (err) {
+        if (err instanceof Error && err.message === "handle-taken") {
+          suffix += 1;
+          const tail = String(suffix);
+          candidate = `${base.slice(0, Math.max(1, 20 - tail.length))}${tail}`;
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!claimedHandle) {
+      throw new Error("Couldn't claim a social handle automatically");
+    }
+    return { created: true, handle: claimedHandle };
+  });
 
 // ---------------------------------------------------------------------------
 // claimSocialHandle — first-time onboarding. Creates the profile doc and
@@ -162,19 +280,9 @@ export const publishSocialPost = authWithQcIdClient
       const author = await loadProfileSnapshot(qcId);
 
       // Creator-license check: only QC Pro members can publish gated posts.
-      if (gated) {
-        const profileSnap = await firestore
-          .doc(`socialProfiles/${qcId}`)
-          .get();
-        const proExpiresAt = profileSnap.get("proExpiresAt") as
-          | { toMillis(): number }
-          | null
-          | undefined;
-        const isPro =
-          proExpiresAt != null && proExpiresAt.toMillis() > Date.now();
-        if (!isPro) {
-          throw new Error("QC Pro is required to publish gated posts");
-        }
+      // Team handles are treated as Pro permanently.
+      if (gated && !author.isPro) {
+        throw new Error("QC Pro is required to publish gated posts");
       }
 
       const profileRef = firestore.doc(`socialProfiles/${qcId}`);
@@ -480,10 +588,11 @@ export const unlikeSocialPost = authWithQcIdClient
   );
 
 // ---------------------------------------------------------------------------
-// repostSocialPost — quote-repost. Creates a new post on the caller's
-// timeline that references the original, and increments the original's
-// repostCount. Re-reposting an already-reposted post is allowed (Twitter
-// behavior) — each repost is its own timeline entry.
+// repostSocialPost — repost or quote-repost. A user can repost any given
+// post at most once (either plain or as a quote). The sentinel doc at
+// `.../posts/{postId}/reposts/{reposterQcId}` enforces this and stores a
+// pointer back to the new post so we can undo cleanly. Reposting a second
+// time returns the existing repost id so the UI can no-op idempotently.
 // ---------------------------------------------------------------------------
 
 export const repostSocialPost = authWithQcIdClient
@@ -498,13 +607,26 @@ export const repostSocialPost = authWithQcIdClient
       const originalRef = firestore.doc(
         `socialProfiles/${authorQcId}/posts/${postId}`,
       );
+      const repostMarkerRef = originalRef.collection("reposts").doc(qcId);
       const meRef = firestore.doc(`socialProfiles/${qcId}`);
       const newPostRef = meRef.collection("posts").doc();
 
       const now = FieldValue.serverTimestamp();
-      await firestore.runTransaction(async (tx) => {
-        const originalSnap = await tx.get(originalRef);
+      const result = await firestore.runTransaction(async (tx) => {
+        const [originalSnap, markerSnap] = await Promise.all([
+          tx.get(originalRef),
+          tx.get(repostMarkerRef),
+        ]);
         if (!originalSnap.exists) throw new Error("Post not found");
+
+        if (markerSnap.exists) {
+          // Already reposted — return the existing repost id so the UI can
+          // navigate / show the existing repost rather than creating a new one.
+          return {
+            existing: true as const,
+            postId: (markerSnap.data()?.repostPostId as string) ?? null,
+          };
+        }
 
         tx.set(newPostRef, {
           authorQcId: qcId,
@@ -528,10 +650,51 @@ export const repostSocialPost = authWithQcIdClient
           gated: false,
           unlockPriceTon: null,
         });
+        tx.set(repostMarkerRef, {
+          repostPostId: newPostRef.id,
+          repostedAt: now,
+        });
         tx.update(originalRef, { repostCount: FieldValue.increment(1) });
         tx.update(meRef, { postCount: FieldValue.increment(1) });
+        return { existing: false as const, postId: newPostRef.id };
       });
 
-      return { success: true, postId: newPostRef.id };
+      return { success: true, ...result };
+    },
+  );
+
+// ---------------------------------------------------------------------------
+// undoSocialRepost — removes the caller's existing repost of a target post.
+// Mirror of repostSocialPost: deletes the repost post from the caller's
+// timeline, removes the sentinel marker, decrements counters. Idempotent.
+// ---------------------------------------------------------------------------
+
+export const undoSocialRepost = authWithQcIdClient
+  .schema(repostSocialPostSchema.pick({ authorQcId: true, postId: true }))
+  .action(
+    async ({ parsedInput: { authorQcId, postId }, ctx: { qcId } }) => {
+      const originalRef = firestore.doc(
+        `socialProfiles/${authorQcId}/posts/${postId}`,
+      );
+      const repostMarkerRef = originalRef.collection("reposts").doc(qcId);
+      const meRef = firestore.doc(`socialProfiles/${qcId}`);
+
+      await firestore.runTransaction(async (tx) => {
+        const markerSnap = await tx.get(repostMarkerRef);
+        if (!markerSnap.exists) return; // idempotent
+
+        const repostPostId = markerSnap.data()?.repostPostId as
+          | string
+          | undefined;
+        if (repostPostId) {
+          const repostPostRef = meRef.collection("posts").doc(repostPostId);
+          tx.delete(repostPostRef);
+          tx.update(meRef, { postCount: FieldValue.increment(-1) });
+        }
+        tx.delete(repostMarkerRef);
+        tx.update(originalRef, { repostCount: FieldValue.increment(-1) });
+      });
+
+      return { success: true };
     },
   );

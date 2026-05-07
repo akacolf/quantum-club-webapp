@@ -1,9 +1,16 @@
 import { useLeaderboardContext } from "@/app/(contexts)/LeaderboardContext"
 import { useUserContext } from "@/app/(contexts)/UserContext";
+import { useAuth } from "@/app/(contexts)/auth";
+import { useSocialProfile } from "@/app/(hooks)/queries/use-social";
 import { SvgProps } from "@/types/svg";
 import { Card, CardContent } from "@/components/ui/card";
 import dynamic from "next/dynamic";
 import trophyAnimationData from "@/public/lottie/trophy-lottie.json";
+import {
+  VerifiedBadge,
+  isProActive,
+  getVerificationKind,
+} from "@/app/ecosystem/social/_components/VerifiedBadge";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
@@ -26,10 +33,16 @@ function Logo({ width = "2.5em", height = "2.5em" }: SvgProps) {
 
 export default function UserStatsCard() {
   const { userRank } = useLeaderboardContext();
-  const { MainQuantAmount, username } = useUserContext();
+  const { MainQuantAmount, username, qcUsername } = useUserContext();
+  const { currentUser } = useAuth();
+  const { data: socialProfile } = useSocialProfile(currentUser?.uid ?? null);
 
   // Display TG username (consistent with leaderboard list)
   const displayName = username || "Quantum User";
+  const verificationKind = getVerificationKind({
+    handle: qcUsername,
+    isPro: isProActive(socialProfile),
+  });
 
   return (
     <div className="flex flex-col mt-6 px-4">
@@ -48,8 +61,11 @@ export default function UserStatsCard() {
                 <Logo width="2em" height="2em" />
               </div>
               <div className="-ml-1">
-                <div className="text-white font-bold text-lg leading-tight">
-                  {displayName}
+                <div className="text-white font-bold text-lg leading-tight flex items-center gap-1.5">
+                  <span>{displayName}</span>
+                  {verificationKind && (
+                    <VerifiedBadge size={16} tone={verificationKind} />
+                  )}
                 </div>
                 <div className="text-neutral-400 text-sm font-medium">
                   {MainQuantAmount} QNTM

@@ -585,9 +585,7 @@ export default function TradePage() {
                     ) : activeTab === "dex" ? (
                         graduatedTokens.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
-                                    <Icon icon="solar:chart-2-bold" className="w-8 h-8 text-green-400" />
-                                </div>
+                                <Icon icon="solar:chart-2-bold" className="mb-4 w-8 h-8 text-green-400" />
                                 <p className="text-white font-medium mb-2">No DEX tokens yet</p>
                                 <p className="text-xs text-muted-foreground max-w-[200px]">
                                     Tokens that reach 2,000 TON market cap graduate to STON.fi DEX
@@ -654,9 +652,7 @@ export default function TradePage() {
                     ) : activeTab === "created" ? (
                         myTokens.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                                    <Icon icon="mynaui:rocket-solid" className="w-8 h-8 text-primary" />
-                                </div>
+                                <Icon icon="mynaui:rocket-solid" className="mb-4 w-8 h-8 text-primary" />
                                 <p className="text-white font-medium mb-2">No tokens created yet</p>
                                 <p className="text-xs text-muted-foreground max-w-[200px] mb-4">
                                     Launch your own token and start building your community
