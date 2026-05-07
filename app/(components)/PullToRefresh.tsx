@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDrag } from "@use-gesture/react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
@@ -9,20 +9,15 @@ import { ButtonLoader } from "./ButtonLoader";
 interface Props {
   onRefresh: () => Promise<void> | void;
   children: React.ReactNode;
-  /**
-   * Pixels the user has to drag past before we treat the gesture as a
-   * refresh. Defaults to 70 — far enough to feel deliberate, close enough
-   * to feel responsive.
-   */
+  /** Pixels of pull required to commit a refresh. */
   threshold?: number;
   className?: string;
 }
 
 /**
- * Pull-to-refresh gesture wrapper. Drags from the top of the scroll
- * container; once past `threshold` the indicator latches green and on
- * release we fire `onRefresh`. We only intercept the gesture when the
- * page is already scrolled to the top, so normal scroll keeps working.
+ * Android-style pull-to-refresh. The body content stays put — only a small
+ * floating chip (the spinner) translates in from above the viewport while the
+ * user pulls. Engages only when the page is already scrolled to the top.
  */
 export function PullToRefresh({
   onRefresh,
@@ -34,23 +29,36 @@ export function PullToRefresh({
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const armedRef = useRef(false);
+  const reachedRef = useRef(false);
+
+  // Block native page bounce while a pull is engaged so the chip doesn't
+  // fight with iOS rubber-banding. We only flip overscroll-behavior while
+  // armed, and restore it the moment the gesture ends.
+  useEffect(() => {
+    if (!armedRef.current && pull === 0 && !refreshing) return;
+    const prev = document.documentElement.style.overscrollBehaviorY;
+    document.documentElement.style.overscrollBehaviorY = "contain";
+    return () => {
+      document.documentElement.style.overscrollBehaviorY = prev;
+    };
+  }, [pull, refreshing]);
 
   useDrag(
-    ({ first, last, movement: [, my], cancel, event }) => {
+    ({ first, last, movement: [, my], cancel }) => {
       if (refreshing) return;
 
-      // Only engage when the page is at the very top — otherwise we'd
-      // hijack normal upward scroll inertia.
       if (first) {
         const atTop =
-          (typeof window !== "undefined" && window.scrollY <= 0) &&
-          (document.documentElement.scrollTop <= 0);
+          typeof window !== "undefined" &&
+          window.scrollY <= 0 &&
+          document.documentElement.scrollTop <= 0;
         if (!atTop || my < 0) {
           armedRef.current = false;
           cancel();
           return;
         }
         armedRef.current = true;
+        reachedRef.current = false;
       }
       if (!armedRef.current) return;
 
@@ -58,18 +66,25 @@ export function PullToRefresh({
         setPull(0);
         return;
       }
-      // Rubber-band: ease the pull so it feels natural past the threshold.
-      const eased = my < threshold ? my : threshold + (my - threshold) * 0.4;
+
+      // Soft cap past the threshold so the chip eases instead of running off.
+      const eased = my < threshold ? my : threshold + (my - threshold) * 0.35;
       setPull(eased);
+
+      if (my >= threshold && !reachedRef.current) {
+        reachedRef.current = true;
+        haptics.light();
+      } else if (my < threshold && reachedRef.current) {
+        reachedRef.current = false;
+      }
 
       if (last) {
         if (my >= threshold) {
           haptics.medium();
           setRefreshing(true);
-          (event as Event)?.preventDefault?.();
+          setPull(0);
           Promise.resolve(onRefresh()).finally(() => {
             setRefreshing(false);
-            setPull(0);
           });
         } else {
           setPull(0);
@@ -84,52 +99,42 @@ export function PullToRefresh({
     },
   );
 
-  const showIndicator = pull > 0 || refreshing;
-  const indicatorOpacity = refreshing ? 1 : Math.min(1, pull / threshold);
+  // Chip slides from -40px (just out of view) to ~24px (resting position)
+  // as pull goes from 0 → threshold. While refreshing it locks at rest.
+  const chipTranslate = refreshing
+    ? 24
+    : pull > 0
+      ? -40 + Math.min(pull / threshold, 1.4) * 64
+      : -40;
+  const chipVisible = refreshing || pull > 0;
 
   return (
     <div ref={ref} className={cn("relative", className)}>
       <div
-        className={cn(
-          "pointer-events-none absolute left-0 right-0 -top-2 flex justify-center transition-transform",
-          showIndicator ? "" : "opacity-0",
-        )}
-        style={{
-          transform: `translateY(${refreshing ? threshold : pull}px)`,
-          opacity: indicatorOpacity,
-        }}
+        className="pointer-events-none fixed left-0 right-0 top-0 z-50 flex justify-center"
         aria-hidden
       >
-        <div className="rounded-full bg-secondary/80 backdrop-blur px-3 py-1.5 flex items-center gap-2 text-xs">
+        <div
+          className={cn(
+            "rounded-full bg-secondary/90 backdrop-blur-md shadow-lg px-3 py-2 flex items-center gap-2 text-xs transition-opacity duration-150",
+            chipVisible ? "opacity-100" : "opacity-0",
+          )}
+          style={{
+            transform: `translateY(${chipTranslate}px)`,
+            transition:
+              !refreshing && pull === 0
+                ? "transform 200ms ease-out"
+                : undefined,
+          }}
+        >
           {refreshing ? (
-            <>
-              <ButtonLoader size="sm" />
-              <span className="text-muted-foreground">Refreshing…</span>
-            </>
+            <ButtonLoader size="sm" />
           ) : (
-            <span
-              className={cn(
-                "text-muted-foreground transition-colors",
-                pull >= threshold && "text-primary",
-              )}
-            >
-              {pull >= threshold ? "Release to refresh" : "Pull to refresh"}
-            </span>
+            <ButtonLoader size="sm" />
           )}
         </div>
       </div>
-      <div
-        style={{
-          transform: refreshing
-            ? `translateY(${threshold}px)`
-            : pull > 0
-              ? `translateY(${pull}px)`
-              : undefined,
-          transition: pull === 0 && !refreshing ? "transform 200ms" : undefined,
-        }}
-      >
-        {children}
-      </div>
+      {children}
     </div>
   );
 }
