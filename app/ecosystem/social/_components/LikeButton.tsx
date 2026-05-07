@@ -81,7 +81,7 @@ export function LikeButton({ qcId, authorQcId, postId, count }: Props) {
       )}
     >
       <Icon
-        icon={liked ? "solar:fire-bold" : "solar:fire-linear"}
+        icon={liked ? "icon-park-solid:like" : "icon-park-outline:like"}
         className="w-4 h-4"
       />
       <span className="tabular-nums">{displayedCount}</span>

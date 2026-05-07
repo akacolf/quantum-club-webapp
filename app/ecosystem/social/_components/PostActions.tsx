@@ -99,54 +99,61 @@ export function PostActions({ post, qcId }: Props) {
         onClick={handleReply}
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
-        <Icon icon="solar:chat-round-line-linear" className="w-4 h-4" />
+        <Icon icon="mdi-light:comment" className="w-4 h-4" />
         <span className="tabular-nums">{post.replyCount}</span>
       </button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            onClick={(e) => e.stopPropagation()}
-            disabled={pendingRepost}
-            className={cn(
-              "flex items-center gap-1.5 text-xs transition-colors",
-              hasReposted
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground",
-              pendingRepost && "opacity-60",
-            )}
-          >
-            <Icon icon="hugeicons:repost" className="w-4 h-4" />
-            <span className="tabular-nums">{post.repostCount}</span>
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="center"
-          onClick={(e) => e.stopPropagation()}
-          className="min-w-[10rem]"
-        >
-          {hasReposted ? (
-            <DropdownMenuItem onSelect={handleUndoRepost}>
-              <Icon icon="hugeicons:repost" className="w-4 h-4 mr-2" />
-              Undo repost
-            </DropdownMenuItem>
-          ) : (
-            <>
-              <DropdownMenuItem onSelect={handlePlainRepost}>
-                <Icon icon="hugeicons:repost" className="w-4 h-4 mr-2" />
-                Repost
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={handleQuote}>
-                <Icon
-                  icon="solar:pen-new-square-linear"
-                  className="w-4 h-4 mr-2"
-                />
-                Quote
-              </DropdownMenuItem>
-            </>
+      {hasReposted ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleUndoRepost();
+          }}
+          disabled={pendingRepost}
+          className={cn(
+            "flex items-center gap-1.5 text-xs text-primary transition-colors",
+            pendingRepost && "opacity-60",
           )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+          aria-label="Undo repost"
+        >
+          <Icon icon="hugeicons:repost" className="w-4 h-4" />
+          <span className="tabular-nums">{post.repostCount}</span>
+        </button>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              onClick={(e) => e.stopPropagation()}
+              disabled={pendingRepost}
+              className={cn(
+                "flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors",
+                pendingRepost && "opacity-60",
+              )}
+            >
+              <Icon icon="hugeicons:repost" className="w-4 h-4" />
+              <span className="tabular-nums">{post.repostCount}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="center"
+            onClick={(e) => e.stopPropagation()}
+            className="min-w-[10rem]"
+          >
+            <DropdownMenuItem onSelect={handlePlainRepost}>
+              <Icon icon="hugeicons:repost" className="w-4 h-4 mr-2" />
+              Repost
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleQuote}>
+              <Icon
+                icon="solar:pen-new-square-linear"
+                className="w-4 h-4 mr-2"
+              />
+              Quote
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
       <LikeButton
         qcId={qcId}
         authorQcId={post.authorQcId}

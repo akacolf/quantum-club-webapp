@@ -6,7 +6,9 @@ import type { Route } from "next";
 import { Icon } from "@iconify/react";
 import { parseAsStringEnum, useQueryState } from "nuqs";
 import { useDrag } from "@use-gesture/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { PullToRefresh } from "@/app/(components)/PullToRefresh";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import {
@@ -51,6 +53,18 @@ export default function SocialFeedPage() {
   );
 
   const isPro = isProActive(myProfile);
+  const queryClient = useQueryClient();
+
+  // Pull-to-refresh handler. Feeds are already live via Firestore listeners,
+  // so "refresh" here means: invalidate all social caches so any stale
+  // sub-queries (taste, affinity) re-run, plus a small delay so the user
+  // sees the indicator complete a cycle.
+  const handleRefresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["social"] }),
+      new Promise((r) => setTimeout(r, 400)),
+    ]);
+  };
 
   // Swipe-to-switch between feed tabs. Distance threshold dominates over
   // velocity so a deliberate horizontal drag wins, while a vertical scroll
@@ -181,7 +195,7 @@ export default function SocialFeedPage() {
           so left/right swipes register even on tabs whose feed is short.
           touch-pan-y lets vertical scroll keep working. */}
       <div ref={swipeRef} className="touch-pan-y min-h-[70vh]">
-        {renderTab()}
+        <PullToRefresh onRefresh={handleRefresh}>{renderTab()}</PullToRefresh>
       </div>
 
       {myProfile && <ComposeFab />}

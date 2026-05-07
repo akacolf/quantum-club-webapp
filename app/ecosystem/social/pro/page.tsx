@@ -281,7 +281,7 @@ export default function QcProPage() {
         <div className="flex items-center gap-2 mb-2">
           <h1 className="text-2xl font-bold">QC Pro</h1>
           {isPro && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary text-[11px] font-bold uppercase tracking-wide px-2 py-0.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary text-[11px] font-semibold px-2 py-0.5">
               <Icon icon="lucide:badge-check" className="w-3.5 h-3.5" />
               Active
             </span>

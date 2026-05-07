@@ -4,7 +4,9 @@ import { use, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { parseAsStringEnum, useQueryState } from "nuqs";
 import { useDrag } from "@use-gesture/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PullToRefresh } from "@/app/(components)/PullToRefresh";
 import { haptics } from "@/lib/haptics";
 import { useAuth } from "@/app/(contexts)/auth";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
@@ -43,6 +45,14 @@ export default function SocialProfilePage({
   const { data: profile } = useSocialProfileByHandle(handle);
   const posts = useUserPosts(profile?.id ?? null);
   const replies = useUserReplies(profile?.id ?? null);
+  const queryClient = useQueryClient();
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["social"] }),
+      new Promise((r) => setTimeout(r, 400)),
+    ]);
+  };
 
   // Fire one profile-view affinity bump per profile per mount, after the
   // viewer has settled on the page for ~1.5s. Prevents accidental bumps from
@@ -148,6 +158,7 @@ export default function SocialProfilePage({
         })}
       </div>
 
+      <PullToRefresh onRefresh={handleRefresh}>
       <div ref={swipeRef} className="touch-pan-y min-h-[60vh]">
         {tab === "posts" && (
           <PostFeed
@@ -189,6 +200,7 @@ export default function SocialProfilePage({
           />
         )}
       </div>
+      </PullToRefresh>
 
       {profile.subscriptionEnabled && (
         <div className="mx-4 mt-4 p-4 rounded-2xl bg-secondary/50 flex items-center gap-3">
