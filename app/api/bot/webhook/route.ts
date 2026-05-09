@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse, connection } from "next/server";
 import { env } from "@/env";
 import { parseUpdate } from "@/lib/bot/parse";
-import { dispatch } from "@/lib/bot/router";
+import { dispatch, KNOWN_COMMANDS } from "@/lib/bot/router";
+import { inferIntent } from "@/lib/bot/intent-llm";
 import { replyWith } from "@/lib/bot/telegram-client";
 import { checkRateLimit } from "@/lib/rate-limit";
-import type { TelegramUpdate } from "@/lib/bot/types";
+import type { ParsedCommand, TelegramUpdate } from "@/lib/bot/types";
 
 // Telegram POSTs JSON updates here. We always 200; never make Telegram retry.
 // Hobby tier function timeout is ~10s — read commands stay well under.
@@ -34,8 +35,28 @@ export async function POST(req: NextRequest) {
 
   const msg = update.message ?? update.edited_message;
   if (!msg) return NextResponse.json({ ok: true }, { status: 200 });
+  if (!msg.from || !msg.text) return NextResponse.json({ ok: true }, { status: 200 });
 
-  const parsed = parseUpdate(msg);
+  // Two-tier parsing:
+  //   1. Deterministic regex parser (fast, free) for known commands
+  //   2. LLM intent fallback for natural-language phrasings ("swap 10 ton for usdt")
+  let parsed: ParsedCommand | null = parseUpdate(msg);
+
+  if (!parsed || !KNOWN_COMMANDS.has(parsed.command)) {
+    // Only attempt LLM inference when the message is addressed to the bot
+    // (private chat, OR group with @mention parsed earlier — `parsed` would
+    // exist in the latter case). Group messages without @mention return null
+    // from parseUpdate and never reach the LLM, by design.
+    if (msg.chat.type === "private" || parsed) {
+      const inferred = await inferIntent(msg.text, {
+        fromId: msg.from.id,
+        chatId: msg.chat.id,
+        messageId: msg.message_id,
+      });
+      if (inferred) parsed = inferred;
+    }
+  }
+
   if (!parsed) return NextResponse.json({ ok: true }, { status: 200 });
 
   // Per-user rate limit

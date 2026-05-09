@@ -13,6 +13,16 @@ const HELP: CommandResult = {
     "• balance <address>",
 };
 
+// Lowercase command words (and aliases) the deterministic dispatcher knows.
+// Used by the webhook to decide whether to fall through to the LLM intent layer.
+export const KNOWN_COMMANDS = new Set([
+  "price",
+  "route", "swap",
+  "ape", "buy",
+  "balance", "bal",
+  "help", "?", "start",
+]);
+
 export async function dispatch(parsed: ParsedCommand): Promise<CommandResult> {
   switch (parsed.command) {
     case "price":
