@@ -47,6 +47,12 @@ function getDeepLinkDestination() {
     if (startParam === "alerts") {
       return "/wallet/settings/price-alerts" as const;
     }
+    // Bot-generated intent (e.g. `ape <address>` command) — server-side
+    // resolver page validates the intent and forwards to the right UI.
+    if (startParam?.startsWith("intent_")) {
+      const intentId = startParam.slice("intent_".length);
+      if (intentId) return `/intent/${intentId}` as `/intent/${string}`;
+    }
   } catch {}
   return "/home" as const;
 }
