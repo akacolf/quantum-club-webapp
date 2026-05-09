@@ -380,5 +380,13 @@ service cloud.firestore {
         && resource.data.creatorQcId == request.auth.uid;
       allow write: if false; // Server-only
     }
+
+    // QC Bot intents — short-lived docs that propose an action (e.g. ape)
+    // from a Telegram bot @mention. Mini App reads its own intent by id to
+    // render the confirm screen; writes are server-only (bot webhook).
+    match /botIntents/{intentId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Server-only
+    }
   }
 }

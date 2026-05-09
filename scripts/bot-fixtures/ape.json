@@ -1,0 +1,10 @@
+{
+  "update_id": 1004,
+  "message": {
+    "message_id": 4,
+    "text": "@QuantumClubTestBot ape EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
+    "from": { "id": 99999, "is_bot": false, "username": "tester" },
+    "chat": { "id": 99999, "type": "private" },
+    "entities": [{ "type": "mention", "offset": 0, "length": 19 }]
+  }
+}

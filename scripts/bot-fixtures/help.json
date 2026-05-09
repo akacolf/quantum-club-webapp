@@ -1,0 +1,10 @@
+{
+  "update_id": 1005,
+  "message": {
+    "message_id": 5,
+    "text": "@QuantumClubTestBot help",
+    "from": { "id": 99999, "is_bot": false, "username": "tester" },
+    "chat": { "id": 99999, "type": "private" },
+    "entities": [{ "type": "mention", "offset": 0, "length": 19 }]
+  }
+}
