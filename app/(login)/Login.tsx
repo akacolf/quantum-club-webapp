@@ -53,6 +53,12 @@ function getDeepLinkDestination() {
       const intentId = startParam.slice("intent_".length);
       if (intentId) return `/intent/${intentId}` as `/intent/${string}`;
     }
+    // Bot-generated link token (`/link` command) — resolver page binds
+    // the user's QC wallet to their Telegram ID for personalized commands.
+    if (startParam?.startsWith("link_")) {
+      const tokenId = startParam.slice("link_".length);
+      if (tokenId) return `/link/${tokenId}` as `/link/${string}`;
+    }
   } catch {}
   return "/home" as const;
 }
