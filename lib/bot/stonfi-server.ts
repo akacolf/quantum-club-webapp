@@ -51,15 +51,47 @@ export async function loadAssets(): Promise<BotSwapAsset[]> {
   return mapped;
 }
 
+// Common ticker aliases. STON.fi uses STON.fi-canonical symbols which don't
+// always match what users type (Tether is "USD₮", BTC on TON is wrapped, etc.).
+// Map user-typed → canonical STON.fi symbol.
+const SYMBOL_ALIASES: Record<string, string> = {
+  USDT: "USD₮",
+  TETHER: "USD₮",
+  BTC: "cbBTC",
+  WBTC: "cbBTC",
+  ETH: "WETH",
+};
+
+function normalize(s: string): string {
+  // Strip non-alphanumeric and uppercase. Lets "USD₮" match "USDT" via the
+  // alias path but also catches accidental whitespace/symbols in user input.
+  return s.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+}
+
 export function findAsset(assets: BotSwapAsset[], query: string): BotSwapAsset | null {
   const q = query.trim();
   if (!q) return null;
-  // Direct address match
+
+  // 1. Direct address match
   const byAddr = assets.find((a) => a.contractAddress.toLowerCase() === q.toLowerCase());
   if (byAddr) return byAddr;
-  // Symbol match (case-insensitive)
+
+  // 2. Alias → canonical symbol
   const upper = q.toUpperCase();
-  return assets.find((a) => a.symbol.toUpperCase() === upper) ?? null;
+  const aliased = SYMBOL_ALIASES[upper];
+  if (aliased) {
+    const hit = assets.find((a) => a.symbol === aliased);
+    if (hit) return hit;
+  }
+
+  // 3. Exact symbol match (case-insensitive)
+  const exact = assets.find((a) => a.symbol.toUpperCase() === upper);
+  if (exact) return exact;
+
+  // 4. Normalized symbol match — strips $, ₮, etc. so "USDT" finds "USD₮".
+  const qn = normalize(q);
+  if (!qn) return null;
+  return assets.find((a) => normalize(a.symbol) === qn) ?? null;
 }
 
 export async function quoteSwap(
