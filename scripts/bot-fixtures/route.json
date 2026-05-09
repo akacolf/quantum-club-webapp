@@ -1,0 +1,10 @@
+{
+  "update_id": 1002,
+  "message": {
+    "message_id": 2,
+    "text": "@QuantumClubTestBot route 10 TON USDT",
+    "from": { "id": 99999, "is_bot": false, "username": "tester" },
+    "chat": { "id": 99999, "type": "private" },
+    "entities": [{ "type": "mention", "offset": 0, "length": 19 }]
+  }
+}

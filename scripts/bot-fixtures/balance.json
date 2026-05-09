@@ -1,0 +1,10 @@
+{
+  "update_id": 1003,
+  "message": {
+    "message_id": 3,
+    "text": "@QuantumClubTestBot balance EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N",
+    "from": { "id": 99999, "is_bot": false, "username": "tester" },
+    "chat": { "id": 99999, "type": "private" },
+    "entities": [{ "type": "mention", "offset": 0, "length": 19 }]
+  }
+}

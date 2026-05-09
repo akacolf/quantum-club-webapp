@@ -18,6 +18,7 @@ export const env = createEnv({
     BOT_TOKEN: z.string().min(1),
     DEV_BOT_TOKEN: z.string().optional(),
     BOT_USERNAME: z.string().optional(),
+    TELEGRAM_BOT_WEBHOOK_SECRET: z.string().optional(),
 
     // AI
     GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
@@ -85,6 +86,7 @@ export const env = createEnv({
     BOT_TOKEN: process.env.BOT_TOKEN,
     DEV_BOT_TOKEN: process.env.DEV_BOT_TOKEN,
     BOT_USERNAME: process.env.BOT_USERNAME,
+    TELEGRAM_BOT_WEBHOOK_SECRET: process.env.TELEGRAM_BOT_WEBHOOK_SECRET,
     GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     ADMIN_API_KEY: process.env.ADMIN_API_KEY,
