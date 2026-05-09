@@ -2,15 +2,17 @@ import { handlePrice } from "./commands/price";
 import { handleRoute } from "./commands/route";
 import { handleApe } from "./commands/ape";
 import { handleBalance } from "./commands/balance";
+import { handleLink } from "./commands/link";
 import type { CommandResult, ParsedCommand } from "./types";
 
 const HELP: CommandResult = {
   text:
-    "QC Bot — guest mode\n" +
+    "QC Bot\n" +
     "• price <symbol|address>\n" +
     "• route <amount> <FROM> <TO>\n" +
     "• ape <jetton-address>\n" +
-    "• balance <address>",
+    "• balance [address]   (omit address after `link` to use your wallet)\n" +
+    "• link   — connect your QC wallet for personalized commands",
 };
 
 // Lowercase command words (and aliases) the deterministic dispatcher knows.
@@ -20,6 +22,7 @@ export const KNOWN_COMMANDS = new Set([
   "route", "swap",
   "ape", "buy",
   "balance", "bal",
+  "link", "connect",
   "help", "?", "start",
 ]);
 
@@ -36,6 +39,9 @@ export async function dispatch(parsed: ParsedCommand): Promise<CommandResult> {
     case "balance":
     case "bal":
       return handleBalance(parsed);
+    case "link":
+    case "connect":
+      return handleLink(parsed);
     case "help":
     case "?":
     case "start":

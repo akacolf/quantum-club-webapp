@@ -1,12 +1,22 @@
 import { Address } from "@ton/core";
 import { getBalance } from "@/lib/ton-api";
 import { fetchTonPrice } from "@/lib/price-api";
+import { getBotBinding } from "@/lib/bot/get-binding";
 import type { CommandResult, ParsedCommand } from "@/lib/bot/types";
 
 export async function handleBalance(parsed: ParsedCommand): Promise<CommandResult> {
-  const addr = parsed.args[0];
+  let addr = parsed.args[0];
+
+  // No address arg → fall back to the user's bound wallet (set via /link).
+  // This is the personalized path — `balance` with no args means "my balance".
   if (!addr) {
-    return { text: "Usage: @bot balance <address>" };
+    const binding = await getBotBinding(parsed.fromId);
+    if (!binding) {
+      return {
+        text: "Run `link` first to bind your wallet, or pass an address: `balance <address>`.",
+      };
+    }
+    addr = binding.walletAddress;
   }
 
   let parsedAddr: Address;

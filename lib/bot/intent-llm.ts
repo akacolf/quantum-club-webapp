@@ -12,7 +12,7 @@ import type { ParsedCommand } from "./types";
 const INTENT_TIMEOUT_MS = 4000; // keep well under the 10s function budget
 
 const intentSchema = z.object({
-  command: z.enum(["price", "route", "ape", "balance", "help", "none"]),
+  command: z.enum(["price", "route", "ape", "balance", "link", "help", "none"]),
   args: z.array(z.string()).default([]),
 });
 
@@ -21,7 +21,11 @@ const SYSTEM_PROMPT = `You map a user's message to one of these QC bot commands.
 - price <symbol>           — token USD price (e.g. price TON, price USDT)
 - route <amount> <FROM> <TO> — swap quote (e.g. route 10 TON USDT)
 - ape <jetton-address>     — buy a jetton on QC (needs a TON address)
-- balance <ton-address>    — TON balance of a wallet
+- balance [address]        — TON balance. With no address, uses the user's
+                              linked wallet. ("my balance", "what's my balance"
+                              → balance with no args)
+- link                     — bind the user's QC wallet to Telegram. Use for
+                              "connect my wallet", "link wallet", "log me in".
 - help                     — show command list
 - none                     — message is small talk, unclear, or unrelated
 
@@ -29,6 +33,8 @@ Rules:
 - Output strict JSON matching the schema. No prose.
 - If the user mentions tickers like "tether"/"usdt", normalize to "USDT".
 - Bitcoin → "BTC", Ethereum → "ETH". Numbers stay as written.
+- If a personalized phrasing ("my balance", "my wallet", "show mine") refers
+  to a tool that supports it, return that command with no args.
 - If you can't extract required args (e.g. swap with no amount), use command "help".
 - If the user asks something the bot can't do, use command "none".`;
 
