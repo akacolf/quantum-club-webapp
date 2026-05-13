@@ -63,8 +63,8 @@ export default async function IntentResolverPage({ params }: PageProps) {
     if (data.fromSymbol) params.set("from", data.fromSymbol);
     if (data.toSymbol) params.set("to", data.toSymbol);
     if (data.fromAmount) params.set("amount", data.fromAmount);
-    const qs = params.toString();
-    redirect(qs ? `/wallet/swap?${qs}` : "/wallet/swap");
+    params.set("intent", intentId);
+    redirect(`/wallet/swap?${params.toString()}`);
   }
 
   // Unknown intent type — fall back to home.
