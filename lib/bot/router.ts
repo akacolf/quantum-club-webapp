@@ -4,16 +4,23 @@ import { handleApe } from "./commands/ape";
 import { handleBalance } from "./commands/balance";
 import { handleLink } from "./commands/link";
 import { handlePortfolio } from "./commands/portfolio";
+import { handleTransactions } from "./commands/transactions";
+import { handleSwap } from "./commands/swap";
+import { handleWatch, handleUnwatch } from "./commands/watch";
 import type { CommandResult, ParsedCommand } from "./types";
 
 const HELP: CommandResult = {
   text:
     "QC Bot\n" +
     "• price <symbol|address>\n" +
-    "• route <amount> <FROM> <TO>\n" +
+    "• route <amount> <FROM> <TO>   — quote only\n" +
+    "• swap <amount> <FROM> <TO>    — quote + sign in QC\n" +
     "• ape <jetton-address>\n" +
     "• balance [address]   (omit address after `link` to use your wallet)\n" +
     "• portfolio   — all your holdings on TON\n" +
+    "• transactions   — recent activity on your linked wallet\n" +
+    "• watch <symbol> <above|below> <price>   — DM me when it crosses\n" +
+    "• unwatch <symbol>   — remove an alert (or `unwatch all`)\n" +
     "• link   — connect your QC wallet for personalized commands",
 };
 
@@ -25,6 +32,9 @@ export const KNOWN_COMMANDS = new Set([
   "ape", "buy",
   "balance", "bal",
   "portfolio", "holdings", "assets",
+  "transactions", "tx", "history", "activity",
+  "watch", "alert", "alerts",
+  "unwatch",
   "link", "connect",
   "help", "?", "start",
 ]);
@@ -34,8 +44,9 @@ export async function dispatch(parsed: ParsedCommand): Promise<CommandResult> {
     case "price":
       return handlePrice(parsed);
     case "route":
-    case "swap":
       return handleRoute(parsed);
+    case "swap":
+      return handleSwap(parsed);
     case "ape":
     case "buy":
       return handleApe(parsed);
@@ -46,6 +57,17 @@ export async function dispatch(parsed: ParsedCommand): Promise<CommandResult> {
     case "holdings":
     case "assets":
       return handlePortfolio(parsed);
+    case "transactions":
+    case "tx":
+    case "history":
+    case "activity":
+      return handleTransactions(parsed);
+    case "watch":
+    case "alert":
+    case "alerts":
+      return handleWatch(parsed);
+    case "unwatch":
+      return handleUnwatch(parsed);
     case "link":
     case "connect":
       return handleLink(parsed);

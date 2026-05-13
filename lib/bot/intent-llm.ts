@@ -15,9 +15,13 @@ const intentSchema = z.object({
   command: z.enum([
     "price",
     "route",
+    "swap",
     "ape",
     "balance",
     "portfolio",
+    "transactions",
+    "watch",
+    "unwatch",
     "link",
     "help",
     "none",
@@ -28,7 +32,12 @@ const intentSchema = z.object({
 const SYSTEM_PROMPT = `You map a user's message to one of these QC bot commands.
 
 - price <symbol>           — token USD price (e.g. price TON, price USDT)
-- route <amount> <FROM> <TO> — swap quote (e.g. route 10 TON USDT)
+- route <amount> <FROM> <TO> — swap quote only, no sign step. Use when the
+                              user just wants a price/rate ("what would i
+                              get for", "quote me", "how much is X in Y").
+- swap <amount> <FROM> <TO> — quote + hand off to QC to sign. Use whenever
+                              the user wants to actually execute ("swap",
+                              "convert", "trade my X for Y", "i want to").
 - ape <jetton-address>     — buy a jetton on QC (needs a TON address)
 - balance [address]        — TON balance. With no address, uses the user's
                               linked wallet. ("my balance", "what's my balance"
@@ -36,6 +45,17 @@ const SYSTEM_PROMPT = `You map a user's message to one of these QC bot commands.
 - portfolio                — all of the user's TON + jetton holdings with
                               USD values. ("my portfolio", "what do i hold",
                               "show my holdings", "all my tokens", "my bag")
+- transactions             — recent activity on the user's linked wallet.
+                              ("my transactions", "tx history", "recent activity",
+                              "what did i just send", "show my last trades")
+- watch                    — set a price alert. Args: <SYMBOL> above|below <PRICE>.
+                              Symbols: TON, BTC, ETH, SOL, TRX only.
+                              ("alert me when TON hits 7", "notify me if BTC drops
+                              below 40k", "watch ETH 4000"). For "watch list",
+                              return command "watch" with args ["list"].
+- unwatch                  — remove a price alert. Args: <SYMBOL> or "all".
+                              ("stop watching TON", "remove BTC alert", "clear all
+                              alerts" → unwatch all).
 - link                     — bind the user's QC wallet to Telegram. Use for
                               "connect my wallet", "link wallet", "log me in".
 - help                     — show command list

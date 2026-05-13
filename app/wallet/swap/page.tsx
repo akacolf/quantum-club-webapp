@@ -7,7 +7,7 @@ import { flushSync } from "react-dom";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { sendBoc } from "@/lib/tonapi-client";
 import { getSecureMnemonic } from "@/lib/secure-mnemonic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -95,6 +95,21 @@ export default function SwapPage() {
     useTelegramBackButton("/wallet");
     const { telegramId } = useUserContext();
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    // Bot-deeplink prefill (from `/swap` command intent resolver).
+    // Read once on mount; consumed by the asset-defaults effect below.
+    const deepLinkPrefill = useRef<{
+        from?: string;
+        to?: string;
+        amount?: string;
+    } | null>(null);
+    if (deepLinkPrefill.current === null) {
+        const from = searchParams?.get("from") ?? undefined;
+        const to = searchParams?.get("to") ?? undefined;
+        const amt = searchParams?.get("amount") ?? undefined;
+        deepLinkPrefill.current = (from || to || amt) ? { from, to, amount: amt } : {};
+    }
 
     const {
         isOpen: isAuthOpen,
@@ -248,11 +263,26 @@ export default function SwapPage() {
     // Set default assets when data loads
     useEffect(() => {
         if (swapAssets.length > 0 && !fromAsset && !toAsset) {
+            const prefill = deepLinkPrefill.current ?? {};
+            const matchSymbol = (sym: string | undefined) => {
+                if (!sym) return undefined;
+                const upper = sym.toUpperCase();
+                return swapAssets.find(
+                    (a) => a.symbol.toUpperCase() === upper,
+                ) ?? swapAssets.find(
+                    (a) => a.symbol.replace(/[^a-zA-Z0-9]/g, "").toUpperCase() === upper,
+                );
+            };
+            const fromMatch = matchSymbol(prefill.from);
+            const toMatch = matchSymbol(prefill.to);
             const tonAsset = swapAssets.find((a) => a.kind === "Ton");
             const firstJetton = swapAssets.find((a) => a.kind === "Jetton");
             queueMicrotask(() => {
-                if (tonAsset) setFromAsset(tonAsset);
-                if (firstJetton) setToAsset(firstJetton);
+                setFromAsset(fromMatch ?? tonAsset ?? null);
+                setToAsset(toMatch ?? firstJetton ?? null);
+                if (prefill.amount && /^\d+(\.\d+)?$/.test(prefill.amount)) {
+                    setAmount(prefill.amount);
+                }
             });
         }
     }, [swapAssets, fromAsset, toAsset]);

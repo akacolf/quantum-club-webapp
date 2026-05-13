@@ -4,6 +4,7 @@ import {
   fetchEthPrice,
   fetchSolPrice,
   fetchTrxPrice,
+  fetchPercent24h,
 } from "@/lib/price-api";
 import { tonApiGet } from "@/lib/tonapi-client";
 import { loadAssets, findAsset } from "@/lib/bot/stonfi-server";
@@ -63,11 +64,14 @@ async function fetchPriceLine(
 ): Promise<PriceLine | null> {
   const upper = query.toUpperCase();
 
-  // BTC/ETH/SOL/TRX — DeFiLlama, no 24h change wired in yet.
+  // BTC/ETH/SOL/TRX — DeFiLlama price + 24h change in parallel.
   if (NATIVE_NON_TON[upper]) {
-    const price = await NATIVE_NON_TON[upper]().catch(() => 0);
+    const [price, change24h] = await Promise.all([
+      NATIVE_NON_TON[upper]().catch(() => 0),
+      fetchPercent24h(upper).catch(() => undefined),
+    ]);
     if (!price) return null;
-    return { label: upper, priceUsd: price };
+    return { label: upper, priceUsd: price, change24h };
   }
 
   // TON — use TonAPI rates (gets 24h change). Fall back to native if rates fails.

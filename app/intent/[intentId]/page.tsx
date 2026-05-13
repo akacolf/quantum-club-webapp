@@ -27,6 +27,9 @@ export default async function IntentResolverPage({ params }: PageProps) {
   const data = snap.data() as {
     type?: string;
     jettonAddress?: string;
+    fromSymbol?: string;
+    toSymbol?: string;
+    fromAmount?: string;
     status?: string;
     expiresAt?: Timestamp;
   };
@@ -53,6 +56,15 @@ export default async function IntentResolverPage({ params }: PageProps) {
 
   if (data.type === "ape" && data.jettonAddress) {
     redirect(`/ecosystem/trade/${data.jettonAddress}`);
+  }
+
+  if (data.type === "swap") {
+    const params = new URLSearchParams();
+    if (data.fromSymbol) params.set("from", data.fromSymbol);
+    if (data.toSymbol) params.set("to", data.toSymbol);
+    if (data.fromAmount) params.set("amount", data.fromAmount);
+    const qs = params.toString();
+    redirect(qs ? `/wallet/swap?${qs}` : "/wallet/swap");
   }
 
   // Unknown intent type — fall back to home.
