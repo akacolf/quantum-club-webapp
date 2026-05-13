@@ -52,6 +52,7 @@ import { useOmnistonSwap, type QuoteParams } from "./hooks/useOmnistonSwap";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { swapSchema } from "@/lib/validations";
 import { formatTruncatedAmount } from "@/lib/format";
+import { notifyBotSwapCompletion } from "@/app/intent/actions";
 
 // Custom hook for debouncing values
 function useDebounce<T>(value: T, delay: number): T {
@@ -103,13 +104,19 @@ export default function SwapPage() {
         from?: string;
         to?: string;
         amount?: string;
+        intentId?: string;
     } | null>(null);
     if (deepLinkPrefill.current === null) {
         const from = searchParams?.get("from") ?? undefined;
         const to = searchParams?.get("to") ?? undefined;
         const amt = searchParams?.get("amount") ?? undefined;
-        deepLinkPrefill.current = (from || to || amt) ? { from, to, amount: amt } : {};
+        const intentId = searchParams?.get("intent") ?? undefined;
+        deepLinkPrefill.current = (from || to || amt || intentId)
+            ? { from, to, amount: amt, intentId }
+            : {};
     }
+    // Set once on success — prevents double-firing in StrictMode.
+    const intentNotified = useRef(false);
 
     const {
         isOpen: isAuthOpen,
@@ -631,6 +638,25 @@ export default function SwapPage() {
             setLastTxHash(walletAddress || "");
             setStep("success");
             toast.success("Swap transaction sent!");
+
+            // If this swap originated from a bot /swap intent, ping the bot
+            // server-side so it can DM the user "Swap completed ✓".
+            const intentId = deepLinkPrefill.current?.intentId;
+            if (intentId && !intentNotified.current) {
+                intentNotified.current = true;
+                const outAmt = confirmedQuote && toAsset
+                    ? parseFloat(fromUnits(confirmedQuote.askUnits, toAsset.decimals)).toFixed(4)
+                    : undefined;
+                void notifyBotSwapCompletion({
+                    intentId,
+                    fromAmount: amount,
+                    fromSymbol: fromAsset?.symbol,
+                    toAmount: outAmt,
+                    toSymbol: toAsset?.symbol,
+                }).catch((e) => {
+                    console.warn("[swap] bot completion notify failed", e);
+                });
+            }
 
             // Refresh assets after delay
             setTimeout(() => {

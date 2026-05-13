@@ -6,7 +6,12 @@ import { inferIntent } from "@/lib/bot/intent-llm";
 import { preLLMCheck } from "@/lib/bot/skip-llm";
 import { checkCommandLimit, checkLLMLimit } from "@/lib/bot/ratelimit";
 import { replyWith } from "@/lib/bot/telegram-client";
+import { appendTurn } from "@/lib/bot/memory";
 import type { ParsedCommand, TelegramUpdate } from "@/lib/bot/types";
+
+// Commands whose echoes don't help future LLM resolution — skip storing
+// them in conversation memory.
+const NOISY_FOR_MEMORY = new Set(["help", "start", "link", "connect"]);
 
 // Telegram POSTs JSON updates here. We always 200; never make Telegram retry.
 // Hobby tier function timeout is ~10s — read commands stay well under.
@@ -78,10 +83,26 @@ export async function POST(req: NextRequest) {
       chatId: msg.chat.id,
       messageId: msg.message_id,
     });
-    if (inferred) parsed = inferred;
+    if (inferred?.kind === "command") {
+      parsed = inferred.command;
+    } else if (inferred?.kind === "ask") {
+      // LLM wants more info from the user — reply with the clarifier and
+      // record both sides in memory so the next turn has context.
+      await appendTurn(msg.from.id, "user", msg.text);
+      await appendTurn(msg.from.id, "bot", inferred.text);
+      await replyWith(msg.chat.id, msg.message_id, { text: inferred.text });
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
   }
 
-  if (!parsed) return NextResponse.json({ ok: true }, { status: 200 });
+  if (!parsed) {
+    // Nothing actionable — still remember the user turn so trailing context
+    // ("...you know what, swap it") works after small talk.
+    if (msg.from && msg.text) {
+      await appendTurn(msg.from.id, "user", msg.text);
+    }
+    return NextResponse.json({ ok: true }, { status: 200 });
+  }
 
   // Step 5: broader per-user command limit (covers regex + LLM paths)
   const cmdLimit = await checkCommandLimit(parsed.fromId);
@@ -97,6 +118,12 @@ export async function POST(req: NextRequest) {
   try {
     const result = await dispatch(parsed);
     await replyWith(parsed.chatId, parsed.messageId, result);
+    // Record both sides for future turns. Skip noise (help, link) so we don't
+    // crowd the window with boilerplate.
+    if (msg.from && msg.text && !NOISY_FOR_MEMORY.has(parsed.command)) {
+      await appendTurn(parsed.fromId, "user", msg.text);
+      await appendTurn(parsed.fromId, "bot", result.text);
+    }
     console.log(
       `[bot-webhook] ${parsed.command} from=${parsed.fromId} chat=${parsed.chatId} dur=${Date.now() - startedAt}ms`,
     );
