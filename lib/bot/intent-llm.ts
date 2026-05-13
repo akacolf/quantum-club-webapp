@@ -18,6 +18,7 @@ const intentSchema = z.object({
     "ape",
     "balance",
     "portfolio",
+    "transactions",
     "link",
     "help",
     "none",
@@ -36,6 +37,9 @@ const SYSTEM_PROMPT = `You map a user's message to one of these QC bot commands.
 - portfolio                — all of the user's TON + jetton holdings with
                               USD values. ("my portfolio", "what do i hold",
                               "show my holdings", "all my tokens", "my bag")
+- transactions             — recent activity on the user's linked wallet.
+                              ("my transactions", "tx history", "recent activity",
+                              "what did i just send", "show my last trades")
 - link                     — bind the user's QC wallet to Telegram. Use for
                               "connect my wallet", "link wallet", "log me in".
 - help                     — show command list

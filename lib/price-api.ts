@@ -125,6 +125,38 @@ export async function fetchTrxPrice(): Promise<number> {
 }
 
 /**
+ * Fetch 24h percentage change for a DeFiLlama-tracked coin.
+ * Returns undefined when the API doesn't have data (rather than 0, so callers
+ * can distinguish "unchanged" from "unknown").
+ */
+const pctCache: Record<string, { pct: number; timestamp: number }> = {};
+
+export async function fetchPercent24h(symbol: string): Promise<number | undefined> {
+    const coinId = COIN_IDS[symbol.toLowerCase()];
+    if (!coinId) return undefined;
+
+    const key = symbol.toLowerCase();
+    const cached = pctCache[key];
+    const now = Date.now();
+    if (cached && (now - cached.timestamp) < CACHE_TTL_MS) return cached.pct;
+
+    try {
+        const response = await fetch(
+            `https://coins.llama.fi/percentage/${coinId}?period=1d`,
+            { next: { revalidate: 60 } },
+        );
+        if (!response.ok) return undefined;
+        const data = await response.json();
+        const pct = data.coins?.[coinId];
+        if (typeof pct !== "number") return undefined;
+        pctCache[key] = { pct, timestamp: now };
+        return pct;
+    } catch {
+        return undefined;
+    }
+}
+
+/**
  * Fetch all major crypto prices at once (more efficient)
  */
 export async function fetchAllPrices(): Promise<{
