@@ -91,11 +91,11 @@ export async function handlePortfolio(parsed: ParsedCommand): Promise<CommandRes
   return { text: lines.join("\n") };
 }
 
-// "TON         1.25 · $5.50"
+// "TON         1.25   $5.50"
 function formatRow(h: Holding): string {
   const sym = h.symbol.slice(0, 10).padEnd(10);
   const amt = formatAmount(h.amount);
-  const usd = h.usd >= DUST_USD ? ` · $${formatUsd(h.usd)}` : "";
+  const usd = h.usd >= DUST_USD ? `   $${formatUsd(h.usd)}` : "";
   return `${sym} ${amt}${usd}`;
 }
 

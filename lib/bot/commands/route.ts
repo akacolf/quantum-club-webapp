@@ -24,15 +24,15 @@ export async function handleRoute(parsed: ParsedCommand): Promise<CommandResult>
 
   const quote = await quoteSwap(offer, ask, amountRaw);
   if (!quote) {
-    return { text: `Couldn't quote ${fromSym} → ${toSym}. Pool may be illiquid.` };
+    return { text: `Couldn't quote ${fromSym} to ${toSym}. Pool may be illiquid.` };
   }
 
   const impact = (Number(quote.priceImpact) * 100).toFixed(2);
   const fee = (Number(quote.feePercent) * 100).toFixed(2);
   const text =
-    `${quote.offerHuman} ${quote.offerSymbol} → ~${trim(quote.askHuman)} ${quote.askSymbol}\n` +
-    `Rate: 1 ${quote.offerSymbol} ≈ ${trim(quote.rate)} ${quote.askSymbol}\n` +
-    `Impact: ${impact}%  ·  Fee: ${fee}%`;
+    `${quote.offerHuman} ${quote.offerSymbol} for ~${trim(quote.askHuman)} ${quote.askSymbol}\n` +
+    `Rate: 1 ${quote.offerSymbol} = ${trim(quote.rate)} ${quote.askSymbol}\n` +
+    `Impact: ${impact}%   Fee: ${fee}%`;
 
   return {
     text,

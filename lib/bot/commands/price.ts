@@ -130,9 +130,9 @@ function parsePercent(raw: string | undefined): number | undefined {
 function formatLine(p: PriceLine): string {
   const price = `$${formatUsd(p.priceUsd)}`;
   if (p.change24h === undefined) return `${p.label}: ${price}`;
-  const arrow = p.change24h >= 0 ? "↑" : "↓";
+  const sign = p.change24h >= 0 ? "+" : "-";
   const magnitude = Math.abs(p.change24h).toFixed(2);
-  return `${p.label}: ${price}  ${arrow} ${magnitude}% 24h`;
+  return `${p.label}: ${price}  ${sign}${magnitude}% 24h`;
 }
 
 function formatUsd(n: number): string {
