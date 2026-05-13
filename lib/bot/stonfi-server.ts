@@ -2,6 +2,7 @@
 // the minimal call here for the bot webhook route.
 
 import { StonApiClient, AssetTag } from "@ston-fi/api";
+import { cached } from "@/lib/cache";
 
 export interface BotSwapAsset {
   contractAddress: string;
@@ -27,28 +28,29 @@ function client(): StonApiClient {
   return cachedClient;
 }
 
-let assetsCache: { ts: number; data: BotSwapAsset[] } | null = null;
-const ASSETS_TTL_MS = 60 * 1000;
+// Cached cross-region via Upstash (see lib/cache.ts). 5min TTL — the asset
+// universe rarely changes, and stale prices in the per-asset `dexPriceUsd`
+// are acceptable for the `/price <jetton>` use case (we publish them as
+// rough indicators, not trading quotes).
+const ASSETS_TTL_SEC = 5 * 60;
+const ASSETS_CACHE_KEY = "qcbot:stonfi:assets:v1";
 
 export async function loadAssets(): Promise<BotSwapAsset[]> {
-  if (assetsCache && Date.now() - assetsCache.ts < ASSETS_TTL_MS) {
-    return assetsCache.data;
-  }
-  const condition = [
-    AssetTag.LiquidityVeryHigh,
-    AssetTag.LiquidityHigh,
-    AssetTag.LiquidityMedium,
-  ].join(" | ");
-  const assets = await client().queryAssets({ condition });
-  const mapped: BotSwapAsset[] = assets.map((a) => ({
-    contractAddress: a.contractAddress,
-    kind: a.kind === "Ton" ? "Ton" : "Jetton",
-    symbol: a.meta?.symbol ?? "???",
-    decimals: a.meta?.decimals ?? 9,
-    dexPriceUsd: a.dexPriceUsd ?? undefined,
-  }));
-  assetsCache = { ts: Date.now(), data: mapped };
-  return mapped;
+  return cached(ASSETS_CACHE_KEY, ASSETS_TTL_SEC, async () => {
+    const condition = [
+      AssetTag.LiquidityVeryHigh,
+      AssetTag.LiquidityHigh,
+      AssetTag.LiquidityMedium,
+    ].join(" | ");
+    const assets = await client().queryAssets({ condition });
+    return assets.map((a) => ({
+      contractAddress: a.contractAddress,
+      kind: a.kind === "Ton" ? "Ton" : "Jetton",
+      symbol: a.meta?.symbol ?? "???",
+      decimals: a.meta?.decimals ?? 9,
+      dexPriceUsd: a.dexPriceUsd ?? undefined,
+    }));
+  });
 }
 
 // Common ticker aliases. STON.fi uses STON.fi-canonical symbols which don't

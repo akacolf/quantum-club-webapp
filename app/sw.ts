@@ -1,29 +1,47 @@
 /// <reference no-default-lib="true" />
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
-import { defaultCache } from "@serwist/turbopack/worker";
-import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist } from "serwist";
-
-declare global {
-  interface WorkerGlobalScope extends SerwistGlobalConfig {
-    __SW_MANIFEST: (PrecacheEntry | string)[] | undefined;
-  }
-}
 
 declare const self: ServiceWorkerGlobalScope;
 
-const serwist = new Serwist({
-  precacheEntries: self.__SW_MANIFEST,
-  // Activate immediately on install and claim existing clients, so a new
-  // deployment takes effect on the next page load instead of waiting for
-  // all old WebView instances to terminate. Without skipWaiting, users hit
-  // stale JS chunk references from the old SW cache and get stuck on the
-  // loader until the auth-store safety timeout fires.
-  skipWaiting: true,
-  clientsClaim: true,
-  navigationPreload: true,
-  runtimeCaching: defaultCache,
+// Kill-switch service worker.
+//
+// PWA features add no real value in a Telegram Mini App context (users never
+// install as PWA; offline mode is moot because Telegram itself must be online
+// to load the Mini App). The previous Serwist-based SW also produced a
+// "no-response" navigation error on flaky public WiFi that left users with
+// a blank webview they couldn't recover from.
+//
+// This SW exists only to dismantle the previously-installed SW on every
+// returning visitor. On activation it deletes all caches, unregisters itself,
+// and force-reloads controlled clients so subsequent navigations are
+// uncontrolled. A follow-up PR will remove the SW build pipeline entirely
+// once most active users have visited and had this run.
+//
+// No fetch listener is registered: requests are not intercepted, so the
+// browser handles all navigation/asset fetches natively while this SW is
+// briefly active.
+
+self.addEventListener("install", () => {
+  self.skipWaiting();
 });
 
-serwist.addEventListeners();
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map((name) => caches.delete(name)));
+      await self.registration.unregister();
+      const clients = await self.clients.matchAll({ type: "window" });
+      for (const client of clients) {
+        try {
+          await (client as WindowClient).navigate(client.url);
+        } catch {
+          // Some platforms restrict client.navigate; the unregister + cache
+          // clear is what matters. Next user-initiated navigation will be
+          // uncontrolled regardless.
+        }
+      }
+    })(),
+  );
+});
