@@ -12,16 +12,16 @@ import type { CommandResult, ParsedCommand } from "./types";
 const HELP: CommandResult = {
   text:
     "QC Bot\n" +
-    "• price <symbol|address>\n" +
-    "• route <amount> <FROM> <TO>   — quote only\n" +
-    "• swap <amount> <FROM> <TO>    — quote + sign in QC\n" +
-    "• ape <jetton-address>\n" +
-    "• balance [address]   (omit address after `link` to use your wallet)\n" +
-    "• portfolio   — all your holdings on TON\n" +
-    "• transactions   — recent activity on your linked wallet\n" +
-    "• watch <symbol> <above|below> <price>   — DM me when it crosses\n" +
-    "• unwatch <symbol>   — remove an alert (or `unwatch all`)\n" +
-    "• link   — connect your QC wallet for personalized commands",
+    "- price <symbol|address>\n" +
+    "- route <amount> <FROM> <TO>   quote only\n" +
+    "- swap <amount> <FROM> <TO>    quote + sign in QC\n" +
+    "- ape <jetton-address>\n" +
+    "- balance [address]   (omit address after `link` to use your wallet)\n" +
+    "- portfolio   all your holdings on TON\n" +
+    "- transactions   recent activity on your linked wallet\n" +
+    "- watch <symbol> <above|below> <price>   DM me when it crosses\n" +
+    "- unwatch <symbol>   remove an alert (or `unwatch all`)\n" +
+    "- link   connect your QC wallet for personalized commands",
 };
 
 // Lowercase command words (and aliases) the deterministic dispatcher knows.

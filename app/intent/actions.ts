@@ -56,9 +56,9 @@ export const notifyBotSwapCompletion = authActionClient
     // could be a group — DMs are preferred for completion).
     const dmChatId = Number(telegramId);
     if (Number.isFinite(dmChatId)) {
-      const lines: string[] = ["Swap completed ✓"];
+      const lines: string[] = ["Swap completed."];
       if (fromAmount && fromSymbol && toAmount && toSymbol) {
-        lines.push(`${fromAmount} ${fromSymbol} → ${toAmount} ${toSymbol}`);
+        lines.push(`${fromAmount} ${fromSymbol} for ${toAmount} ${toSymbol}`);
       }
       await sendMessage({ chatId: dmChatId, text: lines.join("\n") });
     }

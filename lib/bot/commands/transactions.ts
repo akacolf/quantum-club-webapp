@@ -94,10 +94,9 @@ function formatEvent(
     const t = action.TonTransfer;
     const amount = Number(t.amount ?? 0) / 1e9;
     const sent = sameAddr(t.sender?.address, userAddr);
-    const arrow = sent ? "↗" : "↙";
     const verb = sent ? "Sent" : "Received";
     const other = shortAddr(sent ? t.recipient?.address : t.sender?.address);
-    return `${arrow} ${verb} ${formatAmount(amount)} TON ${sent ? "to" : "from"} ${other} · ${ago}`;
+    return `${verb} ${formatAmount(amount)} TON ${sent ? "to" : "from"} ${other} - ${ago}`;
   }
 
   if (action.JettonTransfer) {
@@ -106,10 +105,9 @@ function formatEvent(
     const amount = Number(BigInt(t.amount ?? "0")) / Math.pow(10, decimals);
     const sym = t.jetton?.symbol ?? "JET";
     const sent = sameAddr(t.sender?.address, userAddr);
-    const arrow = sent ? "↗" : "↙";
     const verb = sent ? "Sent" : "Received";
     const other = shortAddr(sent ? t.recipient?.address : t.sender?.address);
-    return `${arrow} ${verb} ${formatAmount(amount)} ${sym} ${sent ? "to" : "from"} ${other} · ${ago}`;
+    return `${verb} ${formatAmount(amount)} ${sym} ${sent ? "to" : "from"} ${other} - ${ago}`;
   }
 
   if (action.JettonSwap) {
@@ -122,14 +120,14 @@ function formatEvent(
     const toAmt = s.ton_out
       ? Number(s.ton_out) / 1e9
       : Number(BigInt(s.amount_out ?? "0")) / Math.pow(10, s.jetton_master_out?.decimals ?? 9);
-    return `⇄ Swap ${formatAmount(fromAmt)} ${fromSym} → ${formatAmount(toAmt)} ${toSym} · ${ago}`;
+    return `Swap ${formatAmount(fromAmt)} ${fromSym} for ${formatAmount(toAmt)} ${toSym} - ${ago}`;
   }
 
   if (action.NftItemTransfer) {
     const t = action.NftItemTransfer;
     const sent = sameAddr(t.sender?.address, userAddr);
     const other = shortAddr(sent ? t.recipient?.address : t.sender?.address);
-    return `${sent ? "↗ Sent" : "↙ Received"} NFT ${sent ? "to" : "from"} ${other} · ${ago}`;
+    return `${sent ? "Sent" : "Received"} NFT ${sent ? "to" : "from"} ${other} - ${ago}`;
   }
 
   return null;

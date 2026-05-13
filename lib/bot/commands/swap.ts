@@ -45,7 +45,7 @@ export async function handleSwap(parsed: ParsedCommand): Promise<CommandResult> 
 
   const quote = await quoteSwap(offer, ask, amountRaw);
   if (!quote) {
-    return { text: `Couldn't quote ${fromSym} → ${toSym}. Pool may be illiquid.` };
+    return { text: `Couldn't quote ${fromSym} to ${toSym}. Pool may be illiquid.` };
   }
 
   const intentId = randomUUID();
@@ -68,9 +68,9 @@ export async function handleSwap(parsed: ParsedCommand): Promise<CommandResult> 
   const impact = (Number(quote.priceImpact) * 100).toFixed(2);
   const fee = (Number(quote.feePercent) * 100).toFixed(2);
   const text =
-    `Swap ${amountRaw} ${offer.symbol} → ~${trim(quote.askHuman)} ${ask.symbol}\n` +
-    `Rate: 1 ${offer.symbol} ≈ ${trim(quote.rate)} ${ask.symbol}\n` +
-    `Impact: ${impact}%  ·  Fee: ${fee}%\n\n` +
+    `Swap ${amountRaw} ${offer.symbol} for ~${trim(quote.askHuman)} ${ask.symbol}\n` +
+    `Rate: 1 ${offer.symbol} = ${trim(quote.rate)} ${ask.symbol}\n` +
+    `Impact: ${impact}%   Fee: ${fee}%\n\n` +
     "Tap below to confirm and sign in QC. Link expires in 15 minutes.";
 
   return {

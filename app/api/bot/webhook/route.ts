@@ -2,7 +2,7 @@ import { NextRequest, NextResponse, connection } from "next/server";
 import { env } from "@/env";
 import { parseUpdate } from "@/lib/bot/parse";
 import { dispatch, KNOWN_COMMANDS } from "@/lib/bot/router";
-import { inferIntent } from "@/lib/bot/intent-llm";
+import { runAgent } from "@/lib/bot/agent";
 import { preLLMCheck } from "@/lib/bot/skip-llm";
 import { checkCommandLimit, checkLLMLimit } from "@/lib/bot/ratelimit";
 import { replyWith } from "@/lib/bot/telegram-client";
@@ -78,26 +78,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    const inferred = await inferIntent(msg.text, {
+    // Agent path. The agent itself does its own dispatch via tools and
+    // returns a final composed reply (with optional inline buttons).
+    const agentReply = await runAgent(msg.text, {
       fromId: msg.from.id,
       chatId: msg.chat.id,
       messageId: msg.message_id,
     });
-    if (inferred?.kind === "command") {
-      parsed = inferred.command;
-    } else if (inferred?.kind === "ask") {
-      // LLM wants more info from the user — reply with the clarifier and
-      // record both sides in memory so the next turn has context.
+
+    if (agentReply) {
+      await replyWith(msg.chat.id, msg.message_id, agentReply);
       await appendTurn(msg.from.id, "user", msg.text);
-      await appendTurn(msg.from.id, "bot", inferred.text);
-      await replyWith(msg.chat.id, msg.message_id, { text: inferred.text });
+      await appendTurn(msg.from.id, "bot", agentReply.text);
       return NextResponse.json({ ok: true }, { status: 200 });
     }
+
+    // Agent declined to act. Remember the user turn for future context but
+    // don't reply — avoids spamming groups with bot noise.
+    await appendTurn(msg.from.id, "user", msg.text);
+    return NextResponse.json({ ok: true }, { status: 200 });
   }
 
   if (!parsed) {
-    // Nothing actionable — still remember the user turn so trailing context
-    // ("...you know what, swap it") works after small talk.
     if (msg.from && msg.text) {
       await appendTurn(msg.from.id, "user", msg.text);
     }

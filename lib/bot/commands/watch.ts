@@ -169,7 +169,7 @@ async function listAlerts(telegramId: string): Promise<CommandResult> {
   const lines = ["Active alerts"];
   for (const d of snap.docs) {
     const a = d.data() as { symbol: string; direction: Direction; targetPrice: number };
-    lines.push(`• ${a.symbol} ${a.direction} $${formatPrice(a.targetPrice)}`);
+    lines.push(`- ${a.symbol} ${a.direction} $${formatPrice(a.targetPrice)}`);
   }
   return { text: lines.join("\n") };
 }
