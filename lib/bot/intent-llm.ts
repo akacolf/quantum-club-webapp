@@ -15,6 +15,7 @@ const intentSchema = z.object({
   command: z.enum([
     "price",
     "route",
+    "swap",
     "ape",
     "balance",
     "portfolio",
@@ -29,7 +30,12 @@ const intentSchema = z.object({
 const SYSTEM_PROMPT = `You map a user's message to one of these QC bot commands.
 
 - price <symbol>           — token USD price (e.g. price TON, price USDT)
-- route <amount> <FROM> <TO> — swap quote (e.g. route 10 TON USDT)
+- route <amount> <FROM> <TO> — swap quote only, no sign step. Use when the
+                              user just wants a price/rate ("what would i
+                              get for", "quote me", "how much is X in Y").
+- swap <amount> <FROM> <TO> — quote + hand off to QC to sign. Use whenever
+                              the user wants to actually execute ("swap",
+                              "convert", "trade my X for Y", "i want to").
 - ape <jetton-address>     — buy a jetton on QC (needs a TON address)
 - balance [address]        — TON balance. With no address, uses the user's
                               linked wallet. ("my balance", "what's my balance"

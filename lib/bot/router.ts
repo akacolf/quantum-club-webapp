@@ -5,13 +5,15 @@ import { handleBalance } from "./commands/balance";
 import { handleLink } from "./commands/link";
 import { handlePortfolio } from "./commands/portfolio";
 import { handleTransactions } from "./commands/transactions";
+import { handleSwap } from "./commands/swap";
 import type { CommandResult, ParsedCommand } from "./types";
 
 const HELP: CommandResult = {
   text:
     "QC Bot\n" +
     "• price <symbol|address>\n" +
-    "• route <amount> <FROM> <TO>\n" +
+    "• route <amount> <FROM> <TO>   — quote only\n" +
+    "• swap <amount> <FROM> <TO>    — quote + sign in QC\n" +
     "• ape <jetton-address>\n" +
     "• balance [address]   (omit address after `link` to use your wallet)\n" +
     "• portfolio   — all your holdings on TON\n" +
@@ -37,8 +39,9 @@ export async function dispatch(parsed: ParsedCommand): Promise<CommandResult> {
     case "price":
       return handlePrice(parsed);
     case "route":
-    case "swap":
       return handleRoute(parsed);
+    case "swap":
+      return handleSwap(parsed);
     case "ape":
     case "buy":
       return handleApe(parsed);
