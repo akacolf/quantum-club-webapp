@@ -20,6 +20,8 @@ const intentSchema = z.object({
     "balance",
     "portfolio",
     "transactions",
+    "watch",
+    "unwatch",
     "link",
     "help",
     "none",
@@ -46,6 +48,14 @@ const SYSTEM_PROMPT = `You map a user's message to one of these QC bot commands.
 - transactions             — recent activity on the user's linked wallet.
                               ("my transactions", "tx history", "recent activity",
                               "what did i just send", "show my last trades")
+- watch                    — set a price alert. Args: <SYMBOL> above|below <PRICE>.
+                              Symbols: TON, BTC, ETH, SOL, TRX only.
+                              ("alert me when TON hits 7", "notify me if BTC drops
+                              below 40k", "watch ETH 4000"). For "watch list",
+                              return command "watch" with args ["list"].
+- unwatch                  — remove a price alert. Args: <SYMBOL> or "all".
+                              ("stop watching TON", "remove BTC alert", "clear all
+                              alerts" → unwatch all).
 - link                     — bind the user's QC wallet to Telegram. Use for
                               "connect my wallet", "link wallet", "log me in".
 - help                     — show command list

@@ -6,6 +6,7 @@ import { handleLink } from "./commands/link";
 import { handlePortfolio } from "./commands/portfolio";
 import { handleTransactions } from "./commands/transactions";
 import { handleSwap } from "./commands/swap";
+import { handleWatch, handleUnwatch } from "./commands/watch";
 import type { CommandResult, ParsedCommand } from "./types";
 
 const HELP: CommandResult = {
@@ -18,6 +19,8 @@ const HELP: CommandResult = {
     "• balance [address]   (omit address after `link` to use your wallet)\n" +
     "• portfolio   — all your holdings on TON\n" +
     "• transactions   — recent activity on your linked wallet\n" +
+    "• watch <symbol> <above|below> <price>   — DM me when it crosses\n" +
+    "• unwatch <symbol>   — remove an alert (or `unwatch all`)\n" +
     "• link   — connect your QC wallet for personalized commands",
 };
 
@@ -30,6 +33,8 @@ export const KNOWN_COMMANDS = new Set([
   "balance", "bal",
   "portfolio", "holdings", "assets",
   "transactions", "tx", "history", "activity",
+  "watch", "alert", "alerts",
+  "unwatch",
   "link", "connect",
   "help", "?", "start",
 ]);
@@ -57,6 +62,12 @@ export async function dispatch(parsed: ParsedCommand): Promise<CommandResult> {
     case "history":
     case "activity":
       return handleTransactions(parsed);
+    case "watch":
+    case "alert":
+    case "alerts":
+      return handleWatch(parsed);
+    case "unwatch":
+      return handleUnwatch(parsed);
     case "link":
     case "connect":
       return handleLink(parsed);
