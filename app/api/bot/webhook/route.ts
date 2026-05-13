@@ -3,15 +3,21 @@ import { env } from "@/env";
 import { parseUpdate } from "@/lib/bot/parse";
 import { dispatch, KNOWN_COMMANDS } from "@/lib/bot/router";
 import { inferIntent } from "@/lib/bot/intent-llm";
+import { preLLMCheck } from "@/lib/bot/skip-llm";
+import { checkCommandLimit, checkLLMLimit } from "@/lib/bot/ratelimit";
 import { replyWith } from "@/lib/bot/telegram-client";
-import { checkRateLimit } from "@/lib/rate-limit";
 import type { ParsedCommand, TelegramUpdate } from "@/lib/bot/types";
 
 // Telegram POSTs JSON updates here. We always 200; never make Telegram retry.
 // Hobby tier function timeout is ~10s — read commands stay well under.
-
-const RATE_LIMIT_WINDOW_MS = 60_000; // 1 min
-const RATE_LIMIT_MAX = 20;           // 20 commands / user / min
+//
+// Pipeline:
+//   1. Auth + body parse
+//   2. Regex parse → known command? jump to step 5
+//   3. Skip heuristics (greetings, emoji, acks) → bail without LLM
+//   4. LLM rate limit → LLM intent inference
+//   5. Per-user command rate limit
+//   6. Dispatch + reply
 
 export async function POST(req: NextRequest) {
   await connection();
@@ -37,41 +43,56 @@ export async function POST(req: NextRequest) {
   if (!msg) return NextResponse.json({ ok: true }, { status: 200 });
   if (!msg.from || !msg.text) return NextResponse.json({ ok: true }, { status: 200 });
 
-  // Two-tier parsing:
-  //   1. Deterministic regex parser (fast, free) for known commands
-  //   2. LLM intent fallback for natural-language phrasings ("swap 10 ton for usdt")
+  // Step 2: deterministic regex parse
   let parsed: ParsedCommand | null = parseUpdate(msg);
 
+  // Step 3 + 4: skip heuristics → LLM fallback
   if (!parsed || !KNOWN_COMMANDS.has(parsed.command)) {
     // Only attempt LLM inference when the message is addressed to the bot
-    // (private chat, OR group with @mention parsed earlier — `parsed` would
-    // exist in the latter case). Group messages without @mention return null
-    // from parseUpdate and never reach the LLM, by design.
-    if (msg.chat.type === "private" || parsed) {
-      const inferred = await inferIntent(msg.text, {
-        fromId: msg.from.id,
-        chatId: msg.chat.id,
-        messageId: msg.message_id,
-      });
-      if (inferred) parsed = inferred;
+    // (private chat, OR group with @mention parsed earlier). Group messages
+    // without @mention return null from parseUpdate by design.
+    const addressed = msg.chat.type === "private" || parsed != null;
+    if (!addressed) return NextResponse.json({ ok: true }, { status: 200 });
+
+    const skip = preLLMCheck(msg.text);
+    if (skip.skip) {
+      if (skip.reply) {
+        await replyWith(msg.chat.id, msg.message_id, { text: skip.reply });
+      }
+      return NextResponse.json({ ok: true }, { status: 200 });
     }
+
+    // Tight LLM-specific limit BEFORE the model call to protect Fluid CPU.
+    const llmLimit = await checkLLMLimit(msg.from.id);
+    if (!llmLimit.allowed) {
+      const text =
+        llmLimit.reason === "global-llm"
+          ? "The bot is busy right now. Try again in a few minutes, or use exact commands like `price TON`."
+          : "You've hit the AI command limit for this hour. Use exact commands like `price TON` or `route 10 TON USDT` to keep going.";
+      await replyWith(msg.chat.id, msg.message_id, { text });
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
+    const inferred = await inferIntent(msg.text, {
+      fromId: msg.from.id,
+      chatId: msg.chat.id,
+      messageId: msg.message_id,
+    });
+    if (inferred) parsed = inferred;
   }
 
   if (!parsed) return NextResponse.json({ ok: true }, { status: 200 });
 
-  // Per-user rate limit
-  const rateLimited = await checkRateLimit(
-    `bot:${parsed.fromId}`,
-    RATE_LIMIT_WINDOW_MS,
-    RATE_LIMIT_MAX,
-  );
-  if (rateLimited) {
+  // Step 5: broader per-user command limit (covers regex + LLM paths)
+  const cmdLimit = await checkCommandLimit(parsed.fromId);
+  if (!cmdLimit.allowed) {
     await replyWith(parsed.chatId, parsed.messageId, {
       text: "Slow down — try again in a minute.",
     });
     return NextResponse.json({ ok: true }, { status: 200 });
   }
 
+  // Step 6: dispatch + reply
   const startedAt = Date.now();
   try {
     const result = await dispatch(parsed);

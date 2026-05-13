@@ -56,6 +56,8 @@
     "@ton/crypto": "^3.3.0",
     "@ton/ton": "^16.2.4",
     "@ton/walletkit": "^0.0.11",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "@use-gesture/react": "^10.3.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",

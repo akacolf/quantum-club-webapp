@@ -49,6 +49,11 @@ export const env = createEnv({
     // Analytics
     TGA_AUTH_TOKEN: z.string().optional(),
 
+    // Upstash Redis (rate limiting). Optional so local dev doesn't break;
+    // when missing, rate limiters fail open and log a warning.
+    UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+
     // Build tools
     ANALYZE: z.string().optional(),
   },
@@ -101,6 +106,8 @@ export const env = createEnv({
     CLOUDFLARE_TURN_API_TOKEN: process.env.CLOUDFLARE_TURN_API_TOKEN,
     TONAPI_KEY: process.env.TONAPI_KEY,
     TGA_AUTH_TOKEN: process.env.TGA_AUTH_TOKEN,
+    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     ANALYZE: process.env.ANALYZE,
     // Client
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
