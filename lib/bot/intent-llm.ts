@@ -12,7 +12,16 @@ import type { ParsedCommand } from "./types";
 const INTENT_TIMEOUT_MS = 4000; // keep well under the 10s function budget
 
 const intentSchema = z.object({
-  command: z.enum(["price", "route", "ape", "balance", "link", "help", "none"]),
+  command: z.enum([
+    "price",
+    "route",
+    "ape",
+    "balance",
+    "portfolio",
+    "link",
+    "help",
+    "none",
+  ]),
   args: z.array(z.string()).default([]),
 });
 
@@ -24,6 +33,9 @@ const SYSTEM_PROMPT = `You map a user's message to one of these QC bot commands.
 - balance [address]        — TON balance. With no address, uses the user's
                               linked wallet. ("my balance", "what's my balance"
                               → balance with no args)
+- portfolio                — all of the user's TON + jetton holdings with
+                              USD values. ("my portfolio", "what do i hold",
+                              "show my holdings", "all my tokens", "my bag")
 - link                     — bind the user's QC wallet to Telegram. Use for
                               "connect my wallet", "link wallet", "log me in".
 - help                     — show command list
@@ -35,6 +47,8 @@ Rules:
 - Bitcoin → "BTC", Ethereum → "ETH". Numbers stay as written.
 - If a personalized phrasing ("my balance", "my wallet", "show mine") refers
   to a tool that supports it, return that command with no args.
+- "balance" = TON only. "portfolio" = TON + all jettons. Prefer portfolio when
+  the user asks about multiple tokens, holdings, or "everything".
 - If you can't extract required args (e.g. swap with no amount), use command "help".
 - If the user asks something the bot can't do, use command "none".`;
 

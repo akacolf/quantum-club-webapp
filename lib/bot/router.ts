@@ -3,6 +3,7 @@ import { handleRoute } from "./commands/route";
 import { handleApe } from "./commands/ape";
 import { handleBalance } from "./commands/balance";
 import { handleLink } from "./commands/link";
+import { handlePortfolio } from "./commands/portfolio";
 import type { CommandResult, ParsedCommand } from "./types";
 
 const HELP: CommandResult = {
@@ -12,6 +13,7 @@ const HELP: CommandResult = {
     "• route <amount> <FROM> <TO>\n" +
     "• ape <jetton-address>\n" +
     "• balance [address]   (omit address after `link` to use your wallet)\n" +
+    "• portfolio   — all your holdings on TON\n" +
     "• link   — connect your QC wallet for personalized commands",
 };
 
@@ -22,6 +24,7 @@ export const KNOWN_COMMANDS = new Set([
   "route", "swap",
   "ape", "buy",
   "balance", "bal",
+  "portfolio", "holdings", "assets",
   "link", "connect",
   "help", "?", "start",
 ]);
@@ -39,6 +42,10 @@ export async function dispatch(parsed: ParsedCommand): Promise<CommandResult> {
     case "balance":
     case "bal":
       return handleBalance(parsed);
+    case "portfolio":
+    case "holdings":
+    case "assets":
+      return handlePortfolio(parsed);
     case "link":
     case "connect":
       return handleLink(parsed);
