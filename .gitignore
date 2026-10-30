@@ -32,13 +32,13 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # Turbo
 .turbo
@@ -62,7 +62,7 @@ web-build/
 .claude/
 
 # GitHub Copilot Instructions
-.github/
+.github/copilot-instructions.md
 
 # Serwist PWA (generated service worker)
 public/sw*
