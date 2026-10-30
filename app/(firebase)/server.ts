@@ -10,9 +10,13 @@ const privateKey = env.FIREBASE_PRIVATE_KEY
   ? env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
   : undefined;
 
+const certUrl = env.FIREBASE_CLIENT_EMAIL
+  ? `https://www.googleapis.com/robot/v1/metadata/x509/${encodeURIComponent(env.FIREBASE_CLIENT_EMAIL)}`
+  : undefined;
+
 const serviceAccount = {
   type: "service_account",
-  project_id: "nekoq-875e2",
+  project_id: env.FIREBASE_PROJECT_ID,
   private_key_id: env.FIREBASE_PRIVATE_KEY_ID,
   private_key: privateKey,
   client_email: env.FIREBASE_CLIENT_EMAIL,
@@ -20,29 +24,26 @@ const serviceAccount = {
   auth_uri: "https://accounts.google.com/o/oauth2/auth",
   token_uri: "https://oauth2.googleapis.com/token",
   auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-  client_x509_cert_url: "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-k5n4g%40nekoq-875e2.iam.gserviceaccount.com",
+  client_x509_cert_url: certUrl,
   universe_domain: "googleapis.com"
 };
 
 // Initialize function to ensure proper setup
 
-let firestore: Firestore
-let auth:Auth;
+let firestore: Firestore;
+let auth: Auth;
 const currentApps = getApps();
 
-if(!currentApps.length){
+if (!currentApps.length) {
     const app = admin.initializeApp({
-        credential:admin.credential.cert(serviceAccount as ServiceAccount)
+        credential: admin.credential.cert(serviceAccount as ServiceAccount)
     });
     firestore = getFirestore(app); 
     auth = getAuth(app);
-}else{
+} else {
    const app = currentApps[0];
    firestore = getFirestore(app);
    auth = getAuth(app);
 }
 
-export {firestore,auth};
-
-
-
+export { firestore, auth };

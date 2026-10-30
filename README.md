@@ -8,6 +8,7 @@
 [![TON](https://img.shields.io/badge/TON-Blockchain-0098EA?style=for-the-badge&logo=ton)](https://ton.org/)
 [![Telegram](https://img.shields.io/badge/Telegram-Mini%20App-26A5E4?style=for-the-badge&logo=telegram)](https://telegram.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg?style=for-the-badge)](LICENSE)
 
 </div>
 
@@ -192,51 +193,23 @@ quantum-club/
 2. **Install dependencies**
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Configure environment variables**
 
-   Create a `.env` file with the following variables:
+   Copy `.env.example` to `.env.local` and fill in your values:
 
-   ```env
-   # Firebase Configuration
-   NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-
-   # Firebase Admin (Server-side)
-   FIREBASE_ADMIN_PRIVATE_KEY=your_private_key
-   FIREBASE_ADMIN_CLIENT_EMAIL=your_client_email
-
-   # TON API
-   TONAPI_KEY=your_tonapi_key
-   TONCENTER_API_KEY=your_toncenter_key
-
-   # Platform Configuration
-   PLATFORM_WALLET_MNEMONIC=your_platform_wallet_mnemonic
-   NEXT_PUBLIC_PLATFORM_WALLET_ADDRESS=your_platform_address
-
-   # AWS S3 (for image uploads)
-   AWS_ACCESS_KEY_ID=your_access_key
-   AWS_SECRET_ACCESS_KEY=your_secret_key
-   AWS_REGION=your_region
-   AWS_S3_BUCKET_NAME=your_bucket_name
-
-   # Telegram Bot
-   TELEGRAM_BOT_TOKEN=your_bot_token
-
-   # AI
-   GOOGLE_AI_API_KEY=your_gemini_api_key
+   ```bash
+   cp .env.example .env.local
    ```
+
+   Refer to `.env.example` for detailed descriptions of all required Firebase, TON, Telegram Bot, and encryption parameters.
 
 4. **Run the development server**
 
    ```bash
-   npm run dev
+   pnpm dev
    ```
 
 5. **Open in browser**
@@ -350,7 +323,9 @@ firebase deploy --only firestore:rules
 
 ## License
 
-This project is proprietary software. All rights reserved.
+This project is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE).
+
+Under this license, you are free to inspect, run, modify, and contribute to the software. Any modified versions or derivative services offered over a network must also be published as open source under the same AGPL-3.0 terms.
 
 ## Links
 

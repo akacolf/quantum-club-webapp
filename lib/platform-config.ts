@@ -17,13 +17,13 @@ export function getAdminApiKey(): string {
 
 // Fee configuration (in TON)
 export const FEE_CONFIG = {
-    tokenCreation: 0,           // FREE token creation (no platform fee)
-    tokenDeployment: 0.05,      // Gas for deployment contract
-    serviceFeePercent: 1,       // 1% service fee (internal, platform revenue)
-    referralFeePercent: 0.1,    // 0.1% to referrer of the trader
-    totalTradingFeePercent: 1.1, // Total 1.1% per trade
-    displayPlatformFeePercent: 0, // Shown in UI as "Platform Fee: 0%"
-    graduationFeePercent: 2,     // 2% on graduation to DEX
+    tokenCreation: 0,           // FREE token creation (no platform creation fee)
+    tokenDeployment: 0.05,      // Network gas estimation for contract deployment
+    serviceFeePercent: 1,       // 1% platform service fee
+    referralFeePercent: 0.1,    // 0.1% allocated to the trader's referrer
+    totalTradingFeePercent: 1.1, // Total 1.1% per trade (1% service + 0.1% referral)
+    displayPlatformFeePercent: 1.1, // Displayed in UI fee breakdowns
+    graduationFeePercent: 2,     // 2% fee on graduation to STON.fi DEX
 };
 
 // DEX graduation settings (STON.fi)
@@ -33,4 +33,3 @@ export const DEX_CONFIG = {
   minLiquidity: "100000000000", // 100 TON minimum for pool creation
   lpBurnPercent: 100, // 100% of LP tokens burned (locked forever)
 };
-
