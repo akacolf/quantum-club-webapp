@@ -22,7 +22,7 @@ export const FEE_CONFIG = {
     serviceFeePercent: 1,       // 1% service fee (internal, platform revenue)
     referralFeePercent: 0.1,    // 0.1% to referrer of the trader
     totalTradingFeePercent: 1.1, // Total 1.1% per trade
-    displayPlatformFeePercent: 0, // Shown in UI as "Platform Fee: 0%"
+    displayPlatformFeePercent: 1.1, // Displayed in UI fee breakdowns
     graduationFeePercent: 2,     // 2% on graduation to DEX
 };
 

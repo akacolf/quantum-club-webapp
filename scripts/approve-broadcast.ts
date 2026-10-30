@@ -105,7 +105,7 @@ function initFirebase() {
 
   admin.initializeApp({
     credential: admin.credential.cert({
-      projectId: "nekoq-875e2",
+      projectId: process.env.FIREBASE_PROJECT_ID,
       privateKey,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     }),
