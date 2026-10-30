@@ -6,12 +6,12 @@ import { getStorage, FirebaseStorage } from "firebase/storage";
 import { env } from "@/env";
 
 const firebaseConfig = {
-  apiKey: env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: env.NEXT_PUBLIC_AUTH_DOMAIN,
-  projectId: env.NEXT_PUBLIC_PROJECT_ID,
-  storageBucket: env.NEXT_PUBLIC_STORAGE_BUCKET,
-  messagingSenderId: env.NEXT_PUBLIC_SENDER_ID,
-  appId: env.NEXT_PUBLIC_APP_ID,
+  apiKey: env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDummyKeyForBuildEnv1234567890",
+  authDomain: env.NEXT_PUBLIC_AUTH_DOMAIN || "dummy.firebaseapp.com",
+  projectId: env.NEXT_PUBLIC_PROJECT_ID || "dummy-project",
+  storageBucket: env.NEXT_PUBLIC_STORAGE_BUCKET || "dummy.appspot.com",
+  messagingSenderId: env.NEXT_PUBLIC_SENDER_ID || "000000000000",
+  appId: env.NEXT_PUBLIC_APP_ID || "1:000000000000:web:dummy",
   measurementId: env.NEXT_PUBLIC_MEASUREMENT_ID
 };
 
