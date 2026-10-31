@@ -10,7 +10,7 @@ import GlobalNavigation from "./(navigation)/GlobalNavigation";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./(contexts)/auth";
 import dynamic from "next/dynamic";
-import SerwistClientProvider from "./(components)/SerwistClientProvider";
+
 
 const CallOverlay = dynamic(() => import("./(components)/CallOverlay"));
 const IncomingCallOverlay = dynamic(() => import("./(components)/IncomingCallOverlay"));
@@ -61,7 +61,6 @@ export default function RootLayout({
       <body className={`${onest.variable} antialiased`}>
         <Script src="https://telegram.org/js/telegram-web-app.js?57" strategy="afterInteractive"></Script>
         <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload"></Script>
-        <SerwistClientProvider>
         <AuthProvider>
         <ClientProviders>
           <div className="flex justify-center min-h-screen bg-background">
@@ -80,7 +79,6 @@ export default function RootLayout({
           <Toaster />
         </ClientProviders>
         </AuthProvider>
-        </SerwistClientProvider>
       </body>
     </html>
   );
