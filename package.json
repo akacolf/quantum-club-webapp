@@ -18,7 +18,7 @@
     "@ai-sdk/google": "^3.0.140",
     "@ai-sdk/react": "^3.0.322",
     "@bitcoinerlab/secp256k1": "^2.0.0",
-    "@evaafi/sdk": "^0.9.7",
+    "@evaafi/sdk": "^1.0.3",
     "@gsap/react": "^2.1.2",
     "@iconify/react": "^6.0.3",
     "@noble/curves": "^1.9.7",

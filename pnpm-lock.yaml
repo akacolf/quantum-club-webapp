@@ -24,8 +24,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       '@evaafi/sdk':
-        specifier: ^0.9.7
-        version: 0.9.7(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)(@tonconnect/sdk@4.1.0)(axios@1.21.0)(crypto-js@4.2.0)
+        specifier: ^1.0.3
+        version: 1.0.3(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)(@tonconnect/sdk@4.1.0)(axios@1.21.0)(crypto-js@4.2.0)
       '@gsap/react':
         specifier: ^2.1.2
         version: 2.1.2(gsap@3.15.0)(react@19.3.1)
@@ -779,8 +779,8 @@ packages:
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@evaafi/sdk@0.9.7':
-    resolution: {integrity: sha512-mlk/Xi3JCSrvYov+N8V4WqvTFEKIg8PYc4DkyGR3NKSVaMP6+E5hZWEvKw2xrSnesZvFwJ6R/tO5GTdWl9Yq1g==}
+  '@evaafi/sdk@1.0.3':
+    resolution: {integrity: sha512-wof6AP70qHTGp46p2d/LumE5SODVY954nlMInbONoXfszaL5FfaCKznlqhVWC/1N3irLUNu1bwFdcmNt8c8BQw==}
     peerDependencies:
       '@ton/core': '>=0.56.0'
       '@tonconnect/sdk': '>=3.0.0'
@@ -2761,7 +2761,6 @@ packages:
   '@tact-lang/compiler@1.6.13':
     resolution: {integrity: sha512-lrgT/kCgC+nuppB4zPSDCAcLQ6EauTJ3NEBX4prEBBRmJ8aexYAfFUfVayskZw96JrDjReNIhnD8dG/yU0Fk+w==}
     engines: {node: '>=22.0.0'}
-    deprecated: Tact is deprecated. Please learn the Tolk language https://docs.ton.org/tolk/overview instead.
     hasBin: true
 
   '@tact-lang/opcode@0.3.2':
@@ -4021,7 +4020,6 @@ packages:
 
   crypto-js@4.2.0:
     resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
-    deprecated: Active development of CryptoJS has been discontinued. This library is no longer maintained.
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
@@ -7597,7 +7595,7 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
-  '@evaafi/sdk@0.9.7(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)(@tonconnect/sdk@4.1.0)(axios@1.21.0)(crypto-js@4.2.0)':
+  '@evaafi/sdk@1.0.3(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)(@tonconnect/sdk@4.1.0)(axios@1.21.0)(crypto-js@4.2.0)':
     dependencies:
       '@pythnetwork/hermes-client': 2.1.0(axios@1.21.0)
       '@pythnetwork/pyth-ton-js': 0.1.2
