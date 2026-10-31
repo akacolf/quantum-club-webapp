@@ -40,8 +40,6 @@
     "node_modules",
     "functions",
     "scripts",
-    "contracts",
-    "public/sw.js",
-    "app/sw.ts"
+    "contracts"
   ]
 }

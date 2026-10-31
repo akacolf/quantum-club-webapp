@@ -41,6 +41,24 @@ export default function ClientProviders({ children }: { children: React.ReactNod
     hydrateFrensFromSession();
   }, []);
 
+  // Clean up any legacy Service Workers or caches left from previous PWA attempts
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      });
+      if ("caches" in window) {
+        caches.keys().then((names) => {
+          for (const name of names) {
+            caches.delete(name);
+          }
+        });
+      }
+    }
+  }, []);
+
   // Global Telegram Mini App initialization — colors, fullscreen, swipe behavior
   useEffect(() => {
     const WebApp = window.Telegram?.WebApp;
