@@ -17,7 +17,7 @@
   "dependencies": {
     "@ai-sdk/google": "^3.0.140",
     "@ai-sdk/react": "^3.0.322",
-    "@bitcoinerlab/secp256k1": "^1.2.0",
+    "@bitcoinerlab/secp256k1": "^2.0.0",
     "@evaafi/sdk": "^0.9.7",
     "@gsap/react": "^2.1.2",
     "@iconify/react": "^6.0.3",
