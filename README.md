@@ -314,11 +314,13 @@ firebase deploy --only firestore:rules
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+We welcome contributions to Quantum Club! Whether fixing a bug, developing smart contracts in Tolk, enhancing Telegram Mini App performance, or refining UI components, please read our [Contributing Guide](CONTRIBUTING.md) for full details on development setup, architecture conventions, and pull request procedures.
+
+1. Fork the repository and clone your fork.
+2. Create a feature branch off `main` (`git checkout -b feat/amazing-feature`).
+3. Commit your changes following [Conventional Commits](CONTRIBUTING.md#commit-message-conventions).
+4. Run pre-flight checks (`pnpm typecheck`, `pnpm lint`, `pnpm test:contracts`).
+5. Push to your branch and open a Pull Request targeting `main`.
 
 ## License
 
