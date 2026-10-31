@@ -92,16 +92,23 @@ const HomeCarousel = () => {
 
   const openTelegramGroup = () => {
     let newLink = task?.url;
+    if (!newLink) return;
     if (
-      !task?.url?.startsWith("http://") &&
-      !task?.url?.startsWith("https://")
+      !newLink.startsWith("http://") &&
+      !newLink.startsWith("https://")
     ) {
-      newLink = "https://" + task?.url;
+      newLink = "https://" + newLink;
     }
     if (typeof window !== "undefined") {
       const tg = window?.Telegram?.WebApp;
-      if (!tg || !newLink) return;
-      tg.openTelegramLink(newLink);
+      const isTg = newLink.includes("t.me/") || newLink.includes("telegram.me/");
+      if (isTg && tg?.openTelegramLink) {
+        tg.openTelegramLink(newLink);
+      } else if (tg?.openLink) {
+        tg.openLink(newLink);
+      } else {
+        window.open(newLink, "_blank", "noopener,noreferrer");
+      }
     }
   };
 

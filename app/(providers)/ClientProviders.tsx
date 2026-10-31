@@ -61,29 +61,98 @@ export default function ClientProviders({ children }: { children: React.ReactNod
 
   // Global Telegram Mini App initialization — colors, fullscreen, swipe behavior
   useEffect(() => {
-    const WebApp = window.Telegram?.WebApp;
-    if (!WebApp) return;
-
-    WebApp.ready();
-    WebApp.setHeaderColor("#000000");
-    WebApp.setBackgroundColor("#000000");
-    WebApp.setBottomBarColor("#000000");
-    WebApp.disableVerticalSwipes();
-
-    // Request fullscreen on mobile platforms only
-    const platform = WebApp.platform;
-    if (platform === "android" || platform === "ios") {
-      WebApp.requestFullscreen();
-    }
-
-    // Re-request fullscreen when returning from background (Telegram can exit fullscreen on resume)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && (platform === "android" || platform === "ios")) {
-        WebApp.requestFullscreen();
+    const applyFullscreen = (WebApp: NonNullable<typeof window.Telegram>["WebApp"]) => {
+      try {
+        if (typeof WebApp.requestFullscreen === "function" && (!WebApp.isVersionAtLeast || WebApp.isVersionAtLeast("8.0"))) {
+          WebApp.requestFullscreen();
+        } else {
+          WebApp.expand?.();
+        }
+      } catch (err) {
+        console.warn("[Telegram.WebApp] requestFullscreen failed, falling back to expand:", err);
+        WebApp.expand?.();
       }
     };
+
+    const handleFullscreenFailed = () => {
+      const WebApp = window.Telegram?.WebApp;
+      try {
+        WebApp?.expand?.();
+      } catch {}
+    };
+
+    const initTelegramWebApp = () => {
+      const WebApp = window.Telegram?.WebApp;
+      if (!WebApp) return false;
+
+      try {
+        WebApp.ready?.();
+        WebApp.expand?.();
+
+        try {
+          WebApp.setHeaderColor?.("#000000");
+        } catch {}
+
+        try {
+          WebApp.setBackgroundColor?.("#000000");
+        } catch {}
+
+        try {
+          WebApp.setBottomBarColor?.("#000000");
+        } catch {}
+
+        try {
+          WebApp.disableVerticalSwipes?.();
+        } catch {}
+
+        applyFullscreen(WebApp);
+
+        WebApp.onEvent?.("fullscreenFailed", handleFullscreenFailed);
+        return true;
+      } catch (err) {
+        console.error("[Telegram.WebApp] Initialization error:", err);
+        return true;
+      }
+    };
+
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    if (!initTelegramWebApp()) {
+      intervalId = setInterval(() => {
+        if (initTelegramWebApp() && intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }, 50);
+
+      timeoutId = setTimeout(() => {
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }, 3000);
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const WebApp = window.Telegram?.WebApp;
+        if (!WebApp) return;
+        if (!WebApp.isFullscreen) {
+          applyFullscreen(WebApp);
+        }
+      }
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      try {
+        window.Telegram?.WebApp?.offEvent?.("fullscreenFailed", handleFullscreenFailed);
+      } catch {}
+    };
   }, []);
 
   return (
