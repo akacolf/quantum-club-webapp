@@ -1,5 +1,6 @@
 allowBuilds:
   "@firebase/util": true
+  '@parcel/watcher': true
   "@ston-fi/api": true
   "@swc/core": true
   core-js-pure: true

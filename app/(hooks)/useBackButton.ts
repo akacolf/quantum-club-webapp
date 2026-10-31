@@ -40,14 +40,16 @@ export function useTelegramBackButton(path: Route | (string & {}) = "/home", opt
             navigateBack();
         };
 
-        tg?.BackButton.show();
-        tg?.BackButton.onClick(handleBackButtonClick);
+        tg?.BackButton?.show();
+        tg?.BackButton?.onClick(handleBackButtonClick);
 
         return () => {
-            tg?.BackButton.offClick(handleBackButtonClick);
-            tg?.BackButton.hide();
+            tg?.BackButton?.offClick(handleBackButtonClick);
+            tg?.BackButton?.hide();
             if (options?.closeConfirmation) {
-                (tg as any)?.disableClosingConfirmation?.();
+                try {
+                    tg?.disableClosingConfirmation?.();
+                } catch {}
             }
         };
 

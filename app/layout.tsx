@@ -59,7 +59,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
       </head>
       <body className={`${onest.variable} antialiased`}>
-        <Script src="https://telegram.org/js/telegram-web-app.js?57" strategy="afterInteractive"></Script>
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
         <Script src="https://accounts.google.com/gsi/client" strategy="lazyOnload"></Script>
         <AuthProvider>
         <ClientProviders>

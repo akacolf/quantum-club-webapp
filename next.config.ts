@@ -31,7 +31,6 @@ const nextConfig: import('next').NextConfig = {
   typedRoutes: true,
 
   experimental: {
-    viewTransition: true,
     // Persist Turbopack compilation cache across production builds
     turbopackFileSystemCacheForBuild: true,
     // Env var IntelliSense in IDE (pairs with t3-env runtime validation)
