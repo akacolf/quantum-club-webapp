@@ -25,7 +25,7 @@ importers:
         version: 1.2.0
       '@evaafi/sdk':
         specifier: ^0.9.7
-        version: 0.9.7(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)(@tonconnect/sdk@3.4.1)(axios@1.21.0)(crypto-js@4.2.0)
+        version: 0.9.7(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)(@tonconnect/sdk@4.1.0)(axios@1.21.0)(crypto-js@4.2.0)
       '@gsap/react':
         specifier: ^2.1.2
         version: 2.1.2(gsap@3.15.0)(react@19.3.1)
@@ -138,8 +138,8 @@ importers:
         specifier: ^16.3.0
         version: 16.3.0(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)
       '@ton/walletkit':
-        specifier: ^0.0.11
-        version: 0.0.11(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)
+        specifier: ^1.0.0
+        version: 1.0.0(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)
       '@upstash/ratelimit':
         specifier: ^2.2.0
         version: 2.2.0(@upstash/redis@1.40.0)
@@ -2751,6 +2751,7 @@ packages:
   '@tact-lang/compiler@1.6.13':
     resolution: {integrity: sha512-lrgT/kCgC+nuppB4zPSDCAcLQ6EauTJ3NEBX4prEBBRmJ8aexYAfFUfVayskZw96JrDjReNIhnD8dG/yU0Fk+w==}
     engines: {node: '>=22.0.0'}
+    deprecated: Tact is deprecated. Please learn the Tolk language https://docs.ton.org/tolk/overview instead.
     hasBin: true
 
   '@tact-lang/opcode@0.3.2':
@@ -3043,8 +3044,8 @@ packages:
       '@ton/core': '>=0.63.0 <1.0.0'
       '@ton/crypto': '>=3.2.0'
 
-  '@ton/walletkit@0.0.11':
-    resolution: {integrity: sha512-jUv1iybcMLytbs1YpiNDFsm+RGn1f/BdnSkO2Yyr7a27UVlO590PotEaSa5tEGHyJmZTI9OYlyBAnLltH9zAhQ==}
+  '@ton/walletkit@1.0.0':
+    resolution: {integrity: sha512-J37qLDU0AJnXiQv6iW/GMeZlT5gUQEMW89cBPE0hI1CqIhfwJwrf6Bn+WxUd54DvJGJ+S/vK4/MP6eAGE2umZg==}
     deprecated: This package has been deprecated and is no longer maintained.
     peerDependencies:
       '@ton/core': ^0.62.0 || ^0.63.0
@@ -3068,11 +3069,14 @@ packages:
   '@tonconnect/protocol@2.4.0':
     resolution: {integrity: sha512-3xg6sMWIrSgW7/f7iPgOb2BI3LaMScjDMqfu20fcEMbOVvNFk3TGAUKK5cJ3pfvUINsyLgPoylcIbPap37jXiA==}
 
+  '@tonconnect/protocol@3.0.0':
+    resolution: {integrity: sha512-YqwllY12+rXsAZgKD5mlRBb6wXEbe9jKXMCFOV387yCKQDMnwXK1fbgKWrroPp9fPDtQHXhilZQNnuAKS/iR/w==}
+
   '@tonconnect/sdk@2.2.0':
     resolution: {integrity: sha512-8plnAXzaLhapUnt47ZqAOQSIQ8NHSvgTSR74QVJdPWqg8128smgGM4cDYewKdBfTD6Lup0odT1WMMrJu+rE4NQ==}
 
-  '@tonconnect/sdk@3.4.1':
-    resolution: {integrity: sha512-eVH8erAFout89gXYHXua/es+mmLPiW1r7ng9hgHKYQv85HLq8/zzQEkbJpbTlnIuQ6CJ/QKchjMsIgYz3BYCUQ==}
+  '@tonconnect/sdk@4.1.0':
+    resolution: {integrity: sha512-0CfID6/dQxEHZiTMP9PW8yxJpdSzI3rDwvc3a66wZzvf4EKQH4KMh3fF+qFS0PCklHLKPJD9JBQIvcXaDvjz4g==}
 
   '@tonstudio/parser-runtime@0.0.1':
     resolution: {integrity: sha512-5s4fLkXWxa4SAd7QGGvJXe13GakEo0J3VF5dUI/i3A//bGZxMwCp1FcnbErpNs3y0LcAZoXE5FCUnDowDQptqw==}
@@ -4007,6 +4011,7 @@ packages:
 
   crypto-js@4.2.0:
     resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
+    deprecated: Active development of CryptoJS has been discontinued. This library is no longer maintained.
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
@@ -6897,8 +6902,8 @@ packages:
     resolution: {integrity: sha512-6Z7Ma2aVEWisaL6TvBCy7P8rm2LQoPv6dJ7ecIaIixHcwfbJ0x7mWdbcwlIM5IGQxPZSFYeqRCqlOOeKoJYMkw==}
     engines: {node: '>= 4'}
 
-  uuid@13.0.2:
-    resolution: {integrity: sha512-vzi9uRZ926x4XV73S/4qQaTwPXM2JBj6/6lI/byHH1jOpCzb0zDbfytgA9LcN/hzb2l7WQSQnxITOVx5un/wGw==}
+  uuid@14.0.3:
+    resolution: {integrity: sha512-Sc5u1VVln93y1Xnz4R+CunOZc7R9LUcTmhj7Rc7Eg3HVcf7rVn2FOoa812fe0W8p3jD7xeoGSYbfqCGGH2B6xw==}
     hasBin: true
 
   uuid@9.0.1:
@@ -7582,13 +7587,13 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
-  '@evaafi/sdk@0.9.7(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)(@tonconnect/sdk@3.4.1)(axios@1.21.0)(crypto-js@4.2.0)':
+  '@evaafi/sdk@0.9.7(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)(@tonconnect/sdk@4.1.0)(axios@1.21.0)(crypto-js@4.2.0)':
     dependencies:
       '@pythnetwork/hermes-client': 2.1.0(axios@1.21.0)
       '@pythnetwork/pyth-ton-js': 0.1.2
       '@ton/core': 0.63.1(@ton/crypto@3.3.0)
       '@ton/ton': 14.0.0(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)
-      '@tonconnect/sdk': 3.4.1
+      '@tonconnect/sdk': 4.1.0
       crypto-js: 4.2.0
       dotenv: 16.4.5
     transitivePeerDependencies:
@@ -10078,17 +10083,17 @@ snapshots:
       - debug
       - supports-color
 
-  '@ton/walletkit@0.0.11(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)':
+  '@ton/walletkit@1.0.0(@ton/core@0.63.1(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)':
     dependencies:
       '@noble/curves': 1.9.7
       '@scure/bip39': 2.4.0
       '@ton/core': 0.63.1(@ton/crypto@3.3.0)
       '@ton/crypto': 3.3.0
       '@tonconnect/bridge-sdk': 0.2.8
-      '@tonconnect/protocol': 2.4.0
-      '@tonconnect/sdk': 3.4.1
+      '@tonconnect/protocol': 3.0.0
+      '@tonconnect/sdk': 4.1.0
       lru-cache: 11.5.3
-      uuid: 13.0.2
+      uuid: 14.0.3
     optionalDependencies:
       '@ston-fi/omniston-sdk': 0.7.9
     transitivePeerDependencies:
@@ -10131,6 +10136,11 @@ snapshots:
       tweetnacl: 1.0.3
       tweetnacl-util: 0.15.1
 
+  '@tonconnect/protocol@3.0.0':
+    dependencies:
+      tweetnacl: 1.0.3
+      tweetnacl-util: 0.15.1
+
   '@tonconnect/sdk@2.2.0':
     dependencies:
       '@tonconnect/isomorphic-eventsource': 0.0.1
@@ -10139,11 +10149,11 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@tonconnect/sdk@3.4.1':
+  '@tonconnect/sdk@4.1.0':
     dependencies:
       '@tonconnect/isomorphic-eventsource': 0.0.2
       '@tonconnect/isomorphic-fetch': 0.0.3
-      '@tonconnect/protocol': 2.4.0
+      '@tonconnect/protocol': 3.0.0
     transitivePeerDependencies:
       - encoding
 
@@ -14691,7 +14701,7 @@ snapshots:
 
   utility-types@3.11.0: {}
 
-  uuid@13.0.2: {}
+  uuid@14.0.3: {}
 
   uuid@9.0.1:
     optional: true
