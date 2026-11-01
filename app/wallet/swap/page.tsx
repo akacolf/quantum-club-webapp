@@ -48,7 +48,7 @@ import {
     fromUnits,
     type SwapAsset,
 } from "@/lib/stonfi";
-import { useOmnistonSwap, type QuoteParams } from "./hooks/useOmnistonSwap";
+import { useOmnistonSwap, type QuoteParams, type OmnistonQuote, type SupportedBlockchain } from "./hooks/useOmnistonSwap";
 import { useUserContext } from "@/app/(contexts)/UserContext";
 import { swapSchema } from "@/lib/validations";
 import { formatTruncatedAmount } from "@/lib/format";
@@ -90,7 +90,180 @@ function formatDisplayNumber(value: string | number, maxDecimals: number = 4): s
     return num.toFixed(maxDecimals);
 }
 
-const CHAIN_ID = { TON: 607, TRON: 195 } as const;
+export type SupportedDestinationChain =
+    | "TON"
+    | "TRON"
+    | "Ethereum"
+    | "Base"
+    | "BNB"
+    | "Arbitrum"
+    | "Polygon"
+    | "Avalanche";
+
+export interface DestinationChainConfig {
+    id: SupportedDestinationChain;
+    name: string;
+    icon: string;
+    placeholder: string;
+}
+
+export const SUPPORTED_DESTINATION_CHAINS: DestinationChainConfig[] = [
+    { id: "TRON", name: "TRON", icon: "cryptocurrency-color:trx", placeholder: "T... (Tron TRC-20 address)" },
+    { id: "Ethereum", name: "Ethereum", icon: "cryptocurrency-color:eth", placeholder: "0x... (EVM address)" },
+    { id: "Base", name: "Base", icon: "simple-icons:base", placeholder: "0x... (Base EVM address)" },
+    { id: "BNB", name: "BNB Chain", icon: "cryptocurrency-color:bnb", placeholder: "0x... (BNB EVM address)" },
+    { id: "Arbitrum", name: "Arbitrum", icon: "cryptocurrency-color:arb", placeholder: "0x... (Arbitrum EVM address)" },
+    { id: "Polygon", name: "Polygon", icon: "cryptocurrency-color:matic", placeholder: "0x... (Polygon EVM address)" },
+    { id: "Avalanche", name: "Avalanche", icon: "cryptocurrency-color:avax", placeholder: "0x... (Avalanche EVM address)" },
+];
+
+export interface CrossChainAsset {
+    chain: Exclude<SupportedDestinationChain, "TON">;
+    symbol: string;
+    displayName: string;
+    contractAddress: string;
+    decimals: number;
+    imageUrl?: string;
+    kind: "Trc20" | "Erc20" | "Native";
+}
+
+export const CROSS_CHAIN_ASSETS: CrossChainAsset[] = [
+    // TRON
+    {
+        chain: "TRON",
+        symbol: "USDT",
+        displayName: "Tether USD (TRC-20)",
+        contractAddress: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+        decimals: 6,
+        imageUrl: "https://assets.coingecko.com/coins/images/325/small/Tether.png",
+        kind: "Trc20",
+    },
+    {
+        chain: "TRON",
+        symbol: "TRX",
+        displayName: "TRON (Native)",
+        contractAddress: "TRX",
+        decimals: 6,
+        imageUrl: "https://assets.coingecko.com/coins/images/1094/small/tron-logo.png",
+        kind: "Native",
+    },
+    // Ethereum
+    {
+        chain: "Ethereum",
+        symbol: "USDT",
+        displayName: "Tether USD (ERC-20)",
+        contractAddress: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        decimals: 6,
+        imageUrl: "https://assets.coingecko.com/coins/images/325/small/Tether.png",
+        kind: "Erc20",
+    },
+    {
+        chain: "Ethereum",
+        symbol: "USDC",
+        displayName: "USD Coin (Ethereum)",
+        contractAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        decimals: 6,
+        imageUrl: "https://assets.coingecko.com/coins/images/6319/small/usdc.png",
+        kind: "Erc20",
+    },
+    {
+        chain: "Ethereum",
+        symbol: "ETH",
+        displayName: "Ethereum (Native)",
+        contractAddress: "ETH",
+        decimals: 18,
+        imageUrl: "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
+        kind: "Native",
+    },
+    // Base
+    {
+        chain: "Base",
+        symbol: "USDC",
+        displayName: "USD Coin (Base)",
+        contractAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        decimals: 6,
+        imageUrl: "https://assets.coingecko.com/coins/images/6319/small/usdc.png",
+        kind: "Erc20",
+    },
+    {
+        chain: "Base",
+        symbol: "ETH",
+        displayName: "Ether (Base)",
+        contractAddress: "ETH",
+        decimals: 18,
+        imageUrl: "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
+        kind: "Native",
+    },
+    // BNB Chain
+    {
+        chain: "BNB",
+        symbol: "USDT",
+        displayName: "Tether USD (BNB Chain)",
+        contractAddress: "0x55d398326f99059fF775485246999027B3197955",
+        decimals: 18,
+        imageUrl: "https://assets.coingecko.com/coins/images/325/small/Tether.png",
+        kind: "Erc20",
+    },
+    {
+        chain: "BNB",
+        symbol: "BNB",
+        displayName: "BNB (Native)",
+        contractAddress: "BNB",
+        decimals: 18,
+        imageUrl: "https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png",
+        kind: "Native",
+    },
+    // Arbitrum
+    {
+        chain: "Arbitrum",
+        symbol: "USDC",
+        displayName: "USD Coin (Arbitrum)",
+        contractAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        decimals: 6,
+        imageUrl: "https://assets.coingecko.com/coins/images/6319/small/usdc.png",
+        kind: "Erc20",
+    },
+    {
+        chain: "Arbitrum",
+        symbol: "ETH",
+        displayName: "Ether (Arbitrum)",
+        contractAddress: "ETH",
+        decimals: 18,
+        imageUrl: "https://assets.coingecko.com/coins/images/279/small/ethereum.png",
+        kind: "Native",
+    },
+    // Polygon
+    {
+        chain: "Polygon",
+        symbol: "USDC",
+        displayName: "USD Coin (Polygon)",
+        contractAddress: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+        decimals: 6,
+        imageUrl: "https://assets.coingecko.com/coins/images/6319/small/usdc.png",
+        kind: "Erc20",
+    },
+    // Avalanche
+    {
+        chain: "Avalanche",
+        symbol: "USDC",
+        displayName: "USD Coin (Avalanche)",
+        contractAddress: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+        decimals: 6,
+        imageUrl: "https://assets.coingecko.com/coins/images/6319/small/usdc.png",
+        kind: "Erc20",
+    },
+];
+
+const CHAIN_ID: Record<SupportedDestinationChain, SupportedBlockchain> = {
+    TON: "ton",
+    TRON: "tron",
+    Ethereum: "ethereum",
+    Base: "base",
+    BNB: "bnb",
+    Arbitrum: "arbitrum",
+    Polygon: "polygon",
+    Avalanche: "avalanche",
+};
 
 export default function SwapPage() {
     useTelegramBackButton("/wallet");
@@ -154,14 +327,23 @@ export default function SwapPage() {
     const [lastTxHash, setLastTxHash] = useState<string | null>(null);
     const [slippage, setSlippage] = useState("1"); // 1% default
     const [preferGasless, setPreferGasless] = useState(false); // Gasless swap toggle
-    const [confirmedQuote, setConfirmedQuote] = useState<typeof omnistonQuote>(null); // Store quote for confirm step
+    const [confirmedQuote, setConfirmedQuote] = useState<OmnistonQuote | null>(null); // Store quote for confirm step
 
     // Cross-chain state (swap mode synced to URL)
     const [swapMode, setSwapMode] = useQueryState("mode", parseAsStringLiteral(["ton", "cross-chain"] as const).withDefault("ton").withOptions({ history: "replace" }));
-    const [fromChain, setFromChain] = useState<"TON" | "TRON">("TON");
-    const [toChain, setToChain] = useState<"TON" | "TRON">("TON");
-    const [tronDestAddress, setTronDestAddress] = useState("");
+    const [fromChain, setFromChain] = useState<"TON">("TON");
+    const [toChain, setToChain] = useState<SupportedDestinationChain>("TON");
+    const [destAddress, setDestAddress] = useState("");
     const isCrossChain = swapMode === "cross-chain";
+
+    const isDestAddressValid = (() => {
+        if (!destAddress) return false;
+        const trimmed = destAddress.trim();
+        if (toChain === "TRON") {
+            return Boolean(trimmed.match(/^T[1-9A-HJ-NP-Za-km-z]{33}$/));
+        }
+        return Boolean(trimmed.match(/^0x[a-fA-F0-9]{40}$/));
+    })();
 
     // Debounce the amount for quote requests (500ms)
     const debouncedAmount = useDebounce(amount, 500);
@@ -188,7 +370,7 @@ export default function SwapPage() {
             },
             toAsset: {
                 address: toAsset.contractAddress,
-                blockchain: CHAIN_ID[toChain],
+                blockchain: isCrossChain ? CHAIN_ID[toChain] : "ton",
                 kind: toAsset.kind as "Ton" | "Jetton" | "Trc20",
                 symbol: toAsset.symbol,
                 displayName: toAsset.displayName,
@@ -267,6 +449,19 @@ export default function SwapPage() {
         staleTime: 5 * 60 * 1000,
     });
 
+    // Available target assets based on swap mode (TON DEX vs Cross-chain network)
+    const availableToAssets: SwapAsset[] = isCrossChain
+        ? CROSS_CHAIN_ASSETS.filter((a) => a.chain === toChain).map((a) => ({
+            contractAddress: a.contractAddress,
+            kind: a.kind === "Native" ? ("Ton" as const) : ("Jetton" as const),
+            symbol: a.symbol,
+            displayName: a.displayName,
+            decimals: a.decimals,
+            imageUrl: a.imageUrl,
+            blockchain: a.chain.toLowerCase(),
+        }))
+        : swapAssets;
+
     // Set default assets when data loads
     useEffect(() => {
         if (swapAssets.length > 0 && !fromAsset && !toAsset) {
@@ -337,15 +532,15 @@ export default function SwapPage() {
         return "0";
     };
 
-    // Handle swap direction toggle (only if it won't set TRON as source)
+    // Handle swap direction toggle (only for intrachain TON swaps)
     const handleToggleDirection = () => {
-        if (toChain === "TRON") return;
+        if (isCrossChain) {
+            toast.info("Cross-chain swaps currently support TON as the source chain.");
+            return;
+        }
         const temp = fromAsset;
         setFromAsset(toAsset);
         setToAsset(temp);
-        const tempChain = fromChain;
-        setFromChain(toChain);
-        setToChain(tempChain);
         setAmount("");
     };
 
@@ -451,8 +646,8 @@ export default function SwapPage() {
             return false;
         if (!omnistonQuote) return false;
 
-        // Cross-chain: require valid TRON destination address
-        if (isCrossChain && toChain === "TRON" && !tronDestAddress.match(/^T[1-9A-HJ-NP-Za-km-z]{33}$/))
+        // Cross-chain: require valid destination address
+        if (isCrossChain && !isDestAddressValid)
             return false;
 
         const balance = parseFloat(getAssetBalance(fromAsset));
@@ -629,9 +824,9 @@ export default function SwapPage() {
 
             // Execute via Omniston
             await buildAndExecute(confirmedQuote, walletAddress, sendTransaction, {
-                sourceBlockchain: CHAIN_ID[fromChain],
-                destinationBlockchain: CHAIN_ID[toChain],
-                destinationAddress: isCrossChain && toChain === "TRON" ? tronDestAddress : walletAddress,
+                sourceBlockchain: "ton",
+                destinationBlockchain: isCrossChain ? CHAIN_ID[toChain] : "ton",
+                destinationAddress: isCrossChain ? destAddress.trim() : walletAddress,
             });
 
             haptics.success();
@@ -744,17 +939,37 @@ export default function SwapPage() {
                                 onValueChange={(val) => {
                                     setSwapMode(val as typeof swapMode);
                                     if (val === "cross-chain") {
+                                        const initialChain: SupportedDestinationChain = toChain === "TON" ? "TRON" : toChain;
                                         setFromChain("TON");
-                                        setToChain("TRON");
-                                        setToAsset(null);
+                                        setToChain(initialChain);
+                                        const defaultAsset = CROSS_CHAIN_ASSETS.find((a) => a.chain === initialChain);
+                                        if (defaultAsset) {
+                                            setToAsset({
+                                                contractAddress: defaultAsset.contractAddress,
+                                                kind: defaultAsset.kind === "Native" ? ("Ton" as const) : ("Jetton" as const),
+                                                symbol: defaultAsset.symbol,
+                                                displayName: defaultAsset.displayName,
+                                                decimals: defaultAsset.decimals,
+                                                imageUrl: defaultAsset.imageUrl,
+                                                blockchain: initialChain.toLowerCase(),
+                                            });
+                                        }
+                                        setDestAddress("");
                                         setAmount("");
                                     } else {
                                         setFromChain("TON");
                                         setToChain("TON");
-                                        setToAsset(null);
-                                        setTronDestAddress("");
+                                        const tonAsset = swapAssets.find((a) => a.kind === "Ton");
+                                        const firstJetton = swapAssets.find((a) => a.kind === "Jetton");
+                                        if (fromAsset?.kind === "Ton" && firstJetton) {
+                                            setToAsset(firstJetton);
+                                        } else if (tonAsset) {
+                                            setToAsset(tonAsset);
+                                        }
+                                        setDestAddress("");
                                         setAmount("");
                                     }
+                                    cancelQuote();
                                 }}
                                 className="mb-2"
                             >
@@ -770,20 +985,55 @@ export default function SwapPage() {
                                 </TabsList>
                             </Tabs>
 
-                            {/* Cross-chain coming soon */}
-                            {isCrossChain ? (
-                                <div className="py-16 text-center space-y-4">
-                                        <Icon icon="lucide:globe" className="mx-auto w-8 h-8 text-primary" />
-                                        <div>
-                                            <h3 className="text-lg font-bold text-foreground">Cross-chain swaps</h3>
-                                            <p className="text-sm text-muted-foreground mt-1">Coming soon</p>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground max-w-[260px] mx-auto">
-                                            Cross-chain liquidity bridging via STON.fi Omniston is not yet available. Stay tuned for updates.
-                                        </p>
+                            {/* Destination Network selector (Cross-chain only) */}
+                            {isCrossChain && (
+                                <div className="space-y-2 mb-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Destination Network
+                                        </span>
+                                        <span className="text-[11px] text-primary flex items-center gap-1 font-medium">
+                                            <Icon icon="lucide:layers" className="w-3 h-3" />
+                                            Bridge-free via Omniston
+                                        </span>
+                                    </div>
+                                    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                                        {SUPPORTED_DESTINATION_CHAINS.map((chain) => (
+                                            <Button
+                                                key={chain.id}
+                                                type="button"
+                                                variant={toChain === chain.id ? "default" : "outline"}
+                                                size="sm"
+                                                onClick={() => {
+                                                    setToChain(chain.id);
+                                                    const chainAssets = CROSS_CHAIN_ASSETS.filter((a) => a.chain === chain.id);
+                                                    if (chainAssets.length > 0) {
+                                                        const first = chainAssets[0];
+                                                        setToAsset({
+                                                            contractAddress: first.contractAddress,
+                                                            kind: first.kind === "Native" ? ("Ton" as const) : ("Jetton" as const),
+                                                            symbol: first.symbol,
+                                                            displayName: first.displayName,
+                                                            decimals: first.decimals,
+                                                            imageUrl: first.imageUrl,
+                                                            blockchain: chain.id.toLowerCase(),
+                                                        });
+                                                    }
+                                                    cancelQuote();
+                                                }}
+                                                className={`h-8 rounded-full text-xs gap-1.5 shrink-0 transition-colors ${
+                                                    toChain === chain.id 
+                                                        ? "bg-primary text-primary-foreground font-semibold" 
+                                                        : "bg-secondary/60 text-muted-foreground border-border/40 hover:bg-secondary"
+                                                }`}
+                                            >
+                                                <Icon icon={chain.icon} className="w-3.5 h-3.5" />
+                                                {chain.name}
+                                            </Button>
+                                        ))}
+                                    </div>
                                 </div>
-                            ) : (
-                            <>
+                            )}
 
                             {/* From Asset */}
                             <Card className="bg-secondary border-0 rounded-3xl overflow-hidden relative group">
@@ -951,13 +1201,13 @@ export default function SwapPage() {
                                             <DropdownMenuContent className="w-64 bg-popover border-0 text-popover-foreground max-h-80 overflow-y-auto scrollbar-hide">
                                                 <DropdownMenuLabel>Select token</DropdownMenuLabel>
                                                 <DropdownMenuSeparator className="bg-border" />
-                                                {swapAssets.map((asset) => (
+                                                {availableToAssets.map((asset) => (
                                                     <DropdownMenuItem
                                                         key={asset.contractAddress}
                                                         onClick={() => {
                                                             if (
-                                                                asset.contractAddress !==
-                                                                fromAsset?.contractAddress
+                                                                isCrossChain ||
+                                                                asset.contractAddress !== fromAsset?.contractAddress
                                                             ) {
                                                                 setToAsset(asset);
                                                                 cancelQuote();
@@ -986,7 +1236,7 @@ export default function SwapPage() {
                                                             </div>
                                                         </div>
                                                         <div className="text-right text-sm text-muted-foreground">
-                                                            {getAssetBalance(asset, 2)}
+                                                            {isCrossChain ? "" : getAssetBalance(asset, 2)}
                                                         </div>
                                                     </DropdownMenuItem>
                                                 ))}
@@ -1007,6 +1257,32 @@ export default function SwapPage() {
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            {/* Cross-chain recipient destination address */}
+                            {isCrossChain && (
+                                <Card className="bg-secondary border-0 rounded-2xl overflow-hidden p-4 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                            Recipient {toChain} Address
+                                        </Label>
+                                        <span className="text-[10px] text-muted-foreground">
+                                            {toChain === "TRON" ? "TRC-20 (T...)" : "EVM (0x...)"}
+                                        </span>
+                                    </div>
+                                    <Input
+                                        type="text"
+                                        placeholder={toChain === "TRON" ? "Enter TRON address (T...)" : "Enter EVM address (0x...)"}
+                                        value={destAddress}
+                                        onChange={(e) => setDestAddress(e.target.value.trim())}
+                                        className="h-10 bg-background/50 border-0 text-sm font-mono placeholder:text-muted-foreground/40"
+                                    />
+                                    {destAddress && !isDestAddressValid && (
+                                        <p className="text-xs text-destructive">
+                                            Invalid {toChain} address format
+                                        </p>
+                                    )}
+                                </Card>
+                            )}
 
                             {/* Swap Details */}
                             {omnistonQuote && (
@@ -1203,6 +1479,10 @@ export default function SwapPage() {
                                     "Insufficient balance for gas"
                                 ) : fromAsset.kind === "Jetton" && parseFloat(tonBalance) < MIN_GAS_RESERVE_TON ? (
                                     "Insufficient TON for gas"
+                                ) : isCrossChain && !destAddress ? (
+                                    "Enter recipient address"
+                                ) : isCrossChain && !isDestAddressValid ? (
+                                    `Invalid ${toChain} address`
                                 ) : quoteError ? (
                                     "Swap unavailable"
                                 ) : !omnistonQuote ? (
@@ -1211,8 +1491,6 @@ export default function SwapPage() {
                                     "Continue"
                                 )}
                             </Button>
-                            </>
-                            )}
                         </div>
                     )}
 
@@ -1269,6 +1547,18 @@ export default function SwapPage() {
                                     </div>
 
                                     <div className="pt-4 space-y-2 text-sm text-left">
+                                        {isCrossChain && (
+                                            <>
+                                                <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Destination Network</span>
+                                                    <span className="font-semibold text-primary">{toChain}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Recipient Address</span>
+                                                    <span className="font-mono text-xs truncate max-w-[180px]">{destAddress}</span>
+                                                </div>
+                                            </>
+                                        )}
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Rate</span>
                                             <span>

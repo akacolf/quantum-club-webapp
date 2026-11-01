@@ -17,6 +17,7 @@ export interface SwapAsset {
     balanceUsd?: string;
     dexPriceUsd?: string;
     tags?: string[];
+    blockchain?: string | number;
 }
 
 export interface SwapSimulation {
@@ -68,7 +69,7 @@ export async function fetchAllAssets(): Promise<SwapAsset[]> {
             imageUrl: asset.meta?.imageUrl,
             decimals: asset.meta?.decimals ?? 9,
             dexPriceUsd: asset.dexPriceUsd ?? undefined,
-            tags: asset.tags ?? [],
+            tags: (asset.tags ?? []).map(String),
         }));
     } catch (error) {
         console.error("Failed to fetch all assets:", error);
@@ -100,7 +101,7 @@ export async function fetchSwappableAssets(): Promise<SwapAsset[]> {
             imageUrl: asset.meta?.imageUrl,
             decimals: asset.meta?.decimals ?? 9,
             dexPriceUsd: asset.dexPriceUsd ?? undefined,
-            tags: asset.tags ?? [],
+            tags: (asset.tags ?? []).map(String),
         }));
 
         // Sort: TON first, then by symbol alphabetically
