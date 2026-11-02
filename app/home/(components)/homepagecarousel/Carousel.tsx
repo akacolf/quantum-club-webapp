@@ -19,7 +19,7 @@ import tasks from "@/app/earn/tasks";
 import dynamic from "next/dynamic";
 import { Icon } from "@iconify/react";
 
-const Lottie = dynamic(() => import("lottie-react"), {
+const Lottie = dynamic(() => import("lottie-react").then((mod) => mod.Lottie), {
   ssr: false,
   loading: () => <div className="w-6 h-6 bg-white/10 rounded-full animate-pulse" />
 });
@@ -127,7 +127,7 @@ const HomeCarousel = () => {
               <CardHeader className={cardBodyClasses}>
                 <div className={iconWrapClasses}>
                   {lottieData.diamond && (
-                    <Lottie animationData={lottieData.diamond} autoplay loop />
+                    <Lottie src={lottieData.diamond} autoplay loop />
                   )}
                 </div>
                 <div className="min-w-0 space-y-1">
@@ -148,7 +148,7 @@ const HomeCarousel = () => {
                 <CardHeader className={cardBodyClasses}>
                   <div className={iconWrapClasses}>
                     {lottieData.story && (
-                      <Lottie animationData={lottieData.story} loop autoplay />
+                      <Lottie src={lottieData.story} loop autoplay />
                     )}
                   </div>
                   <div className="min-w-0 space-y-1">
@@ -170,7 +170,7 @@ const HomeCarousel = () => {
                 <CardHeader className={cardBodyClasses}>
                   <div className={iconWrapClasses}>
                     {lottieData.goldMedal && (
-                      <Lottie animationData={lottieData.goldMedal} loop autoplay />
+                      <Lottie src={lottieData.goldMedal} loop autoplay />
                     )}
                   </div>
                   <div className="min-w-0 space-y-1">

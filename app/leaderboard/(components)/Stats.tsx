@@ -1,11 +1,11 @@
 import { useRef } from "react";
 import { SvgProps } from "@/types/svg";
 import dynamic from "next/dynamic";
-import type { LottieRefCurrentProps } from "lottie-react";
+import type { LottieHandle } from "lottie-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import smilingAnimationData from "@/public/lottie/smiling-lottie.json";
 
-const Lottie = dynamic(() => import("lottie-react"), {
+const Lottie = dynamic(() => import("lottie-react").then((mod) => mod.Lottie), {
   ssr: false,
   loading: () => <Skeleton className="w-[2.5em] h-[2.5em] rounded" />,
 });
@@ -30,7 +30,7 @@ function Logo({ width = "2.5em", height = "2.5em" }: SvgProps) {
 
 export default function LeaderboardStats() {
   const { totalQuant, totalUsers } = useLeaderboardContext();
-  const lottieRef = useRef<LottieRefCurrentProps>(null);
+  const lottieRef = useRef<LottieHandle>(null);
 
   return (
     <div className="grid grid-cols-2 gap-4 px-4 mt-4">
@@ -47,7 +47,7 @@ export default function LeaderboardStats() {
       <div className="flex flex-col items-center justify-center text-center space-y-2 py-4">
         <div className="p-2">
           <Lottie
-            animationData={smilingAnimationData}
+            src={smilingAnimationData}
             lottieRef={lottieRef}
             autoplay={true}
             loop={1}

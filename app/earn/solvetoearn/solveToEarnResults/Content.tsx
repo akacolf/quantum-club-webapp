@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { usePlayAgainMutation } from "@/app/(hooks)/queries/use-mining-data";
 import rocketAnimationData from "@/public/lottie/rocket-lottie.json";
 import dynamic from "next/dynamic";
-import type { LottieRefCurrentProps } from "lottie-react";
+import type { LottieHandle } from "lottie-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useRef, useState } from "react";
 
-const Lottie = dynamic(() => import("lottie-react"), {
+const Lottie = dynamic(() => import("lottie-react").then((mod) => mod.Lottie), {
   ssr: false,
   loading: () => <Skeleton className="w-24 h-24 rounded-full" />,
 });
@@ -17,7 +17,7 @@ import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 import { Button } from "@/components/ui/button";
 
 const SolveToEarnResults = () => {
-  const lottieRef = useRef<LottieRefCurrentProps>(null);
+  const lottieRef = useRef<LottieHandle>(null);
   const [buttonClicked, setButtonClicked] = useState(false);
 
   const { remainingSolveToEarn, telegramId, setRemainingSolveToEarn } = useUserContext();
@@ -70,7 +70,7 @@ const SolveToEarnResults = () => {
           <div className="relative w-24 h-24 flex items-center justify-center">
             <Lottie
               lottieRef={lottieRef}
-              animationData={rocketAnimationData}
+              src={rocketAnimationData}
               loop={true}
               autoplay={true}
               style={{width: "100%", height: "100%"}}

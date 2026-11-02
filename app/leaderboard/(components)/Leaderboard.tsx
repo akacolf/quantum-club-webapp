@@ -11,7 +11,7 @@ import dynamic from "next/dynamic";
 import trophyAnimationData from "@/public/lottie/trophy-lottie.json";
 import { VerifiedBadge, getVerificationKind } from "@/app/ecosystem/social/_components/VerifiedBadge";
 
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+const Lottie = dynamic(() => import("lottie-react").then((mod) => mod.Lottie), { ssr: false });
 
 interface LeaderboardListProps {
     fetchNextPage: () => void;
@@ -49,7 +49,7 @@ export default function LeaderboardList({ fetchNextPage, hasNextPage, isFetching
         <div className="mt-6 px-4 pb-24">
             <div className="flex items-center gap-2 mb-2">
                 <div className="w-5 h-5">
-                  <Lottie animationData={trophyAnimationData} loop={false} autoplay={true} />
+                  <Lottie src={trophyAnimationData} loop={false} autoplay={true} />
                 </div>
                 <span className="font-semibold text-white">Rankings</span>
             </div>
