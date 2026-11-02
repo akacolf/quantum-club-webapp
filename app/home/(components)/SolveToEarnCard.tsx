@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 // Dynamic import Lottie for better performance
-const Lottie = dynamic(() => import("lottie-react"), { 
+const Lottie = dynamic(() => import("lottie-react").then((mod) => mod.Lottie), { 
   ssr: false,
   loading: () => <div className="w-full h-full bg-yellow-500/20 rounded-full animate-pulse" />
 });
@@ -19,7 +19,7 @@ export default function SolveToEarnCard({ remainingSolveToEarn, goToSolveToEarn 
           <div className="shrink-0">
             <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
               <Lottie
-                animationData={hundredAnimationData}
+                src={hundredAnimationData}
                 loop={true}
                 autoplay={true}
                 style={{ width: "100%", height: "100%" }}

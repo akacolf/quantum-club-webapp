@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import constructionAnimation from "@/public/lottie/construction-lottie.json";
 
-const Lottie = dynamic(() => import("lottie-react"), {
+const Lottie = dynamic(() => import("lottie-react").then((mod) => mod.Lottie), {
   ssr: false,
   loading: () => <Skeleton className="w-full h-full rounded-lg" />,
 });
@@ -27,7 +27,7 @@ const MaintenanceContent = () => {
             <div className="relative z-10 flex flex-col items-center w-full max-w-sm space-y-8 md:space-y-10">
                 <div className="w-24 h-24 md:w-32 md:h-32 flex items-center justify-center">
                     <Lottie 
-                        animationData={constructionAnimation} 
+                        src={constructionAnimation} 
                         loop={true} 
                         autoplay={true}
                         className="w-full h-full"

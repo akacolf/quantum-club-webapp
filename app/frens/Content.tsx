@@ -11,10 +11,10 @@ import { ButtonLoader } from "@/app/(components)/ButtonLoader";
 import InvitePopup from "./(components)/InvitePopup";
 import handshakeAnimationData from "@/public/lottie/handshake-lottie.json";
 import dynamic from "next/dynamic";
-import type { LottieRefCurrentProps } from "lottie-react";
+import type { LottieHandle } from "lottie-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const Lottie = dynamic(() => import("lottie-react"), {
+const Lottie = dynamic(() => import("lottie-react").then((mod) => mod.Lottie), {
   ssr: false,
   loading: () => <Skeleton className="w-12 h-12 rounded-lg" />,
 });
@@ -32,7 +32,7 @@ const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
 
 const FrensContent = () => {
-  const lottieRef = useRef<LottieRefCurrentProps>(null);
+  const lottieRef = useRef<LottieHandle>(null);
   const { referralsNum, setReferralNum } = useFrenContext();
   const { telegramId, username, SetMainQuantAmount } = useUserContext();
   const [pendingRewards, setPendingRewards] = useState(0);
@@ -209,7 +209,7 @@ const FrensContent = () => {
                       <div className="w-12 h-12">
                         <Lottie
                           lottieRef={lottieRef}
-                          animationData={handshakeAnimationData}
+                          src={handshakeAnimationData}
                           loop={1}
                           autoplay={true}
                         />

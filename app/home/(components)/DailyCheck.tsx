@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 // Dynamic import Lottie for better performance
-const Lottie = dynamic(() => import("lottie-react"), { 
+const Lottie = dynamic(() => import("lottie-react").then((mod) => mod.Lottie), { 
   ssr: false,
   loading: () => <div className="w-full h-full bg-orange-500/20 rounded-full animate-pulse" />
 });
@@ -30,7 +30,7 @@ export default function DailyCheckIn({
           <div className="shrink-0">
             <div className="w-10 h-10 sm:w-12 sm:h-12">
               <Lottie
-                animationData={fireAnimationData}
+                src={fireAnimationData}
                 loop={true}
                 autoplay={true}
               />

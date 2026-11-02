@@ -26,7 +26,7 @@ import { useUserContext } from "@/app/(contexts)/UserContext";
 import { useTelegramBackButton } from "@/app/(hooks)/useBackButton";
 
 // Lazy load Lottie (large library)
-const Lottie = dynamic(() => import("lottie-react"), {
+const Lottie = dynamic(() => import("lottie-react").then((mod) => mod.Lottie), {
   ssr: false,
   loading: () => <div className="w-5 h-5 bg-white/10 rounded animate-pulse" />
 });
@@ -489,7 +489,7 @@ export default function TradePage() {
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.fire ? (
                                             <Lottie
-                                                animationData={lottieData.fire}
+                                                src={lottieData.fire}
                                                 loop={true}
                                                 autoplay={true}
                                                 className="w-4 h-4"
@@ -507,7 +507,7 @@ export default function TradePage() {
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.sparkles ? (
                                             <Lottie
-                                                animationData={lottieData.sparkles}
+                                                src={lottieData.sparkles}
                                                 loop={true}
                                                 autoplay={true}
                                                 className="w-4 h-4"
@@ -525,7 +525,7 @@ export default function TradePage() {
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.diamond ? (
                                             <Lottie
-                                                animationData={lottieData.diamond}
+                                                src={lottieData.diamond}
                                                 loop={true}
                                                 autoplay={true}
                                                 className="w-4 h-4"
@@ -543,7 +543,7 @@ export default function TradePage() {
                                     <div className="flex items-center justify-center gap-1">
                                         {lottieData.rocket ? (
                                             <Lottie
-                                                animationData={lottieData.rocket}
+                                                src={lottieData.rocket}
                                                 loop={true}
                                                 autoplay={true}
                                                 className="w-4 h-4"

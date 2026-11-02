@@ -1,4 +1,6 @@
-import type { LottieRefCurrentProps } from "lottie-react";
+import type { LottieHandle } from "lottie-react";
+
+export type LottieRefCurrentProps = LottieHandle;
 import { JSX } from "react";
 
 export interface TaskHistory {

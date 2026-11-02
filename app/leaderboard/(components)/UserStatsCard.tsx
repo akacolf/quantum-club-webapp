@@ -12,7 +12,7 @@ import {
   getVerificationKind,
 } from "@/app/ecosystem/social/_components/VerifiedBadge";
 
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+const Lottie = dynamic(() => import("lottie-react").then((mod) => mod.Lottie), { ssr: false });
 
 function Logo({ width = "2.5em", height = "2.5em" }: SvgProps) {
   return (
@@ -48,7 +48,7 @@ export default function UserStatsCard() {
     <div className="flex flex-col mt-6 px-4">
       <div className="flex items-center gap-2 mb-3">
         <div className="w-5 h-5">
-          <Lottie animationData={trophyAnimationData} loop={false} autoplay={true} />
+          <Lottie src={trophyAnimationData} loop={false} autoplay={true} />
         </div>
         <span className="font-semibold text-white">Your ranking</span>
       </div>
