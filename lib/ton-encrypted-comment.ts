@@ -20,7 +20,7 @@
 
 import { beginCell, Cell, Address } from "@ton/core";
 import { getSecureRandomBytes, keyPairFromSeed, sha512 } from "@ton/crypto";
-import { x25519, edwardsToMontgomeryPub, edwardsToMontgomeryPriv } from "@noble/curves/ed25519";
+import { x25519, ed25519 } from "@noble/curves/ed25519.js";
 import aesjs from "aes-js";
 
 /**
@@ -176,8 +176,8 @@ export async function encryptComment(
     }
     
     // Convert Ed25519 keys to X25519 for ECDH key exchange
-    const myX25519Private = edwardsToMontgomeryPriv(myPrivateKey);
-    const theirX25519Public = edwardsToMontgomeryPub(recipientPublicKey);
+    const myX25519Private = ed25519.utils.toMontgomerySecret(myPrivateKey);
+    const theirX25519Public = ed25519.utils.toMontgomery(recipientPublicKey);
     
     // Get shared secret using X25519
     const sharedSecret = x25519.getSharedSecret(myX25519Private, theirX25519Public);
