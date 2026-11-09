@@ -15,7 +15,7 @@
     "check:updates": "node scripts/check-package-updates.mjs"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.140",
+    "@ai-sdk/google": "^4.0.112",
     "@ai-sdk/react": "^3.0.322",
     "@bitcoinerlab/secp256k1": "^2.0.0",
     "@evaafi/sdk": "^1.0.3",
